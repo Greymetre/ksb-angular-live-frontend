@@ -1,0 +1,61 @@
+.main-header {
+  height: 70px;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+.logo-area {
+  width: 280px;
+  height: 100%;
+  background: #1a3a6b;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+}
+
+.brand-logo {
+  width: 198px;
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.client-logo {
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+
+  .ksb-logo {
+    width: 92px;
+    height: auto;
+    display: block;
+  }
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 28px;
+  .user-name { font-weight: 500; color: #333; font-size: 15px; }
+  .user-avatar {
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    &:hover { background: #f0f0f0; }
+  }
+}

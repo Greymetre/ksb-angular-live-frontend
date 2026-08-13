@@ -1,0 +1,199 @@
+<div class="user-target-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">
+    {{ toast.message }}
+  </div>
+
+  <div class="page-heading">
+    <div class="page-icon">
+      <span class="material-icons">loupe</span>
+    </div>
+    <h2 class="page-title">User TargetList</h2>
+    <button type="button" class="filter-toggle-btn" [class.active]="showFilters" title="Filters" (click)="showFilters = !showFilters">
+      <span class="material-icons">filter_alt</span>
+    </button>
+  </div>
+
+  <div class="filter-panel" *ngIf="showFilters">
+    <div class="filter-field">
+      <label>Branch</label>
+      <select [(ngModel)]="selectedBranchId" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">All</option>
+        <option *ngFor="let branch of branches" [ngValue]="branch.id">{{ branch.name | firstCaps }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>User Name</label>
+      <app-searchable-select [options]="users" labelKey="name" [selected]="selectedUserId" placeholder="All Users" (selectedChange)="selectedUserId=$event; applyFilters()"></app-searchable-select>
+    </div>
+    <div class="filter-field">
+      <label>Zone</label>
+      <select [(ngModel)]="selectedDivisionId" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">All</option>
+        <option *ngFor="let division of divisions" [ngValue]="division.id">{{ division.name | firstCaps }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Type</label>
+      <select [(ngModel)]="selectedType" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        <option value="primary">Primary</option>
+        <option value="secondary">Secondary</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Month</label>
+      <select [(ngModel)]="selectedMonth" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        <option *ngFor="let month of months" [value]="month">{{ month }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Financial Year</label>
+      <select [(ngModel)]="selectedFinancialYear" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        <option *ngFor="let year of financialYears" [value]="year">{{ year }}</option>
+      </select>
+    </div>
+    <div class="filter-actions">
+      <button type="button" class="mini-btn light" (click)="clearFilters()">Clear</button>
+    </div>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="100"/> entries</label>
+    </div>
+    <div class="toolbar-right">
+      <div class="icon-action-group">
+        <input #fileInput type="file" class="hidden-file" accept=".xlsx,.xls" (change)="uploadTargets($event)"/>
+        <button class="btn-icon-round" [title]="uploading ? 'Importing...' : 'Upload User Target'" (click)="triggerUpload()" [disabled]="uploading || !canUpload" *ngIf="canUpload">
+          <span class="material-icons">{{ uploading ? 'hourglass_top' : 'cloud_upload' }}</span>
+        </button>
+        <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download User Target'" (click)="exportTargets()" [disabled]="exporting || !canExport" *ngIf="canExport">
+          <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
+        </button>
+        <button class="btn-icon-round" [title]="templating ? 'Preparing template...' : 'Download Template'" (click)="downloadTemplate()" [disabled]="templating || !canTemplate" *ngIf="canTemplate">
+          <span class="material-icons">{{ templating ? 'hourglass_top' : 'text_snippet' }}</span>
+        </button>
+        <button class="btn-icon-round add-btn" title="Add User Target" (click)="openCreateModal()" *ngIf="canCreate">
+          <span class="material-icons">add</span>
+        </button>
+      </div>
+      <div class="search-group">
+        <label>Search:</label>
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="scheduleSearch()" class="table-search"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading user targets...</div>
+    <div class="table-scroll">
+      <table class="data-table user-target-table">
+        <thead>
+          <tr>
+            <th>No <span class="material-icons sort-icon">arrow_upward</span></th>
+            <th>Action</th>
+            <th>Emp Code</th>
+            <th>User Name</th>
+            <th>Designation</th>
+            <th>Branch Name</th>
+            <th>Sales Type</th>
+            <th>Month</th>
+            <th>Year</th>
+            <th>Target</th>
+            <th>Achievement</th>
+            <th>Achievement Percent</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of pagedTargets; let index = index">
+            <td>{{ pageStart + index + 1 }}</td>
+            <td>
+              <div class="action-btns">
+                <button class="btn-edit" title="Edit User Target" (click)="openEditModal(row)" *ngIf="canEdit">
+                  <span class="material-icons">edit</span>
+                </button>
+                <button class="btn-danger" title="Delete User Target" (click)="deleteTarget(row)" *ngIf="canDelete">
+                  <span class="material-icons">close</span>
+                </button>
+              </div>
+            </td>
+            <td>{{ row.employeeCode }}</td>
+            <td class="name-cell">{{ row.userName | firstCaps }}</td>
+            <td>{{ row.designationName | firstCaps }}</td>
+            <td>{{ row.branchName | firstCaps }}</td>
+            <td>{{ row.type | firstCaps }}</td>
+            <td>{{ row.month }}</td>
+            <td>{{ row.year }}</td>
+            <td>{{ row.target }}</td>
+            <td>{{ row.achievement }}</td>
+            <td>{{ row.achievementPercent }}</td>
+          </tr>
+          <tr *ngIf="!loading && pagedTargets.length === 0">
+            <td colspan="12" class="empty-row">No user targets found</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <app-pagination [total]="filteredTargets.length" [pageSize]="showEntries" [(page)]="currentPage"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box user-target-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <span class="material-icons">loupe</span>
+    </div>
+    <div class="modal-header-row">
+      <h3>{{ form.id ? 'Edit User Target' : 'Add User Target' }}</h3>
+      <button class="modal-close-btn" (click)="closeModal()" [disabled]="saving">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="modal-field">
+          <label>User <span class="req">*</span></label>
+          <app-searchable-select [options]="users" labelKey="name" [selected]="form.userId" placeholder="Select User" (selectedChange)="form.userId=$event"></app-searchable-select>
+        </div>
+        <div class="modal-field">
+          <label>Type <span class="req">*</span></label>
+          <select [(ngModel)]="form.type">
+            <option value="primary">Primary</option>
+            <option value="secondary">Secondary</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>Month <span class="req">*</span></label>
+          <select [(ngModel)]="form.month">
+            <option value="">Select Month</option>
+            <option *ngFor="let month of months" [value]="month">{{ month }}</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>Year <span class="req">*</span></label>
+          <select [(ngModel)]="form.year">
+            <option value="">Select Year</option>
+            <option *ngFor="let year of years" [value]="year">{{ year }}</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>Target <span class="req">*</span></label>
+          <input type="number" [(ngModel)]="form.target" min="0" step="0.01" placeholder="Target"/>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-submit-modal" (click)="submitTarget()" [disabled]="saving">
+          {{ saving ? 'Saving...' : 'SUBMIT' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

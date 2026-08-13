@@ -1,0 +1,364 @@
+<div class="users-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">
+    {{ toast.message }}
+  </div>
+
+  <div class="page-heading">
+    <div class="page-icon">
+      <span class="material-icons">assignment_ind</span>
+    </div>
+    <h2 class="page-title">UserList</h2>
+    <button type="button" class="filter-toggle-btn" [class.active]="showFilters" title="Filters" (click)="showFilters = !showFilters">
+      <span class="material-icons">filter_alt</span>
+    </button>
+  </div>
+
+  <div class="filter-panel" *ngIf="showFilters">
+    <div class="filter-field">
+      <label>User Type</label>
+      <select [(ngModel)]="selectedUserType" (ngModelChange)="applyFilters()">
+        <option value="employee">Employee</option>
+        <option value="customer">Customer</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Active</label>
+      <select [(ngModel)]="selectedActive" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        <option value="Y">Active</option>
+        <option value="N">Inactive</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Zone</label>
+      <select [(ngModel)]="selectedDivisionId" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">All</option>
+        <option *ngFor="let division of divisions" [ngValue]="division.id">{{ division.name | firstCaps }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Branch</label>
+      <select [(ngModel)]="selectedBranchId" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        <option *ngFor="let branch of branches" [value]="branch.id">{{ branch.name | firstCaps }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Department</label>
+      <select [(ngModel)]="selectedDepartmentId" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">All</option>
+        <option *ngFor="let department of departments" [ngValue]="department.id">{{ department.name | firstCaps }}</option>
+      </select>
+    </div>
+    <div class="filter-actions">
+      <button type="button" class="mini-btn light" (click)="clearFilters()">Clear</button>
+    </div>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="100"/> entries</label>
+    </div>
+    <div class="toolbar-right">
+      <div class="icon-action-group">
+        <input #fileInput type="file" class="hidden-file" accept=".xlsx,.xls,.csv" (change)="uploadUsers($event)"/>
+        <button class="btn-icon-round" [title]="uploading ? 'Importing...' : 'Upload Users'" (click)="triggerUpload()" [disabled]="uploading || !canUpload" *ngIf="canUpload">
+          <span class="material-icons">{{ uploading ? 'hourglass_top' : 'cloud_upload' }}</span>
+        </button>
+        <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Export Users'" (click)="exportUsers()" [disabled]="exporting || !canExport" *ngIf="canExport">
+          <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
+        </button>
+        <button class="btn-icon-round" [title]="templating ? 'Preparing template...' : 'Download Template'" (click)="downloadTemplate()" [disabled]="templating || !canTemplate" *ngIf="canTemplate">
+          <span class="material-icons">{{ templating ? 'hourglass_top' : 'text_snippet' }}</span>
+        </button>
+        <button class="btn-icon-round add-btn" title="Add User" (click)="openCreateModal()" *ngIf="canCreate">
+          <span class="material-icons">add</span>
+        </button>
+      </div>
+      <div class="search-group">
+        <label>Search:</label>
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="scheduleSearch()" class="table-search"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading users...</div>
+    <div class="table-scroll">
+      <table class="data-table users-table">
+        <thead>
+          <tr>
+            <th>No <span class="material-icons sort-icon">arrow_upward</span></th>
+            <th>Action</th>
+            <th>Active</th>
+            <th>Emp Code</th>
+            <th>Name</th>
+            <th>Branches</th>
+            <th>Designation</th>
+            <th>Zone</th>
+            <th>WhatsApp</th>
+            <th>Mobile</th>
+            <th>Email</th>
+            <th>Reporting Person</th>
+            <th>Joining Date</th>
+            <th>Roles</th>
+            <th>Password</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of pagedUsers; let index = index">
+            <td>{{ pageStart + index + 1 }}</td>
+            <td>
+              <div class="action-btns">
+                <button class="btn-edit" title="Edit User" (click)="openEditModal(user)" *ngIf="canEdit">
+                  <span class="material-icons">edit</span>
+                </button>
+                <button class="btn-danger" title="Delete User" (click)="deleteUser(user)" *ngIf="canDelete">
+                  <span class="material-icons">close</span>
+                </button>
+              </div>
+            </td>
+            <td>
+              <label class="toggle-switch">
+                <input type="checkbox" [checked]="user.active === 'Y'" (change)="toggleActive(user, $event)" [disabled]="!canChangeStatus"/>
+                <span class="slider"></span>
+              </label>
+            </td>
+            <td>{{ user.employeeCodes }}</td>
+            <td class="name-cell">{{ user.name }}</td>
+            <td class="wide-cell" [title]="user.branchNames || ''">{{ user.branchNames }}</td>
+            <td>{{ user.designationName }}</td>
+            <td>{{ user.divisionName }}</td>
+            <td class="whatsapp-cell">
+              <a
+                *ngIf="whatsappUrl(user.mobile) as url; else noWhatsApp"
+                class="whatsapp-link"
+                [href]="url"
+                target="_blank"
+                rel="noopener noreferrer"
+                [attr.aria-label]="'Open WhatsApp chat with ' + user.name"
+                [title]="'WhatsApp: ' + user.mobile">
+                <svg viewBox="0 0 32 32" aria-hidden="true">
+                  <path d="M16.04 3a12.8 12.8 0 0 0-11.1 19.17L3 29l7-1.84A12.8 12.8 0 1 0 16.04 3Zm0 23.43c-1.9 0-3.75-.5-5.37-1.45l-.38-.23-4.15 1.09 1.11-4.04-.25-.4a10.62 10.62 0 1 1 9.04 5.03Zm5.83-7.95c-.32-.16-1.89-.93-2.18-1.04-.3-.11-.51-.16-.72.16-.22.32-.83 1.04-1.02 1.25-.18.22-.37.24-.69.08-.32-.16-1.35-.5-2.57-1.59a9.64 9.64 0 0 1-1.78-2.21c-.19-.32-.02-.5.14-.66.14-.14.32-.37.48-.56.16-.18.21-.32.32-.53.1-.22.05-.4-.03-.56-.08-.16-.72-1.73-.99-2.37-.26-.63-.52-.54-.72-.55h-.61c-.22 0-.56.08-.86.4-.29.32-1.12 1.1-1.12 2.67s1.15 3.1 1.31 3.31c.16.22 2.26 3.45 5.47 4.84.77.33 1.36.53 1.83.68.77.24 1.46.21 2.01.13.62-.09 1.89-.77 2.16-1.52.27-.74.27-1.38.19-1.51-.08-.14-.29-.22-.61-.38Z"/>
+                </svg>
+              </a>
+              <ng-template #noWhatsApp><span class="whatsapp-link disabled" title="WhatsApp number unavailable"><span class="material-icons">chat</span></span></ng-template>
+            </td>
+            <td>{{ user.mobile }}</td>
+            <td class="wide-cell" [title]="user.email || ''">{{ user.email }}</td>
+            <td>{{ user.reportingName }}</td>
+            <td>{{ formatDate(user.dateOfJoining) }}</td>
+            <td class="wide-cell" [title]="roleSummary(user)">{{ roleSummary(user) }}</td>
+            <td>{{ user.passwordString }}</td>
+          </tr>
+          <tr *ngIf="!loading && pagedUsers.length === 0">
+            <td colspan="15" class="empty-row">No users found</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <app-pagination [total]="totalUsers" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showUserModal" (click)="closeUserModal()">
+  <div class="modal-box user-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <span class="material-icons">assignment_ind</span>
+    </div>
+    <div class="modal-header-row">
+      <h3>{{ userForm.id ? 'Edit User' : 'Add User' }}</h3>
+      <button class="modal-close-btn" (click)="closeUserModal()" [disabled]="saving">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="modal-field">
+          <label>First Name</label>
+          <input type="text" [(ngModel)]="userForm.firstName" placeholder="First name"/>
+        </div>
+        <div class="modal-field">
+          <label>Last Name</label>
+          <input type="text" [(ngModel)]="userForm.lastName" placeholder="Last name"/>
+        </div>
+        <div class="modal-field">
+          <label>Name <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="userForm.name" placeholder="Full name"/>
+        </div>
+        <div class="modal-field">
+          <label>Employee Code</label>
+          <input type="text" [(ngModel)]="userForm.employeeCodes" placeholder="Employee code"/>
+        </div>
+        <div class="modal-field">
+          <label>Mobile <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="userForm.mobile" placeholder="Mobile number"/>
+        </div>
+        <div class="modal-field">
+          <label>Email</label>
+          <input type="email" [(ngModel)]="userForm.email" placeholder="Email"/>
+        </div>
+        <div class="modal-field">
+          <label>Password <span class="req" *ngIf="!userForm.id">*</span></label>
+          <input type="password" [(ngModel)]="userForm.password" [placeholder]="userForm.id ? 'Leave blank to keep existing' : 'Password'"/>
+        </div>
+        <div class="modal-field">
+          <label>Active</label>
+          <select [(ngModel)]="userForm.active">
+            <option value="Y">Active</option>
+            <option value="N">Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid two-wide">
+        <div class="modal-field">
+          <label>Branches</label>
+          <div class="multi-select">
+            <button type="button" class="multi-select-trigger" (click)="toggleDropdown('branches')">
+              <span>{{ branchLabel }}</span>
+              <span class="material-icons">expand_more</span>
+            </button>
+            <div class="selected-chips" *ngIf="selectedBranches.length">
+              <span class="selected-chip" *ngFor="let branch of selectedBranches">
+                {{ branch.name | firstCaps }}
+                <button type="button" title="Remove" (click)="removeSelection('branches', branch.id)">
+                  <span class="material-icons">close</span>
+                </button>
+              </span>
+            </div>
+            <div class="multi-select-menu" *ngIf="branchDropdownOpen">
+              <div class="multi-select-search">
+                <span class="material-icons">search</span>
+                <input type="text" [(ngModel)]="branchDropdownSearch" placeholder="Search branch"/>
+              </div>
+              <div class="dropdown-actions">
+                <button type="button" class="mini-btn" (click)="selectAll('branches')">Select All</button>
+                <button type="button" class="mini-btn light" (click)="clearSelection('branches')">Unselect All</button>
+              </div>
+              <button type="button" class="multi-select-option" [class.selected]="hasSelection('branches', branch.id)" *ngFor="let branch of filteredModalBranches" (click)="toggleSelection('branches', branch.id)">
+                <span class="option-check"><span class="material-icons" *ngIf="hasSelection('branches', branch.id)">check</span></span>
+                <span class="option-name">{{ branch.name | firstCaps }}</span>
+              </button>
+              <div class="dropdown-empty" *ngIf="filteredModalBranches.length === 0">No branches found</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-field">
+          <label>Roles</label>
+          <div class="multi-select">
+            <button type="button" class="multi-select-trigger" (click)="toggleDropdown('roles')">
+              <span>{{ roleLabel }}</span>
+              <span class="material-icons">expand_more</span>
+            </button>
+            <div class="selected-chips" *ngIf="selectedRoles.length">
+              <span class="selected-chip" *ngFor="let role of selectedRoles">
+                {{ role.name | firstCaps }}
+                <button type="button" title="Remove" (click)="removeSelection('roles', role.id)">
+                  <span class="material-icons">close</span>
+                </button>
+              </span>
+            </div>
+            <div class="multi-select-menu" *ngIf="roleDropdownOpen">
+              <div class="multi-select-search">
+                <span class="material-icons">search</span>
+                <input type="text" [(ngModel)]="roleDropdownSearch" placeholder="Search role"/>
+              </div>
+              <div class="dropdown-actions">
+                <button type="button" class="mini-btn" (click)="selectAll('roles')">Select All</button>
+                <button type="button" class="mini-btn light" (click)="clearSelection('roles')">Unselect All</button>
+              </div>
+              <button type="button" class="multi-select-option" [class.selected]="hasSelection('roles', role.id)" *ngFor="let role of filteredModalRoles" (click)="toggleSelection('roles', role.id)">
+                <span class="option-check"><span class="material-icons" *ngIf="hasSelection('roles', role.id)">check</span></span>
+                <span class="option-name">{{ role.name | firstCaps }}</span>
+              </button>
+              <div class="dropdown-empty" *ngIf="filteredModalRoles.length === 0">No roles found</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="modal-field">
+          <label>Designation</label>
+          <app-searchable-select [options]="designations" labelKey="name" [selected]="userForm.designationId" placeholder="Select designation" (selectedChange)="userForm.designationId=$event"></app-searchable-select>
+        </div>
+        <div class="modal-field">
+          <label>Zone</label>
+          <app-searchable-select [options]="divisions" labelKey="name" [selected]="userForm.divisionId" placeholder="Select Zone" (selectedChange)="userForm.divisionId=$event"></app-searchable-select>
+        </div>
+        <div class="modal-field">
+          <label>Department</label>
+          <app-searchable-select [options]="departments" labelKey="name" [selected]="userForm.departmentId" placeholder="Select department" (selectedChange)="userForm.departmentId=$event"></app-searchable-select>
+        </div>
+        <div class="modal-field">
+          <label>Reporting Person</label>
+          <app-searchable-select [options]="reportings" labelKey="name" [selected]="userForm.reportingId" placeholder="Select reporting person" [pageSize]="25" (selectedChange)="userForm.reportingId=$event"></app-searchable-select>
+        </div>
+        <div class="modal-field">
+          <label>City Assigned</label>
+          <app-searchable-select
+            [options]="citySelectOptions"
+            [selected]="userForm.cityIds"
+            [multiple]="true"
+            placeholder="Select cities"
+            (selectedChange)="userForm.cityIds = $event"
+          ></app-searchable-select>
+        </div>
+        <div class="modal-field">
+          <label>Location</label>
+          <input type="text" [(ngModel)]="userForm.location" placeholder="Location"/>
+        </div>
+        <div class="modal-field split-field">
+          <div>
+            <label>Latitude</label>
+            <input type="text" [(ngModel)]="userForm.latitude" placeholder="Latitude"/>
+          </div>
+          <div>
+            <label>Longitude</label>
+            <input type="text" [(ngModel)]="userForm.longitude" placeholder="Longitude"/>
+          </div>
+        </div>
+        <div class="modal-field">
+          <label>Payroll</label>
+          <select [(ngModel)]="userForm.payroll">
+            <option value="">Select payroll</option>
+            <option value="ON">ON</option>
+            <option value="OFF">OFF</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>Sales Type</label>
+          <select [(ngModel)]="userForm.salesType">
+            <option value="">Select sales type</option>
+            <option value="Primary">Primary</option>
+            <option value="Secondary">Secondary</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>Attendance Summary</label>
+          <select [(ngModel)]="userForm.showAttandanceReport">
+            <option value="N">No</option>
+            <option value="Y">Yes</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>Date of Joining</label>
+          <input type="date" [(ngModel)]="userForm.dateOfJoining"/>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-submit-modal" (click)="submitUser()" [disabled]="saving || optionsLoading">
+          {{ saving ? 'Saving...' : 'SUBMIT' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

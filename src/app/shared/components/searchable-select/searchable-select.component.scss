@@ -1,0 +1,140 @@
+.select2-like {
+  position: relative;
+  width: 100%;
+}
+
+.select-trigger {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: white;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus {
+    border-color: var(--primary-blue);
+    outline: none;
+  }
+}
+
+.selected-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+
+  &.placeholder { color: #737b88; }
+}
+
+.select-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #64748b;
+}
+
+.clear-icon,
+.arrow-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.select-panel {
+  position: absolute;
+  z-index: 2500;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, .16);
+}
+
+.select-search-box {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  outline: none;
+  margin-bottom: 8px;
+
+  &:focus { border-color: var(--primary-blue); }
+}
+
+.select-options {
+  max-height: 174px;
+  overflow: auto;
+}
+
+.select-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border-color);
+  color: #64748b;
+  font-size: 12px;
+
+  button {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: white;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+
+  button:disabled { opacity: .45; cursor: default; }
+}
+
+.select-option {
+  width: 100%;
+  min-height: 34px;
+  border: none;
+  border-radius: 5px;
+  background: white;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &.selected {
+    background: #edf4ff;
+  }
+}
+
+.check-icon {
+  color: var(--primary-blue);
+  font-size: 18px;
+  visibility: hidden;
+
+  &.visible { visibility: visible; }
+}
+
+.empty-option {
+  padding: 12px 8px;
+  color: #737b88;
+  font-size: 13px;
+  text-align: center;
+}
+
+.disabled {
+  opacity: .65;
+  pointer-events: none;
+}

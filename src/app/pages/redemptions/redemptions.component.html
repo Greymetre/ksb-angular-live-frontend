@@ -1,0 +1,188 @@
+<div class="redemption-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">{{ toast.message }}</div>
+
+  <div class="page-heading">
+    <div class="page-icon"><span class="material-icons">account_balance_wallet</span></div>
+    <h2 class="page-title">Redemption Transactions</h2>
+    <button type="button" class="filter-toggle-btn" [class.active]="showFilters" title="Filters" (click)="showFilters = !showFilters">
+      <span class="material-icons">filter_alt</span>
+    </button>
+  </div>
+
+  <div class="filter-card" *ngIf="showFilters">
+    <div class="filter-grid">
+      <div class="filter-field">
+        <label>Search</label>
+        <input type="text" [(ngModel)]="filter.search" (ngModelChange)="scheduleFilterSearch()" placeholder="Transaction, customer, mobile"/>
+      </div>
+      <div class="filter-field">
+        <label>Status</label>
+        <app-searchable-select [options]="statusOptions" [selected]="filter.status ?? ''" placeholder="All Status" (selectedChange)="onStatusFilterChange($event)"></app-searchable-select>
+      </div>
+      <div class="filter-field">
+        <label>Mode</label>
+        <app-searchable-select [options]="modeOptions" [selected]="filter.redeem_mode || ''" placeholder="All Modes" (selectedChange)="onModeFilterChange($event)"></app-searchable-select>
+      </div>
+      <div class="filter-actions">
+        <button type="button" class="mini-btn light" (click)="filter = {}; loadRedemptions()">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-tile gold"><span>Total Requests</span><strong>{{ summary.totalRequests }}</strong></div>
+    <div class="summary-tile success"><span>Approved</span><strong>{{ summary.approved }}</strong></div>
+    <div class="summary-tile pending"><span>Pending</span><strong>{{ summary.pending }}</strong></div>
+    <div class="summary-tile danger"><span>Rejected / Hold</span><strong>{{ summary.rejectedOrHold }}</strong></div>
+  </div>
+
+  <div class="table-toolbar">
+    <span></span>
+    <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download'" (click)="exportRedemptions()" [disabled]="exporting" *ngIf="canExport">
+      <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
+    </button>
+    <button class="btn-icon-round" title="New Redemption" (click)="openCreateModal()" *ngIf="canCreate"><span class="material-icons">add</span></button>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading redemptions...</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Transaction ID</th>
+          <th>Customer ID</th>
+          <th>Customer</th>
+          <th>Type</th>
+          <th>City</th>
+          <th>Mobile</th>
+          <th>Mode</th>
+          <th>Dealer</th>
+          <th>Wallet</th>
+          <th>Scheme</th>
+          <th>Points</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of redemptions">
+          <td>{{ formatDate(row.createdAt) }}</td>
+          <td class="txid">{{ row.transactionNo }}</td>
+          <td>{{ row.customerCode }}</td>
+          <td><strong>{{ row.customerName }}</strong></td>
+          <td><span class="soft-pill">{{ row.customerTypeName }}</span></td>
+          <td>{{ row.cityName || '-' }}</td>
+          <td>{{ row.mobileNumber || '-' }}</td>
+          <td><span class="mode-pill">{{ row.redeemMode }}</span></td>
+          <td>{{ row.distributorName || '-' }}</td>
+          <td>{{ row.walletType }}</td>
+          <td>{{ row.schemeName }}</td>
+          <td><strong>{{ row.points | number:'1.0-2' }}</strong></td>
+          <td><span class="status-badge" [ngClass]="statusClass(row.status)">{{ row.statusLabel }}</span></td>
+        </tr>
+        <tr *ngIf="!loading && redemptions.length === 0">
+          <td colspan="13" class="empty-row">No redemptions found</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <h3>New Redemption Request</h3>
+        <small>Step {{ step }} of 5 - {{ stepTitle() }}</small>
+      </div>
+      <button class="modal-close-btn" (click)="closeModal()" [disabled]="saving"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="stepper">
+      <div class="step" *ngFor="let label of ['Customer','KYC','Wallet','Mode','Submit']; let i = index" [class.done]="i + 1 < step" [class.active]="i + 1 === step">
+        <span>{{ i + 1 < step ? '✓' : i + 1 }}</span>
+        <small>{{ label }}</small>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <ng-container *ngIf="step === 1">
+        <div class="section-title">Customer Search</div>
+        <div class="modal-field">
+          <label>Search by Customer Name or Mobile Number <span class="req">*</span></label>
+          <app-searchable-select [options]="customerOptions" [selected]="selectedCustomer?.id ?? null" placeholder="Select customer" (selectedChange)="selectCustomer($event)"></app-searchable-select>
+        </div>
+        <div class="customer-card" *ngIf="selectedCustomer">
+          <div><strong>{{ selectedCustomer.name }}</strong><small>{{ selectedCustomer.customerCode }} · {{ selectedCustomer.shopName }} · {{ selectedCustomer.mobileNumber }}</small></div>
+          <span>Selected</span>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="step === 2 && selectedCustomer">
+        <div class="section-title">KYC Status</div>
+        <div class="customer-card">
+          <div><strong>{{ selectedCustomer.name }}</strong><small>{{ selectedCustomer.customerTypeName }} · {{ selectedCustomer.cityName || '-' }}</small></div>
+          <span class="kyc-pill" [ngClass]="kycStatusClass(selectedCustomer)">{{ kycStatusLabel(selectedCustomer) }}</span>
+        </div>
+        <div class="notice" [ngClass]="kycStatusClass(selectedCustomer)">
+          {{ selectedCustomer.kycMessage }}
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="step === 3 && selectedCustomer">
+        <div class="section-title">Select Wallet</div>
+        <div class="wallet-grid">
+          <button class="wallet-card" [class.active]="selectedWallet === 'Regular'" (click)="selectWallet('Regular')">
+            <span>Regular Wallet</span><strong>{{ selectedCustomer.regularPoints | number:'1.0-2' }}</strong><small>available points</small>
+          </button>
+          <button class="wallet-card booster" [class.active]="selectedWallet === 'Booster'" (click)="selectWallet('Booster')">
+            <span>Booster Wallet</span><strong>{{ selectedCustomer.boosterPoints | number:'1.0-2' }}</strong><small>available points</small>
+          </button>
+        </div>
+        <div class="section-title" *ngIf="selectedWallet">Select Scheme</div>
+        <div class="scheme-list" *ngIf="selectedWallet">
+          <button class="scheme-item" *ngFor="let scheme of availableSchemes" [class.active]="selectedScheme === scheme" (click)="selectScheme(scheme)">
+            <span>{{ scheme.schemeName }}</span><strong>{{ scheme.availablePoints | number:'1.0-2' }}</strong>
+          </button>
+          <div class="empty-panel" *ngIf="availableSchemes.length === 0">No active scheme points in this wallet.</div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="step === 4">
+        <div class="section-title">Redeem Mode</div>
+        <div class="mode-grid">
+          <button [class.active]="redeemMode === 'NEFT'" (click)="selectMode('NEFT')"><span class="material-icons">account_balance</span>NEFT</button>
+          <button [class.active]="redeemMode === 'IMPS'" (click)="selectMode('IMPS')"><span class="material-icons">bolt</span>IMPS</button>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="step === 5 && selectedCustomer && selectedScheme">
+        <div class="section-title">Verify Bank Details</div>
+        <div class="bank-card">
+          <div><span>Account Holder</span><strong>{{ selectedCustomer.accountHolder || '-' }}</strong></div>
+          <div><span>Bank Name</span><strong>{{ selectedCustomer.bankName || '-' }}</strong></div>
+          <div><span>Account Number</span><strong>{{ selectedCustomer.accountNumber || '-' }}</strong></div>
+          <div><span>IFSC Code</span><strong>{{ selectedCustomer.ifscCode || '-' }}</strong></div>
+          <div><span>Available Points</span><strong>{{ selectedScheme.availablePoints | number:'1.0-2' }}</strong></div>
+        </div>
+        <label class="confirm-check">
+          <input type="checkbox" [(ngModel)]="bankConfirmed"/>
+          <span>I confirm that the bank details shown above are correct.</span>
+        </label>
+        <div class="modal-field">
+          <label>Redeem Amount (Points) <span class="req">*</span></label>
+          <input type="number" [(ngModel)]="redeemPoints" min="500" [max]="selectedScheme.availablePoints" placeholder="Minimum 500"/>
+          <small>Minimum 500 points · Maximum {{ selectedScheme.availablePoints | number:'1.0-2' }} points</small>
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-back-btn" (click)="step === 1 ? closeModal() : setStep(step - 1)" [disabled]="saving">
+        <span class="material-icons">{{ step === 1 ? 'close' : 'arrow_back' }}</span>{{ step === 1 ? 'Cancel' : 'Back' }}
+      </button>
+      <button class="btn-submit" *ngIf="step < 5" (click)="setStep(step + 1)" [disabled]="(step === 1 && !selectedCustomer) || (step === 2 && !selectedCustomer?.kycApproved) || (step === 3 && !selectedScheme) || (step === 4 && !redeemMode)">Next</button>
+      <button class="btn-submit" *ngIf="step === 5" (click)="submit()" [disabled]="saving || !canSubmit">{{ saving ? 'Saving...' : 'Submit Redemption' }}</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,100 @@
+<div class="city-assign-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">{{ toast.message }}</div>
+
+  <div class="page-heading">
+    <div class="page-icon"><span class="material-icons">location_city</span></div>
+    <h2 class="page-title">User City List</h2>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="table-toolbar">
+    <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="5000" /> entries</label>
+    <div class="toolbar-actions">
+      <input #fileInput type="file" class="file-input" accept=".xlsx,.xls" (change)="upload($event)" />
+      <button class="btn-icon-round" [title]="uploading ? 'Importing...' : 'Upload'" (click)="triggerUpload()" [disabled]="uploading">
+        <span class="material-icons">{{ uploading ? 'hourglass_top' : 'cloud_upload' }}</span>
+      </button>
+      <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download'" (click)="exportRows()" [disabled]="exporting">
+        <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
+      </button>
+      <button class="btn-icon-round" [title]="templating ? 'Preparing...' : 'Template'" (click)="downloadTemplate()" [disabled]="templating">
+        <span class="material-icons">{{ templating ? 'hourglass_top' : 'description' }}</span>
+      </button>
+      <button class="btn-icon-round add-btn" title="Assign City" (click)="openCreate()">
+        <span class="material-icons">add</span>
+      </button>
+      <div class="search-group">
+        <label>Search:</label>
+        <input type="text" [(ngModel)]="search" (ngModelChange)="scheduleSearch()" class="table-search" />
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading user city assignments...</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Action</th>
+          <th>User Name</th>
+          <th>User Designation</th>
+          <th>Reporting Name</th>
+          <th>Reporting Designation</th>
+          <th>City Name</th>
+          <th>Grade</th>
+          <th>District Name</th>
+          <th>State Name</th>
+          <th>Created At</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of visibleRows; let i = index">
+          <td>{{ pageStart + i + 1 }}</td>
+          <td><button class="btn-danger" title="Delete" (click)="deleteRow(row)"><span class="material-icons">close</span></button></td>
+          <td class="name-cell">{{ row.userName | firstCaps }}</td>
+          <td>{{ row.userDesignation || '-' }}</td>
+          <td class="name-cell">{{ (row.reportingName || '-') | firstCaps }}</td>
+          <td>{{ row.reportingDesignation || '-' }}</td>
+          <td>{{ row.cityName | firstCaps }}</td>
+          <td>{{ row.grade || '-' }}</td>
+          <td>{{ row.districtName | firstCaps }}</td>
+          <td>{{ row.stateName | firstCaps }}</td>
+          <td>{{ formatDate(row.createdAt) }}</td>
+        </tr>
+        <tr *ngIf="!loading && visibleRows.length === 0">
+          <td colspan="11" class="empty-row">No user city assignments found</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="table-footer">
+      <app-pagination [total]="totalItems" [pageSize]="showEntries" [page]="currentPage" (pageChange)="currentPage = $event; loadRows()"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box assign-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon"><span class="material-icons">location_city</span></div>
+    <div class="modal-header-row">
+      <h3>Assign City</h3>
+      <button class="modal-close-btn" (click)="closeModal()" [disabled]="saving"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="modal-field">
+          <label>User <span class="req">*</span></label>
+          <app-searchable-select [options]="userOptions" [selected]="form.user_id" placeholder="Select User" (selectedChange)="form.user_id = $event"></app-searchable-select>
+        </div>
+        <div class="modal-field wide-field">
+          <label>City <span class="req">*</span></label>
+          <app-searchable-select [options]="cityOptions" [selected]="form.city_ids" [multiple]="true" placeholder="Select City" (selectedChange)="form.city_ids = $event"></app-searchable-select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-submit-modal" (click)="submit()" [disabled]="saving">{{ saving ? 'Saving...' : 'Submit' }}</button>
+      </div>
+    </div>
+  </div>
+</div>

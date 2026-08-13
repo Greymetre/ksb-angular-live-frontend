@@ -1,0 +1,305 @@
+<div class="hr-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">{{ toast.message }}</div>
+
+  <div class="page-heading">
+    <div class="page-icon"><span class="material-icons">{{ config.icon }}</span></div>
+    <h2 class="page-title">{{ config.title }}</h2>
+    <button type="button" class="filter-toggle-btn" [class.active]="showFilters" title="Filters" (click)="showFilters = !showFilters">
+      <span class="material-icons">filter_alt</span>
+    </button>
+  </div>
+
+  <div class="filter-card" *ngIf="showFilters">
+    <div class="filter-grid">
+      <div class="filter-field" *ngIf="!isHoliday">
+        <label>User Search</label>
+        <app-searchable-select [options]="userSelectOptions" [selected]="filter['executive_id']" placeholder="All Users" (selectedChange)="filter['executive_id']=$event || ''; loadRows()"></app-searchable-select>
+      </div>
+      <div class="filter-field" *ngIf="isHoliday">
+        <label>Holiday For</label>
+        <select [(ngModel)]="filter['holiday_for']" (ngModelChange)="onHolidayFilterForChange(); loadRows()">
+          <option value="">All</option>
+          <option value="division">Zone</option>
+          <option value="branch">Branch</option>
+        </select>
+      </div>
+      <div class="filter-field" *ngIf="isHoliday && filter['holiday_for'] === 'branch'">
+        <label>Branch</label>
+        <select [(ngModel)]="filter['branch_id']" (ngModelChange)="loadRows()">
+          <option value="">All Branches</option>
+          <option *ngFor="let branch of options.branches" [value]="branch.id">{{ branch.name | firstCaps }}</option>
+        </select>
+      </div>
+      <div class="filter-field" *ngIf="isHoliday && filter['holiday_for'] === 'division'">
+        <label>Zone</label>
+        <select [(ngModel)]="filter['division_id']" (ngModelChange)="loadRows()">
+          <option value="">All Zones</option>
+          <option *ngFor="let division of options.divisions" [value]="division.id">{{ division.name | firstCaps }}</option>
+        </select>
+      </div>
+      <div class="filter-field" *ngIf="isTour">
+        <label>Zone</label>
+        <select [(ngModel)]="filter['division_id']" (ngModelChange)="loadRows()">
+          <option value="">All Zones</option>
+          <option *ngFor="let division of options.divisions" [value]="division.id">{{ division.name | firstCaps }}</option>
+        </select>
+      </div>
+      <div class="filter-field" *ngIf="isTour || isAttendance || isSummary">
+        <label>Designation</label>
+        <select [(ngModel)]="filter['designation_id']" (ngModelChange)="loadRows()">
+          <option value="">All Designations</option>
+          <option *ngFor="let designation of options.designations" [value]="designation.id">{{ designation.name | firstCaps }}</option>
+        </select>
+      </div>
+      <div class="filter-field" *ngIf="!isHoliday">
+        <label>From Date</label>
+        <input type="date" [(ngModel)]="filter['start_date']" (ngModelChange)="loadRows()" />
+      </div>
+      <div class="filter-field" *ngIf="!isHoliday">
+        <label>To Date</label>
+        <input type="date" [(ngModel)]="filter['end_date']" (ngModelChange)="loadRows()" />
+      </div>
+      <div class="filter-field" *ngIf="isLeave || isAttendance">
+        <label>Status</label>
+        <select [(ngModel)]="filter['status']" (ngModelChange)="loadRows()">
+          <option value="">All Status</option>
+          <option value="0">Pending</option>
+          <option value="1">Approved</option>
+          <option value="2">Rejected</option>
+        </select>
+      </div>
+      <div class="filter-field" *ngIf="isAttendance">
+        <label>Working Type</label>
+        <select [(ngModel)]="filter['type']" (ngModelChange)="loadRows()">
+          <option value="">All Types</option>
+          <option *ngFor="let type of options.working_types" [value]="type">{{ type }}</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label>Search</label>
+        <input type="text" [(ngModel)]="filter['search']" (ngModelChange)="scheduleFilterSearch()" />
+      </div>
+      <div class="filter-actions">
+        <button type="button" class="mini-btn light" (click)="resetFilters()">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="table-toolbar">
+    <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="100" /> entries</label>
+    <div class="toolbar-actions">
+      <button class="btn-icon-round" title="Approve" (click)="approveSelected()" *ngIf="isTour || isLeave || isAttendance">
+        <span class="material-icons">task_alt</span>
+      </button>
+      <button class="btn-icon-round danger-round" title="Reject" (click)="rejectSelected()" *ngIf="isTour || isLeave || isAttendance">
+        <span class="material-icons">block</span>
+      </button>
+      <label class="btn-icon-round file-round" title="Import Tours" *ngIf="isTour">
+        <span class="material-icons">upload_file</span>
+        <input type="file" accept=".xlsx,.xls" (change)="onImportChange($event)" />
+      </label>
+      <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download'" (click)="exportRows()" [disabled]="exporting">
+        <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
+      </button>
+      <button class="btn-icon-round add-btn" title="Add" (click)="openCreate()" *ngIf="canWrite && !isSummary">
+        <span class="material-icons">add</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading {{ config.title | lowercase }}...</div>
+
+    <table class="data-table" *ngIf="isHoliday">
+      <thead>
+        <tr><th>No</th><th>Action</th><th>Active</th><th>Holiday For</th><th>Branch / Zone</th><th>Name</th><th>Holiday Date</th><th>Created By</th><th>Created At</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of visibleRows; let i = index">
+          <td>{{ pageStart + i + 1 }}</td>
+          <td><div class="action-btns"><button class="btn-edit" (click)="openEdit(row)" title="Edit"><span class="material-icons">edit</span></button><button class="btn-danger" (click)="deleteRow(row)" title="Delete"><span class="material-icons">close</span></button></div></td>
+          <td><span class="mode-pill">{{ row['active'] }}</span></td>
+          <td>{{ (row['holiday_for'] || row['holidayFor'] || 'branch') === 'division' ? 'Zone' : 'Branch' }}</td>
+          <td>{{ ((row['holiday_for'] || row['holidayFor']) === 'division' ? (row['division_name'] || row['divisionName']) : (row['branch_name'] || row['branchName'])) | firstCaps }}</td>
+          <td>{{ row['name'] | firstCaps }}</td>
+          <td>{{ row['holiday_date'] || row['holidayDate'] }}</td>
+          <td>{{ row['created_by_name'] || row['createdByName'] || '-' }}</td>
+          <td>{{ formatDateTime(row['created_at'] || row['createdAt']) }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table class="data-table" *ngIf="isLeave">
+      <thead>
+        <tr><th></th><th>No</th><th>Action</th><th>User</th><th>From</th><th>To</th><th>Type</th><th>Balance</th><th>Reason</th><th>Status</th><th>Approved By</th><th>Approval Date</th><th>Created At</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of visibleRows; let i = index">
+          <td><input type="checkbox" (change)="toggleSelection(row, $event)" /></td>
+          <td>{{ pageStart + i + 1 }}</td>
+          <td><button class="btn-danger" (click)="deleteRow(row)" title="Delete"><span class="material-icons">close</span></button></td>
+          <td class="name-cell">{{ row['user_name'] || row['userName'] | firstCaps }}<small>{{ row['employee_code'] || row['employeeCode'] }}</small></td>
+          <td>{{ formatDate(row['from_date'] || row['fromDate']) }}</td>
+          <td>{{ formatDate(row['to_date'] || row['toDate']) }}</td>
+          <td>{{ row['type'] }}</td>
+          <td>{{ row['bal_type'] || row['balType'] }}</td>
+          <td>{{ row['reason'] }}</td>
+          <td><span class="status-badge" [ngClass]="statusClass(row)">{{ row['status_label'] || row['statusLabel'] }}</span></td>
+          <td>{{ row['approved_by_name'] || row['approvedByName'] || '-' }}</td>
+          <td>{{ formatDateTime(row['approved_at'] || row['approvedAt']) }}</td>
+          <td>{{ formatDateTime(row['created_at'] || row['createdAt']) }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table class="data-table" *ngIf="isTour">
+      <thead>
+        <tr><th></th><th>No</th><th>Action</th><th>User</th><th>Date</th><th>District</th><th>City</th><th>Objectives</th><th>Type</th><th>Status</th><th>Created At</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of visibleRows; let i = index">
+          <td><input type="checkbox" (change)="toggleSelection(row, $event)" /></td>
+          <td>{{ pageStart + i + 1 }}</td>
+          <td><div class="action-btns"><button class="btn-edit" (click)="openEdit(row)" title="Edit"><span class="material-icons">edit</span></button><button class="btn-danger" (click)="deleteRow(row)" title="Delete"><span class="material-icons">close</span></button></div></td>
+          <td class="name-cell">{{ row['user_name'] || row['userName'] | firstCaps }}<small>{{ row['employee_code'] || row['employeeCode'] }}</small></td>
+          <td>{{ formatDate(row['date']) }}</td>
+          <td>{{ row['district_name'] || row['districtName'] || row['district'] }}</td>
+          <td>{{ row['town_name'] || row['townName'] || row['town'] }}</td>
+          <td>{{ row['objectives'] }}</td>
+          <td>{{ row['type'] || '-' }}</td>
+          <td><span class="status-badge" [ngClass]="statusClass(row)">{{ row['status_label'] || row['statusLabel'] }}</span></td>
+          <td>{{ formatDateTime(row['created_at'] || row['createdAt']) }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table class="data-table" *ngIf="isAttendance">
+      <thead>
+        <tr><th></th><th>No</th><th>Action</th><th>User</th><th>Branch</th><th>Punchin Date</th><th>Punchin</th><th>Punchout</th><th>Punchin Address</th><th>Punchout Address</th><th>Worked</th><th>Status</th><th>Objective</th><th>Approval</th><th>Approve/Reject Reason</th><th>From</th><th>Approve/Reject By</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of visibleRows; let i = index">
+          <td><input type="checkbox" (change)="toggleSelection(row, $event)" /></td>
+          <td>{{ pageStart + i + 1 }}</td>
+          <td><div class="action-btns"><button class="btn-edit" title="Punch Out" (click)="punchOut(row)" *ngIf="!row['punchout_time'] && !row['punchoutTime']"><span class="material-icons">logout</span></button><button class="btn-danger" title="Remove Punchout" (click)="removePunchOut(row)" *ngIf="row['punchout_time'] || row['punchoutTime']"><span class="material-icons">undo</span></button><button class="btn-danger" title="Delete Attendance" (click)="openAttendanceDelete(row)" *ngIf="canDeleteAttendance"><span class="material-icons">delete</span></button></div></td>
+          <td class="name-cell">{{ row['user_name'] || row['userName'] | firstCaps }}<small>{{ row['employee_code'] || row['employeeCode'] }}</small></td>
+          <td>{{ row['branch_name'] || row['branchName'] || '-' }}</td>
+          <td>{{ formatDate(row['punchin_date'] || row['punchinDate']) }}</td>
+          <td>{{ row['punchin_time'] || row['punchinTime'] }}</td>
+          <td>{{ row['punchout_time'] || row['punchoutTime'] || 'misspunch' }}</td>
+          <td>{{ row['punchin_address'] || row['punchinAddress'] || '-' }}</td>
+          <td>{{ row['punchout_address'] || row['punchoutAddress'] || '-' }}</td>
+          <td>{{ row['worked_time'] || row['workedTime'] || '-' }}</td>
+          <td>{{ row['attendance_label'] || row['attendanceLabel'] }}</td>
+          <td>{{ row['working_type'] || row['workingType'] }}</td>
+          <td><span class="status-badge" [ngClass]="statusClass(row)">{{ row['attendance_status_label'] || row['attendanceStatusLabel'] }}</span></td>
+          <td>{{ row['remark_status'] || row['remarkStatus'] || '-' }}</td>
+          <td>{{ row['punchin_from'] || row['punchinFrom'] || '-' }}</td>
+          <td>{{ row['approve_reject_by_name'] || row['approveRejectByName'] || '-' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table class="data-table" *ngIf="isSummary">
+      <thead>
+        <tr><th>No</th><th>User Id</th><th>Employee Code</th><th>User Name</th><th>Reporting Managers</th><th *ngFor="let day of dayKeys(visibleRows[0] || {})">{{ day }}</th><th>Week Off</th><th>Absent</th><th>Half Day</th><th>Holiday</th><th>Present</th><th>Total Days</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of visibleRows; let i = index">
+          <td>{{ pageStart + i + 1 }}</td>
+          <td>{{ row['user_id'] || row['userId'] }}</td>
+          <td>{{ row['employee_code'] || row['employeeCode'] }}</td>
+          <td class="name-cell">{{ row['user_name'] || row['userName'] | firstCaps }}</td>
+          <td>{{ row['reporting_managers'] || row['reportingManagers'] }}</td>
+          <td *ngFor="let day of dayKeys(row)">{{ row['days'][day] }}</td>
+          <td>{{ row['week_off'] || row['weekOff'] }}</td>
+          <td>{{ row['absent'] }}</td>
+          <td>{{ row['half_day'] || row['halfDay'] }}</td>
+          <td>{{ row['holiday'] }}</td>
+          <td>{{ row['present'] }}</td>
+          <td>{{ row['total_days'] || row['totalDays'] }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="empty-row" *ngIf="!loading && visibleRows.length === 0">No {{ config.title | lowercase }} found</div>
+    <div class="table-footer">
+      <app-pagination [total]="isAttendance ? totalRows : rows.length" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-backdrop" *ngIf="deleteAttendanceRow" (click)="closeAttendanceDelete()">
+  <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="attendance-delete-title" (click)="$event.stopPropagation()">
+    <div class="confirm-icon"><span class="material-icons">delete_forever</span></div>
+    <h2 id="attendance-delete-title">Delete attendance record?</h2>
+    <p>This will permanently delete <strong>{{ deleteAttendanceRow['user_name'] || deleteAttendanceRow['userName'] }}</strong>'s attendance for <strong>{{ formatDate(deleteAttendanceRow['punchin_date'] || deleteAttendanceRow['punchinDate']) }}</strong> from the database.</p>
+    <div class="confirm-actions">
+      <button class="cancel-button" [disabled]="deleting" (click)="closeAttendanceDelete()">Cancel</button>
+      <button class="danger-button" [disabled]="deleting" (click)="confirmAttendanceDelete()">{{ deleting ? 'Deleting...' : 'Yes, Delete' }}</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box hr-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon"><span class="material-icons">{{ config.icon }}</span></div>
+    <div class="modal-header-row">
+      <h3>{{ form['id'] ? 'Edit ' + config.title : 'Add ' + config.title }}</h3>
+      <button class="modal-close-btn" (click)="closeModal()" [disabled]="saving"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-grid" *ngIf="isHoliday">
+        <div class="modal-field"><label>Holiday For <span class="req">*</span></label><select [(ngModel)]="form['holiday_for']" (change)="onHolidayForChange()"><option value="division">Zone</option><option value="branch">Branch</option></select></div>
+        <div class="modal-field" *ngIf="form['holiday_for'] === 'branch'"><label>Branch <span class="req">*</span></label><select [(ngModel)]="form['branch']"><option value="">Select Branch</option><option *ngFor="let branch of options.branches" [value]="branch.id">{{ branch.name | firstCaps }}</option></select></div>
+        <div class="modal-field" *ngIf="form['holiday_for'] === 'division'"><label>Zone <span class="req">*</span></label><select [(ngModel)]="form['division_id']"><option value="">Select Zone</option><option *ngFor="let division of options.divisions" [value]="division.id">{{ division.name | firstCaps }}</option></select></div>
+        <div class="modal-field wide-field"><label>Holiday Names <span class="req">*</span></label><textarea [(ngModel)]="form['namesText']" rows="4"></textarea></div>
+        <div class="modal-field wide-field"><label>Holiday Dates <span class="req">*</span></label><textarea [(ngModel)]="form['holidayDatesText']" rows="4"></textarea></div>
+      </div>
+
+      <div class="form-grid" *ngIf="isLeave">
+        <div class="modal-field"><label>User <span class="req">*</span></label><app-searchable-select [options]="userSelectOptions" [selected]="form['user_id']" placeholder="Select User" (selectedChange)="form['user_id']=$event || ''"></app-searchable-select></div>
+        <div class="modal-field"><label>From Date <span class="req">*</span></label><input type="date" [(ngModel)]="form['from_date']" /></div>
+        <div class="modal-field"><label>To Date <span class="req">*</span></label><input type="date" [(ngModel)]="form['to_date']" /></div>
+        <div class="modal-field"><label>Leave Type <span class="req">*</span></label><select [(ngModel)]="form['type']"><option *ngFor="let type of leaveTypes" [value]="type">{{ type }}</option></select></div>
+        <div class="modal-field"><label>Balance Type <span class="req">*</span></label><select [(ngModel)]="form['bal_type']"><option *ngFor="let type of balanceTypes" [value]="type">{{ type }}</option></select></div>
+        <div class="modal-field wide-field"><label>Reason</label><textarea [(ngModel)]="form['reason']" rows="3"></textarea></div>
+      </div>
+
+      <div class="form-grid" *ngIf="isTour">
+        <div class="modal-field"><label>User <span class="req">*</span></label><app-searchable-select [options]="userSelectOptions" [selected]="form['user_id']" placeholder="Select User" (selectedChange)="onTourUserChange($event)"></app-searchable-select></div>
+        <div class="modal-field"><label>Date <span class="req">*</span></label><input type="date" [(ngModel)]="form['date']" /></div>
+        <div class="modal-field"><label>District</label><app-searchable-select [options]="tourDistrictSelectOptions" [selected]="form['district']" placeholder="Select District" [disabled]="!form['user_id']" (selectedChange)="onTourDistrictChange($event)"></app-searchable-select></div>
+        <div class="modal-field"><label>City <span class="req">*</span></label><app-searchable-select [options]="tourCitySelectOptions" [selected]="form['town']" placeholder="Select City" [disabled]="!form['district']" (selectedChange)="onTourCityChange($event)"></app-searchable-select></div>
+        <div class="modal-field wide-field"><label>Objectives</label><textarea [(ngModel)]="form['objectives']" rows="3"></textarea></div>
+      </div>
+
+      <div class="form-grid" *ngIf="isAttendance">
+        <div class="modal-field"><label>User <span class="req">*</span></label><app-searchable-select [options]="userSelectOptions" [selected]="form['user_id']" placeholder="Select User" (selectedChange)="form['user_id']=$event || ''; onAttendanceUserChange()"></app-searchable-select></div>
+        <div class="modal-field"><label>Punchin Date <span class="req">*</span></label><input type="date" [(ngModel)]="form['punchin_date']" (change)="onAttendanceDateChange()" /></div>
+        <div class="modal-field"><label>Punchin Time</label><input type="time" [(ngModel)]="form['punchin_time']" /></div>
+        <div class="modal-field"><label>Tour Plan <span class="req">*</span></label><input type="text" readonly [value]="attendancePlanLoading ? 'Loading tour plan...' : (form['tour_city'] || (form['tour_id'] ? 'Planned Tour' : 'No tour planned'))" /></div>
+        <div class="modal-field"><label>Working Type <span class="req">*</span></label><input type="text" [(ngModel)]="form['working_type']" readonly /></div>
+        <div class="wide-field plan-alert" *ngIf="attendancePlanError">{{ attendancePlanError }}</div>
+        <div class="wide-field plan-card" *ngIf="attendancePlan?.tour?.exists">
+          <div><strong>Today's Tour Plan</strong></div>
+          <div>City: {{ form['tour_city'] || '-' }}</div>
+          <div>Objective: {{ form['working_type'] || '-' }}</div>
+        </div>
+        <div class="wide-field plan-card beat" *ngIf="attendancePlan?.beat?.exists">
+          <div><strong>Today's Beat / Area</strong></div>
+          <div>Beat: {{ attendancePlan?.beat?.data?.['beat_name'] || attendancePlan?.beat?.data?.['beatName'] || '-' }}</div>
+          <div>Area: {{ attendancePlan?.beat?.data?.['area_town'] || attendancePlan?.beat?.data?.['areaTown'] || '-' }}</div>
+        </div>
+        <div class="modal-field wide-field"><label>Summary</label><textarea [(ngModel)]="form['punchin_summary']" rows="3"></textarea></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-submit-modal" (click)="submit()" [disabled]="saving || (isAttendance && (!form['tour_id'] || attendancePlanLoading))">{{ saving ? 'Saving...' : 'Submit' }}</button>
+      </div>
+    </div>
+  </div>
+</div>

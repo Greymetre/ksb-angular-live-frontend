@@ -1,0 +1,63 @@
+<div class="login-page">
+  <section class="login-left" aria-label="FieldKonnect">
+    <img src="assets/img/login.png" alt="FieldKonnect sales activity" class="login-visual" />
+  </section>
+
+  <section class="login-right">
+    <img src="assets/img/brand_logo.png" alt="FieldKonnect" class="brand-logo" />
+
+    <div class="login-card">
+      <div class="card-header">
+        <img src="assets/img/ksb-logo-data.svg" alt="KSB" class="ksb-logo" />
+        <p class="login-subtitle">Please log in to your account</p>
+      </div>
+
+      <div *ngIf="errorMessage" class="alert error-alert" role="alert" aria-live="assertive">
+        {{ errorMessage }}
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onLogin()" novalidate>
+        <div class="field-group">
+          <label for="username">Email address</label>
+          <input
+            id="username"
+            type="text"
+            formControlName="username"
+            placeholder="Enter email"
+            autocomplete="username"
+            [class.invalid]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
+          />
+        </div>
+
+        <div class="field-group">
+          <label for="password">Password</label>
+          <div class="password-control">
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="Password"
+              autocomplete="current-password"
+              [class.invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+              [title]="showPassword ? 'Hide' : 'Show'"
+            >
+              {{ showPassword ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="login-btn" [disabled]="loading">
+          {{ loading ? 'Logging in...' : 'Login' }}
+        </button>
+      </form>
+    </div>
+
+    <div class="login-footer">&copy; 2025 Field Konnect. All rights reserved</div>
+  </section>
+</div>

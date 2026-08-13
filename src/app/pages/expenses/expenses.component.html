@@ -1,0 +1,317 @@
+<div class="expenses-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">{{ toast.message }}</div>
+
+  <div class="page-heading">
+    <div class="page-icon"><span class="material-icons">outlet</span></div>
+    <h2 class="page-title">ExpenseList</h2>
+    <button type="button" class="filter-toggle-btn" [class.active]="showFilters" title="Filters" (click)="showFilters = !showFilters">
+      <span class="material-icons">filter_alt</span>
+    </button>
+  </div>
+
+  <div class="filter-panel" *ngIf="showFilters">
+    <div class="filter-field">
+      <label>Employee</label>
+      <app-searchable-select [options]="users" labelKey="name" [selected]="selectedUserId" placeholder="All Employees" (selectedChange)="selectedUserId=$event; applyFilters()"></app-searchable-select>
+    </div>
+    <div class="filter-field">
+      <label>Expense Type</label>
+      <select [(ngModel)]="selectedExpenseTypeId" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">All</option>
+        <option *ngFor="let type of expenseTypes" [ngValue]="type.id">{{ type.name | firstCaps }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Branch</label>
+      <select [(ngModel)]="selectedBranchId" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">All</option>
+        <option *ngFor="let branch of branches" [ngValue]="branch.id">{{ branch.name | firstCaps }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Zone</label>
+      <select [(ngModel)]="selectedDivisionId" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">All</option>
+        <option *ngFor="let division of divisions" [ngValue]="division.id">{{ division.name | firstCaps }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Grade</label>
+      <select [(ngModel)]="selectedPayroll" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        <option *ngFor="let payroll of payrolls" [value]="payroll.id">{{ payroll.name }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Status</label>
+      <select [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">All</option>
+        <option *ngFor="let status of statuses" [ngValue]="status.id">{{ status.name }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Start Date</label>
+      <input type="date" [(ngModel)]="startDate" (ngModelChange)="applyFilters()"/>
+    </div>
+    <div class="filter-field">
+      <label>End Date</label>
+      <input type="date" [(ngModel)]="endDate" (ngModelChange)="applyFilters()"/>
+    </div>
+    <div class="filter-field">
+      <label>Expense Id</label>
+      <input type="number" [(ngModel)]="expenseId" (ngModelChange)="applyFilters()" min="1"/>
+    </div>
+    <div class="filter-actions">
+      <button type="button" class="mini-btn light" (click)="clearFilters()">Clear</button>
+    </div>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="status-summary">
+    <div class="summary-card pending">
+      <span>Pending</span>
+      <strong>{{ pendingCount }}</strong>
+    </div>
+    <div class="summary-card approved">
+      <span>Approved</span>
+      <strong>{{ approvedCount }}</strong>
+    </div>
+    <div class="summary-card rejected">
+      <span>Rejected</span>
+      <strong>{{ rejectedCount }}</strong>
+    </div>
+    <div class="summary-card checked">
+      <span>Checked</span>
+      <strong>{{ checkedCount }}</strong>
+    </div>
+  </div>
+
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="100"/> entries</label>
+    </div>
+    <div class="toolbar-right">
+      <div class="icon-action-group">
+        <button class="btn-icon-round add-btn" title="Add Expense" (click)="openCreateModal()" *ngIf="canCreate">
+          <span class="material-icons">add</span>
+        </button>
+      </div>
+      <div class="search-group">
+        <label>Search:</label>
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="scheduleSearch()" class="table-search"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading expenses...</div>
+    <div class="table-scroll">
+      <table class="data-table expenses-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Expense Id</th>
+            <th>Expense Date</th>
+            <th>Employee</th>
+            <th>Designation</th>
+            <th>Expense Type</th>
+            <th>Claim Amount</th>
+            <th>Approve Amount</th>
+            <th>Expense Status</th>
+            <th>Note</th>
+            <th>Created At</th>
+            <th>Zone</th>
+            <th>Total Km</th>
+            <th>Action</th>
+            <th>Attechments</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of pagedRows; let index = index">
+            <td>{{ pageStart + index + 1 }}</td>
+            <td>{{ row.id }}</td>
+            <td>{{ row.date }}</td>
+            <td class="name-cell">{{ row.userName | firstCaps }}</td>
+            <td>{{ row.designationName | firstCaps }}</td>
+            <td>{{ row.expenseTypeName | firstCaps }}</td>
+            <td>{{ row.claimAmount | number:'1.2-2' }}</td>
+            <td>{{ row.approveAmount }}</td>
+            <td>
+              <button type="button" class="status-pill" [class.approved]="row.checkerStatus === 1" [class.rejected]="row.checkerStatus === 2" [class.checked]="row.checkerStatus === 3 || row.checkerStatus === 4" (click)="openDetails(row)">
+                {{ row.checkerStatusName }}
+              </button>
+            </td>
+            <td class="note-cell">{{ row.note }}</td>
+            <td>{{ formatDateTime(row.createdAt) }}</td>
+            <td>{{ row.divisionName | firstCaps }}</td>
+            <td>{{ row.totalKm }}</td>
+            <td>
+              <div class="action-btns">
+                <button class="mini-icon" title="Show Expense" (click)="openDetails(row)"><span class="material-icons">visibility</span></button>
+                <button class="btn-danger" title="Delete Expense" (click)="deleteRow(row)" *ngIf="canDelete"><span class="material-icons">close</span></button>
+              </div>
+            </td>
+            <td>
+              <button type="button" class="attachment-link" *ngIf="row.attachments.length" (click)="openDetails(row)">
+                {{ row.attachments.length }} File{{ row.attachments.length > 1 ? 's' : '' }}
+              </button>
+              <span *ngIf="!row.attachments.length">-</span>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && pagedRows.length === 0">
+            <td colspan="15" class="empty-row">No expenses found</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <app-pagination [total]="filteredRows.length" [pageSize]="showEntries" [(page)]="currentPage"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box expense-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon"><span class="material-icons">outlet</span></div>
+    <div class="modal-header-row">
+      <h3>{{ form.id ? 'Edit Expense' : 'Add Expense' }}</h3>
+      <button class="modal-close-btn" (click)="closeModal()" [disabled]="saving"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="modal-field">
+          <label>Employee <span class="req">*</span></label>
+          <app-searchable-select [options]="users" labelKey="name" [selected]="form.userId" placeholder="Please Select User" (selectedChange)="form.userId=$event"></app-searchable-select>
+        </div>
+        <div class="modal-field">
+          <label>Date <span class="req">*</span></label>
+          <input type="date" [(ngModel)]="form.date"/>
+        </div>
+        <div class="modal-field">
+          <label>Expense Type <span class="req">*</span></label>
+          <select [(ngModel)]="form.expensesType" (ngModelChange)="onExpenseTypeChange()">
+            <option [ngValue]="null">Please Select Expenses Type</option>
+            <option *ngFor="let type of expenseTypes" [ngValue]="type.id">{{ type.name | firstCaps }}</option>
+          </select>
+        </div>
+        <div class="modal-field" *ngIf="isTravelling">
+          <label>Start Km</label>
+          <input type="number" [(ngModel)]="form.startKm" (ngModelChange)="onKmChange()" placeholder="Start Km"/>
+        </div>
+        <div class="modal-field" *ngIf="isTravelling">
+          <label>End Km</label>
+          <input type="number" [(ngModel)]="form.stopKm" (ngModelChange)="onKmChange()" placeholder="End Km"/>
+        </div>
+        <div class="modal-field" *ngIf="isTravelling">
+          <label>Total Km</label>
+          <input type="text" [(ngModel)]="form.totalKm" placeholder="Total Km" disabled/>
+        </div>
+        <div class="modal-field">
+          <label>Claim Amount <span class="req">*</span></label>
+          <input type="number" [(ngModel)]="form.claimAmount" min="0" step="0.01" placeholder="Claim Amount" [disabled]="!!selectedFormType"/>
+        </div>
+        <div class="modal-field">
+          <label>Note</label>
+          <input type="text" [(ngModel)]="form.note" placeholder="Note"/>
+        </div>
+        <div class="modal-field full-field">
+          <label>Attachment</label>
+          <input type="file" accept="image/*,.pdf,application/pdf" multiple (change)="onFilesSelected($event)"/>
+          <div class="file-selection" *ngIf="selectedFiles.length">{{ selectedFiles.length }} file{{ selectedFiles.length > 1 ? 's' : '' }} selected</div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-submit-modal" (click)="submit()" [disabled]="saving">{{ saving ? 'Saving...' : (form.id ? 'UPDATE' : 'SUBMIT') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showDetailsModal && selectedExpense" (click)="closeDetailsModal()">
+  <div class="modal-box expense-detail-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon"><span class="material-icons">receipt_long</span></div>
+    <div class="modal-header-row">
+      <h3>Expense #{{ selectedExpense.id }}</h3>
+      <button class="modal-close-btn" (click)="closeDetailsModal()"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="detail-grid">
+      <div><span>Expense Id</span><strong>{{ selectedExpense.id }}</strong></div>
+      <div><span>Expense Date</span><strong>{{ selectedExpense.date }}</strong></div>
+      <div><span>Status</span><strong>{{ selectedExpense.checkerStatusName }}</strong></div>
+      <div><span>Employee</span><strong>{{ selectedExpense.userName | firstCaps }}</strong></div>
+      <div><span>Employee Code</span><strong>{{ selectedExpense.employeeCode || '-' }}</strong></div>
+      <div><span>Designation</span><strong>{{ selectedExpense.designationName | firstCaps }}</strong></div>
+      <div><span>Expense Type</span><strong>{{ selectedExpense.expenseTypeName | firstCaps }}</strong></div>
+      <div><span>Claim Amount</span><strong>{{ selectedExpense.claimAmount | number:'1.2-2' }}</strong></div>
+      <div><span>Approve Amount</span><strong>{{ selectedExpense.approveAmount || '-' }}</strong></div>
+      <div><span>Created At</span><strong>{{ formatDateTime(selectedExpense.createdAt) }}</strong></div>
+      <div><span>Branch</span><strong>{{ selectedExpense.branchName | firstCaps }}</strong></div>
+      <div><span>Zone</span><strong>{{ selectedExpense.divisionName | firstCaps }}</strong></div>
+      <div><span>Grade</span><strong>{{ selectedExpense.payroll || '-' }}</strong></div>
+      <div><span>Start Km</span><strong>{{ selectedExpense.startKm || '-' }}</strong></div>
+      <div><span>End Km</span><strong>{{ selectedExpense.stopKm || '-' }}</strong></div>
+      <div><span>Total Km</span><strong>{{ selectedExpense.totalKm || '-' }}</strong></div>
+      <div class="detail-wide"><span>Note</span><strong>{{ selectedExpense.note || '-' }}</strong></div>
+      <div class="detail-wide"><span>Reason</span><strong>{{ selectedExpense.reason || '-' }}</strong></div>
+    </div>
+
+    <div class="detail-actions" *ngIf="canApprove">
+      <button class="mini-btn" type="button" (click)="openStatusDialog(selectedExpense, 3)"><span class="material-icons">done</span>Check</button>
+      <button class="mini-btn" type="button" (click)="openStatusDialog(selectedExpense, 4)"><span class="material-icons">assignment_turned_in</span>Checked By Reporting</button>
+      <button class="mini-btn" type="button" (click)="openStatusDialog(selectedExpense, 1)"><span class="material-icons">verified</span>Approve</button>
+      <button class="mini-btn danger" type="button" (click)="openStatusDialog(selectedExpense, 2)"><span class="material-icons">block</span>Reject</button>
+      <button class="mini-btn" type="button" (click)="openStatusDialog(selectedExpense, 5)"><span class="material-icons">pause</span>Hold</button>
+      <button class="mini-btn light" type="button" (click)="openStatusDialog(selectedExpense, 0)"><span class="material-icons">undo</span>Uncheck</button>
+    </div>
+
+    <div class="attachment-list">
+      <h4>Attechments</h4>
+      <div class="attachment-grid" *ngIf="selectedExpense.attachments.length">
+        <a *ngFor="let file of selectedExpense.attachments" [href]="attachmentUrl(file.url)" target="_blank" rel="noopener" class="attachment-item" [class.image]="isImageAttachment(file)">
+          <img *ngIf="isImageAttachment(file)" [src]="attachmentUrl(file.url)" [alt]="file.fileName"/>
+          <span class="material-icons" *ngIf="!isImageAttachment(file)">attach_file</span>
+          <strong>{{ file.fileName }}</strong>
+        </a>
+      </div>
+      <div class="empty-attachments" *ngIf="!selectedExpense.attachments.length">No attachments</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay status-dialog-overlay" *ngIf="statusDialog.visible && statusDialog.expense" (click)="closeStatusDialog()">
+  <div class="status-dialog" (click)="$event.stopPropagation()">
+    <div class="status-dialog-icon" [class.reject]="statusDialog.status === 2" [class.approve]="statusDialog.status === 1">
+      <span class="material-icons">{{ statusDialogIcon }}</span>
+    </div>
+    <h3>{{ statusDialogTitle }}</h3>
+    <p>
+      Expense #{{ statusDialog.expense.id }} · {{ statusDialog.expense.userName | firstCaps }} ·
+      Claim {{ statusDialog.expense.claimAmount | number:'1.2-2' }}
+    </p>
+
+    <div class="status-dialog-field" *ngIf="statusDialog.status === 1">
+      <label>Approve Amount</label>
+      <input type="number" [(ngModel)]="statusDialog.approveAmount" min="0" [max]="statusDialog.expense.claimAmount" step="0.01"/>
+    </div>
+
+    <div class="status-dialog-field" *ngIf="statusDialog.status === 1 || statusDialog.status === 2">
+      <label>{{ statusDialog.status === 2 ? 'Reject Reason' : 'Reason' }}</label>
+      <textarea [(ngModel)]="statusDialog.reason" rows="3" placeholder="Enter reason"></textarea>
+    </div>
+
+    <div class="status-dialog-message" *ngIf="statusDialog.status !== 1 && statusDialog.status !== 2">
+      Confirm status change to <strong>{{ statusName(statusDialog.status || 0) }}</strong>.
+    </div>
+
+    <div class="status-dialog-actions">
+      <button type="button" class="dialog-cancel" (click)="closeStatusDialog()" [disabled]="statusSaving">Cancel</button>
+      <button type="button" class="dialog-confirm" [class.reject]="statusDialog.status === 2" (click)="submitStatusDialog()" [disabled]="statusSaving">
+        {{ statusSaving ? 'Saving...' : 'Confirm' }}
+      </button>
+    </div>
+  </div>
+</div>

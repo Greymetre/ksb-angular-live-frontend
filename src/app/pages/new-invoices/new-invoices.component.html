@@ -1,0 +1,619 @@
+<div class="invoice-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">
+    {{ toast.message }}
+  </div>
+
+  <ng-container *ngIf="selectedInvoice; else invoiceList">
+    <div class="detail-layout">
+      <div class="detail-main">
+        <div class="detail-card">
+          <div class="detail-card-header">
+            <div class="page-icon"><span class="material-icons">receipt_long</span></div>
+            <h2 class="page-title">Invoice Details</h2>
+            <div class="header-actions">
+              <button class="history-toggle-btn" title="Approval History" (click)="openApprovalHistory()">
+                <span class="material-icons">history</span>
+                <span>Approval History</span>
+              </button>
+              <button class="btn-edit" title="Edit" (click)="openEditModal(selectedInvoice)"
+                *ngIf="canEdit && selectedInvoice.approvalStatus === 0">
+                <span class="material-icons">edit</span>
+              </button>
+              <button class="btn-assign" title="Back" (click)="backToList()">
+                <span class="material-icons">arrow_back</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="detail-body">
+            <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+            <div class="status-line">
+              <span class="status-badge" [ngClass]="statusClass(selectedInvoice.approvalStatus)">{{
+                selectedInvoice.approvalStatusLabel }}</span>
+              <small *ngIf="selectedInvoice.approvalRemark">{{ selectedInvoice.approvalRemark }}</small>
+            </div>
+
+            <div class="detail-grid">
+              <div>
+                <div class="section-title">Retailer Information</div>
+                <div class="readonly-field">
+                  <label>Customer Name</label>
+                  <input type="text" [value]="selectedInvoice.customerName || '-'" readonly />
+                </div>
+                <div class="readonly-field">
+                  <label>Mobile Number</label>
+                  <input type="text" [value]="selectedInvoice.mobileNumber || '-'" readonly />
+                </div>
+                <div class="readonly-field">
+                  <label>City / Zone</label>
+                  <input type="text"
+                    [value]="(selectedInvoice.cityName || '-') + ' / ' + (selectedInvoice.zoneName || '-')" readonly />
+                </div>
+                <div class="readonly-field">
+                  <label>Branch</label>
+                  <input type="text" [value]="selectedInvoice.branchName || '-'" readonly />
+                </div>
+                <div class="readonly-field">
+                  <label>Assigned Distributor</label>
+                  <input type="text" [value]="selectedInvoice.assignedDistributorName || '-'" readonly />
+                </div>
+                <div class="readonly-field">
+                  <label>Assigned Employee</label>
+                  <input type="text" [value]="selectedInvoice.assignedEmployeeName || '-'" readonly />
+                </div>
+              </div>
+
+              <div>
+                <div class="section-title">Invoice Information</div>
+                <div class="readonly-field">
+                  <label>Invoice Number</label>
+                  <input type="text" [value]="selectedInvoice.invoiceNumber" readonly />
+                </div>
+                <div class="readonly-field">
+                  <label>Invoice Date</label>
+                  <input type="text" [value]="formatDate(selectedInvoice.invoiceDate)" readonly />
+                </div>
+                <div class="readonly-field">
+                  <label>Pre-GST Amount</label>
+                  <input type="text" [value]="formatMoney(selectedInvoice.amount)" readonly />
+                </div>
+                <div class="readonly-field">
+                  <label>{{ selectedInvoice.approvalStatus === 3 ? 'Reward Earned' : 'Expected Reward' }}</label>
+                  <input type="text"
+                    [value]="(selectedInvoice.approvalStatus === 3 ? selectedInvoice.schemePoints : (selectedInvoice.approvalStatus === 4 ? 0 : selectedInvoice.expectedSchemePoints)) | number:'1.2-2'"
+                    readonly />
+                </div>
+                <div class="readonly-field">
+                  <label>Scheme</label>
+                  <input type="text" [value]="schemeDisplay(selectedInvoice)" readonly />
+                </div>
+                <div class="readonly-field" *ngIf="selectedInvoice.schemeHintMessage">
+                  <label>Scheme Hint</label>
+                  <input type="text" [value]="selectedInvoice.schemeHintMessage" readonly />
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-actions detail-actions">
+              <button class="btn-secondary" (click)="backToList()">
+                <span class="material-icons">arrow_back</span>
+                Back To List
+              </button>
+              <button class="detail-action-btn approve-ss"
+                (click)="openApprovalDialog(selectedInvoice, 'ss')"
+                *ngIf="canApproveSs && canMoveToStatus(selectedInvoice, 1)">
+                <span class="material-icons">done</span>
+                Approve By SS
+              </button>
+              <button class="detail-action-btn approve-sales"
+                (click)="openApprovalDialog(selectedInvoice, 'sales')"
+                *ngIf="canApproveSales && canMoveToStatus(selectedInvoice, 2)">
+                <span class="material-icons">verified</span>
+                Approve By Sales
+              </button>
+              <button class="detail-action-btn approve-ho"
+                (click)="openApprovalDialog(selectedInvoice, 'ho')"
+                *ngIf="canApproveHo && canMoveToStatus(selectedInvoice, 3)">
+                <span class="material-icons">task_alt</span>
+                Approve By HO
+              </button>
+              <button class="detail-action-btn reject" (click)="openApprovalDialog(selectedInvoice, 'reject')"
+                *ngIf="canReject && canMoveToStatus(selectedInvoice, 4)">
+                <span class="material-icons">block</span>
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-side">
+        <div class="inline-attachment" [class.fullscreen]="attachmentFullscreen"
+          *ngIf="selectedInvoice.attachment; else noAttachment">
+          <div class="inline-attachment-header">
+            <div>
+              <span class="material-icons">attach_file</span>
+              <strong>Invoice Attachment</strong>
+            </div>
+            <div class="attachment-viewer-controls">
+              <button type="button" title="Zoom out" (click)="zoomAttachment(-0.25)"
+                [disabled]="attachmentZoom <= 0.5">
+                <span class="material-icons">zoom_out</span>
+              </button>
+              <button type="button" class="zoom-value" title="Reset zoom" (click)="resetAttachmentZoom()">
+                {{ attachmentZoom * 100 | number:'1.0-0' }}%
+              </button>
+              <button type="button" title="Zoom in" (click)="zoomAttachment(0.25)"
+                [disabled]="attachmentZoom >= 3">
+                <span class="material-icons">zoom_in</span>
+              </button>
+              <button type="button" [title]="attachmentFullscreen ? 'Exit full screen' : 'Full screen'"
+                (click)="toggleAttachmentFullscreen()">
+                <span class="material-icons">{{ attachmentFullscreen ? 'fullscreen_exit' : 'fullscreen' }}</span>
+              </button>
+            </div>
+          </div>
+          <div class="attachment-viewer-body inline-viewer-body">
+            <div class="attachment-zoom-canvas"
+              [style.width.%]="attachmentZoom * 100"
+              [style.height.%]="attachmentZoom * 100">
+              <iframe *ngIf="isPdfAttachment(selectedInvoice.attachment)"
+                [src]="attachmentViewerResourceUrl"
+                title="Invoice PDF attachment"></iframe>
+              <img *ngIf="!isPdfAttachment(selectedInvoice.attachment)"
+                [src]="mediaUrl(selectedInvoice.attachment)"
+                alt="Invoice attachment" />
+            </div>
+          </div>
+        </div>
+        <ng-template #noAttachment>
+          <div class="no-attachment">
+            <span class="material-icons">hide_image</span>
+            <strong>No attachment available</strong>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="history-drawer-overlay" *ngIf="approvalHistoryVisible" (click)="closeApprovalHistory()"></div>
+    <aside class="history-drawer" [class.open]="approvalHistoryVisible">
+      <div class="history-drawer-header">
+        <div>
+          <span class="material-icons">history</span>
+          <h3>Approval History</h3>
+        </div>
+        <button type="button" title="Close" (click)="closeApprovalHistory()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+      <div class="history-drawer-body">
+        <div class="approval-timeline" *ngIf="selectedInvoice.approvalLogs.length; else noApprovalHistory">
+          <div class="approval-item" *ngFor="let log of selectedInvoice.approvalLogs">
+            <strong>{{ titleCase(log.statusType) }}</strong>
+            <div>{{ log.employeeCode || '' }} {{ log.createdByName || '-' }}</div>
+            <div *ngIf="log.approvedAmount"
+              [ngClass]="approvalAmountClass(selectedInvoice, log.approvedAmount)">
+              Approved Amount: {{ formatMoney(log.approvedAmount) }}
+            </div>
+            <small>{{ formatDateTime(log.createdAt) }}</small>
+            <p *ngIf="log.remark">{{ log.remark }}</p>
+          </div>
+        </div>
+        <ng-template #noApprovalHistory>
+          <p class="muted-text">No approval history found.</p>
+        </ng-template>
+      </div>
+    </aside>
+  </ng-container>
+
+  <ng-template #invoiceList>
+    <div class="page-heading">
+      <div class="page-icon"><span class="material-icons">receipt_long</span></div>
+      <h2 class="page-title">New Invoices</h2>
+      <button type="button" class="filter-toggle-btn" [class.active]="showFilters" title="Filters"
+        (click)="showFilters = !showFilters">
+        <span class="material-icons">filter_alt</span>
+      </button>
+    </div>
+
+    <div class="filter-card" *ngIf="showFilters">
+      <div class="filter-grid">
+        <div class="filter-field">
+          <label>Retailer</label>
+          <input type="text" [(ngModel)]="filter.retailer_search" (ngModelChange)="scheduleFilterSearch()"
+            placeholder="Name, shop, or mobile" />
+        </div>
+        <div class="filter-field">
+          <label>Invoice Number</label>
+          <input type="text" [(ngModel)]="filter.invoice_number" (ngModelChange)="scheduleFilterSearch()"
+            placeholder="Invoice no." />
+        </div>
+        <div class="filter-field">
+          <label>Status</label>
+          <app-searchable-select [options]="approvalStatusOptions" [selected]="filter.approval_status ?? ''"
+            placeholder="All Status" (selectedChange)="onStatusFilterChange($event)"></app-searchable-select>
+        </div>
+        <div class="filter-field">
+          <label>Scheme Name</label>
+          <app-searchable-select [options]="schemeFilterOptions" [selected]="filter.scheme_id ?? null"
+            placeholder="All Schemes" (selectedChange)="onSchemeFilterChange($event)">
+          </app-searchable-select>
+        </div>
+        <div class="filter-field">
+          <label>Zone</label>
+          <app-searchable-select [options]="zoneFilterOptions" [selected]="filter.zone_id ?? null"
+            placeholder="All Zones" (selectedChange)="onZoneFilterChange($event)"></app-searchable-select>
+        </div>
+        <div class="filter-field">
+          <label>Branch</label>
+          <app-searchable-select [options]="branchFilterOptions" [selected]="filter.branch_id ?? null"
+            placeholder="All Branches" (selectedChange)="onBranchFilterChange($event)"></app-searchable-select>
+        </div>
+        <div class="filter-field">
+          <label>From Date</label>
+          <input type="date" [(ngModel)]="filter.from_date" (ngModelChange)="resetPage(); loadInvoices()" />
+        </div>
+        <div class="filter-field">
+          <label>To Date</label>
+          <input type="date" [(ngModel)]="filter.to_date" (ngModelChange)="resetPage(); loadInvoices()" />
+        </div>
+        <div class="filter-actions">
+          <button type="button" class="mini-btn light" (click)="resetFilters()">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <button type="button" class="summary-tile summary-action"
+        [class.active]="filter.approval_status === null || filter.approval_status === undefined"
+        (click)="filterByApprovalStatus(null)">
+        <span>Total Invoices</span>
+        <strong>{{ summary.totalInvoices }}</strong>
+      </button>
+      <div class="summary-tile">
+        <span>Total Dealer Nos</span>
+        <strong>{{ summary.totalDealerNos }}</strong>
+      </div>
+      <div class="summary-tile">
+        <span>Total Amount</span>
+        <strong>{{ formatMoney(summary.totalAmount) }}</strong>
+      </div>
+      <div class="summary-tile">
+        <span>SS Approval Amt</span>
+        <strong>{{ formatMoney(summary.ssApprovalAmount) }}</strong>
+      </div>
+      <div class="summary-tile">
+        <span>Sales Approval Amt</span>
+        <strong>{{ formatMoney(summary.salesApprovalAmount) }}</strong>
+      </div>
+      <div class="summary-tile">
+        <span>HO Approval Amt</span>
+        <strong>{{ formatMoney(summary.hoApprovalAmount) }}</strong>
+      </div>
+      <div class="summary-tile">
+        <span>Total Reward Earned</span>
+        <strong>{{ summary.totalRewardEarned | number:'1.2-2' }}</strong>
+      </div>
+      <div class="summary-tile">
+        <span>Total Expected Reward</span>
+        <strong>{{ summary.totalExpectedReward | number:'1.2-2' }}</strong>
+      </div>
+    </div>
+
+    <div class="summary-grid approval-summary-grid">
+      <button type="button" class="summary-tile summary-action" [class.active]="filter.approval_status === 0"
+        (click)="filterByApprovalStatus(0)">
+        <span>Pending From SS</span>
+        <strong>{{ pendingFromSs }}</strong>
+      </button>
+      <button type="button" class="summary-tile summary-action" [class.active]="filter.approval_status === 1"
+        (click)="filterByApprovalStatus(1)">
+        <span>Pending From Sales</span>
+        <strong>{{ pendingFromSales }}</strong>
+      </button>
+      <button type="button" class="summary-tile summary-action" [class.active]="filter.approval_status === 2"
+        (click)="filterByApprovalStatus(2)">
+        <span>Pending From HO</span>
+        <strong>{{ pendingFromHo }}</strong>
+      </button>
+      <button type="button" class="summary-tile summary-action" [class.active]="filter.approval_status === 4"
+        (click)="filterByApprovalStatus(4)">
+        <span>Rejected</span>
+        <strong>{{ summary.rejected }}</strong>
+      </button>
+      <button type="button" class="summary-tile summary-action" [class.active]="filter.approval_status === 3"
+        (click)="filterByApprovalStatus(3)">
+        <span>Approved HO</span>
+        <strong>{{ summary.approvedHo }}</strong>
+      </button>
+    </div>
+
+    <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <div class="table-toolbar">
+      <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage(); loadInvoices(false)" class="entries-input"
+          min="5" max="100" />
+        entries</label>
+      <div class="toolbar-actions">
+        <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download'" (click)="exportInvoices()"
+          [disabled]="exporting" *ngIf="canExport">
+          <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
+        </button>
+        <button class="btn-icon-round add-btn" title="Add Invoice" (click)="openCreateModal()" *ngIf="canCreate">
+          <span class="material-icons">add</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="status-legend" aria-label="Invoice status guide">
+      <span class="status-legend-label">Status:</span>
+      <span class="status-legend-item listing-status-0">
+        <span class="material-icons">schedule</span>
+        Pending
+      </span>
+      <span class="status-legend-item listing-status-1">
+        <span class="material-icons">how_to_reg</span>
+        Approved by SS
+      </span>
+      <span class="status-legend-item listing-status-2">
+        <span class="material-icons">business_center</span>
+        Approved by Sales
+      </span>
+      <span class="status-legend-item listing-status-3">
+        <span class="material-icons">apartment</span>
+        Approved by HO
+      </span>
+      <span class="status-legend-item listing-status-4">
+        <span class="material-icons">cancel</span>
+        Rejected
+      </span>
+    </div>
+
+    <div class="table-card">
+      <div class="loading-bar" *ngIf="loading">Loading invoices...</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Action</th>
+            <th>Status</th>
+            <th>Attachment</th>
+            <th class="points-column">Reward</th>
+            <th>Customer</th>
+            <th>Mobile</th>
+            <th>Assigned Distributor</th>
+            <th>Assigned Employee</th>
+            <th>City</th>
+            <th>Zone</th>
+            <th>Branch</th>
+            <th>Invoice Date</th>
+            <th>Created By</th>
+            <th>Created At</th>
+            <th>Invoice Number</th>
+            <th>Amount</th>
+            <th>SS Approval</th>
+            <th>Sales Approval</th>
+            <th>HO Approval</th>
+            <th>Scheme Name</th>
+            <th>Retailer ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let invoice of filteredInvoices; let index = index">
+            <td>{{ pageStart + index + 1 }}</td>
+            <td>
+              <div class="action-btns">
+                <button class="btn-view" title="View Invoice" (click)="openShowPage(invoice)" *ngIf="canAccess">
+                  <span class="material-icons">visibility</span>
+                </button>
+                <button class="btn-edit" title="Edit Invoice" (click)="openEditModal(invoice)"
+                  *ngIf="canEdit && invoice.approvalStatus === 0">
+                  <span class="material-icons">edit</span>
+                </button>
+                <button class="btn-danger" title="Delete Invoice" (click)="deleteInvoice(invoice)"
+                  *ngIf="canDelete && invoice.approvalStatus === 0">
+                  <span class="material-icons">close</span>
+                </button>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge listing-status" [ngClass]="listingStatusClass(invoice.approvalStatus)"
+                [title]="invoice.approvalStatusLabel">
+                <span class="material-icons">{{ statusIcon(invoice.approvalStatus) }}</span>
+              </span>
+            </td>
+            <td>
+              <a *ngIf="invoice.attachment" class="attachment-download-icon" [href]="mediaUrl(invoice.attachment)"
+                target="_blank" rel="noopener" download title="Download attachment">
+                <span class="material-icons">download</span>
+              </a>
+              <span *ngIf="!invoice.attachment">-</span>
+            </td>
+            <td class="points-column">
+              <span class="name-cell">
+                {{ (invoice.approvalStatus === 3 ? invoice.schemePoints : (invoice.approvalStatus === 4 ? 0 : invoice.expectedSchemePoints)) | number:'1.2-2' }}
+              </span>
+              <small class="scheme-tier">
+                {{ invoice.approvalStatus === 3 ? 'Reward Earned' : (invoice.approvalStatus === 4 ? 'Rejected' : 'Expected Reward') }}
+              </small>
+              <small class="hint-text" *ngIf="invoice.schemeHintMessage">{{ invoice.schemeHintMessage }}</small>
+            </td>
+            <td>
+              <button type="button" class="link-cell name-cell" (click)="openCustomerShow(invoice)">{{
+                invoice.customerName }}</button>
+              <small>{{ invoice.shopName }}</small>
+            </td>
+            <td>{{ invoice.mobileNumber }}</td>
+            <td>{{ invoice.assignedDistributorName || '-' }}</td>
+            <td>{{ invoice.assignedEmployeeName || '-' }}</td>
+            <td>{{ invoice.cityName || '-' }}</td>
+            <td>{{ invoice.zoneName || '-' }}</td>
+            <td>{{ invoice.branchName || '-' }}</td>
+            <td>{{ formatDate(invoice.invoiceDate) }}</td>
+            <td>{{ invoice.createdByName || '-' }}</td>
+            <td>{{ formatDateTime(invoice.createdAt) }}</td>
+            <td class="invoice-number">{{ invoice.invoiceNumber }}</td>
+            <td>{{ formatMoney(invoice.amount) }}</td>
+            <td>{{ approvalStageText(invoice.ssApprovedAmount, invoice.ssApprovalRemark) }}</td>
+            <td>{{ approvalStageText(invoice.salesApprovedAmount, invoice.salesApprovalRemark) }}</td>
+            <td>{{ approvalStageText(invoice.hoApprovedAmount, invoice.hoApprovalRemark) }}</td>
+            <td>
+              <div class="name-cell">{{ invoice.schemeName || '-' }}</div>
+            </td>
+            <td><span class="retailer-code">{{ invoice.retailerCode }}</span></td>
+          </tr>
+          <tr *ngIf="!loading && filteredInvoices.length === 0">
+            <td colspan="22" class="empty-row">No invoices found</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="table-footer">
+        <app-pagination [total]="totalInvoices" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
+      </div>
+    </div>
+  </ng-template>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box invoice-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon"><span class="material-icons">receipt_long</span></div>
+    <div class="modal-header-row">
+      <h3>{{ form.id ? 'Edit Invoice' : 'Add Invoice' }}</h3>
+      <button class="modal-close-btn" (click)="closeModal()" [disabled]="saving">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="section-title">Retailer Customer</div>
+      <div class="form-grid">
+        <div class="modal-field wide-field">
+          <label>Retailer <span class="req">*</span></label>
+          <app-searchable-select [options]="retailerOptions" [selected]="form.secondaryCustomerId"
+            [placeholder]="retailersLoading ? 'Loading retailers...' : 'Select Retailer'"
+            [loading]="retailersLoading" loadingText="Loading retailers..."
+            (selectedChange)="onRetailerChange($event)"></app-searchable-select>
+        </div>
+        <div class="retailer-preview wide-field" *ngIf="selectedRetailer">
+          <div>
+            <span>Owner</span>
+            <strong>{{ selectedRetailer.ownerName }}</strong>
+          </div>
+          <div>
+            <span>Shop</span>
+            <strong>{{ selectedRetailer.shopName }}</strong>
+          </div>
+          <div>
+            <span>Mobile</span>
+            <strong>{{ selectedRetailer.mobileNumber }}</strong>
+          </div>
+          <div>
+            <span>City</span>
+            <strong>{{ selectedRetailer.cityName || '-' }}</strong>
+          </div>
+          <div>
+            <span>Address</span>
+            <strong>{{ selectedRetailer.address || '-' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">Invoice Details</div>
+      <div class="form-grid">
+        <div class="modal-field">
+          <label>Invoice Number <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="form.invoiceNumber" maxlength="100" />
+        </div>
+        <div class="modal-field">
+          <label>Invoice Date <span class="req">*</span></label>
+          <input type="date" [(ngModel)]="form.invoiceDate" (ngModelChange)="onInvoiceDateChange()" />
+        </div>
+        <div class="modal-field">
+          <label>Scheme <span class="req">*</span></label>
+          <app-searchable-select [options]="schemeSelectOptions" [selected]="form.schemeId"
+            [disabled]="!form.secondaryCustomerId || !form.invoiceDate" placeholder="Select Scheme"
+            (selectedChange)="onSchemeChange($event)">
+          </app-searchable-select>
+          <small *ngIf="form.secondaryCustomerId && form.invoiceDate && schemeOptions.length === 0">No active scheme is
+            available for this invoice date.</small>
+        </div>
+        <div class="modal-field">
+          <label>Pre-GST Amount <span class="req">*</span></label>
+          <input type="number" [(ngModel)]="form.amount" min="0.01" step="0.01" />
+        </div>
+        <div class="modal-field">
+          <label>Attachment <span class="req">*</span></label>
+          <input type="file" accept="image/*,.pdf,application/pdf" (change)="onAttachmentChange($event)" />
+          <small>{{ attachmentLabel() }}</small>
+        </div>
+      </div>
+
+
+      <div class="modal-actions">
+        <button class="btn-submit-modal" (click)="submit()" [disabled]="saving">
+          {{ saving ? 'Saving...' : 'Submit' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="approvalDialog.visible" (click)="closeApprovalDialog()">
+  <div class="modal-box approval-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon"><span class="material-icons">{{ approvalDialog.level === 'reject' ? 'block' : 'task_alt'
+        }}</span></div>
+    <div class="modal-header-row">
+      <h3>{{ approvalTitle() }}</h3>
+      <button class="modal-close-btn" (click)="closeApprovalDialog()" [disabled]="saving">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="approval-summary" *ngIf="approvalDialog.invoice">
+        <div>
+          <span>Invoice Amount</span>
+          <strong>{{ formatMoney(approvalDialog.invoice.amount) }}</strong>
+        </div>
+        <div>
+          <span>SS Approval</span>
+          <strong [ngClass]="approvalAmountClass(approvalDialog.invoice, approvalDialog.invoice.ssApprovedAmount)">
+            {{ approvalDialog.invoice.ssApprovedAmount ? formatMoney(approvalDialog.invoice.ssApprovedAmount) : '-' }}
+          </strong>
+          <small>{{ approvalDialog.invoice.ssApprovalRemark || 'No remark' }}</small>
+        </div>
+        <div>
+          <span>Sales Approval</span>
+          <strong [ngClass]="approvalAmountClass(approvalDialog.invoice, approvalDialog.invoice.salesApprovedAmount)">
+            {{ approvalDialog.invoice.salesApprovedAmount ? formatMoney(approvalDialog.invoice.salesApprovedAmount) : '-' }}
+          </strong>
+          <small>{{ approvalDialog.invoice.salesApprovalRemark || 'No remark' }}</small>
+        </div>
+        <div>
+          <span>HO Approval</span>
+          <strong [ngClass]="approvalAmountClass(approvalDialog.invoice, approvalDialog.invoice.hoApprovedAmount)">
+            {{ approvalDialog.invoice.hoApprovedAmount ? formatMoney(approvalDialog.invoice.hoApprovedAmount) : '-' }}
+          </strong>
+          <small>{{ approvalDialog.invoice.hoApprovalRemark || 'No remark' }}</small>
+        </div>
+      </div>
+
+      <div class="modal-field wide-field" *ngIf="approvalDialog.level !== 'reject'">
+        <label>Approved Invoice Amount <span class="req">*</span></label>
+        <input type="number" inputmode="decimal" [(ngModel)]="approvalDialog.approvedAmount" min="0.01" step="0.01"
+          [ngClass]="approvalAmountClass(approvalDialog.invoice, approvalDialog.approvedAmount)" />
+      </div>
+
+      <div class="modal-field wide-field">
+        <label>Remark <span class="req" *ngIf="approvalDialog.level === 'reject'">*</span></label>
+        <textarea [(ngModel)]="approvalDialog.remark" rows="4"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-submit-modal" (click)="submitApproval()" [disabled]="saving">
+          {{ saving ? 'Saving...' : (approvalDialog.level === 'reject' ? 'Reject' : 'Approve') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,97 @@
+<section class="page" *ngIf="mode === 'asr'; else standardReport">
+  <header>
+    <div><h1>ASR Performance</h1><p>Download ASR productivity report.</p></div>
+  </header>
+
+  <form class="asr-filter-card" (ngSubmit)="downloadAsr()">
+    <label>User
+      <app-searchable-select [options]="asrOptions.users" labelKey="name" [selected]="employeeId" placeholder="All Users" [pageSize]="25" (selectedChange)="employeeId=$event"></app-searchable-select>
+    </label>
+    <label>Division
+      <select [(ngModel)]="divisionId" name="divisionId">
+        <option [ngValue]="null">All Divisions</option>
+        <option *ngFor="let item of asrOptions.divisions" [ngValue]="item.id">{{ item.name }}</option>
+      </select>
+    </label>
+    <label>Branch
+      <select [(ngModel)]="branchId" name="branchId">
+        <option [ngValue]="null">All Branches</option>
+        <option *ngFor="let item of asrOptions.branches" [ngValue]="item.id">{{ item.name }}</option>
+      </select>
+    </label>
+    <label><span class="field-label">Designation <span class="required">*</span></span>
+      <select [(ngModel)]="designationId" name="designationId" required>
+        <option [ngValue]="null" disabled>Select Designation</option>
+        <option *ngFor="let item of asrOptions.designations" [ngValue]="item.id">{{ item.name }}</option>
+      </select>
+    </label>
+    <label><span class="field-label">Start Date <span class="required">*</span></span><input type="date" [(ngModel)]="startDate" name="startDate" required></label>
+    <label><span class="field-label">End Date <span class="required">*</span></span><input type="date" [(ngModel)]="endDate" name="endDate" required></label>
+    <div class="download-wrap"><button class="primary" type="submit" [disabled]="loading"><span class="material-icons">download</span>{{ loading ? 'Preparing...' : 'Download Report' }}</button></div>
+  </form>
+  <div class="error" *ngIf="error">{{error}}</div>
+</section>
+
+<section class="page" *ngIf="mode === 'rating'">
+  <header><div><h1>Rating Report</h1><p>Download monthly employee rating matrix.</p></div></header>
+  <form class="asr-filter-card" (ngSubmit)="downloadRating()">
+    <label><span class="field-label">Designation <span class="required">*</span></span>
+      <app-searchable-select [options]="asrOptions.designations" labelKey="name" [selected]="designationId" placeholder="Select Designation" [pageSize]="25" (selectedChange)="designationId=$event"></app-searchable-select>
+    </label>
+    <label><span class="field-label">Year <span class="required" *ngIf="month !== 'weekly'">*</span></span>
+      <select [(ngModel)]="year" name="ratingYear" [required]="month !== 'weekly'" [disabled]="month === 'weekly'"><option *ngFor="let item of years" [ngValue]="item">{{item}}</option></select>
+    </label>
+    <label>Month
+      <select [(ngModel)]="month" name="ratingMonth"><option [ngValue]="'weekly'">Weekly (Last 7 Days)</option><option [ngValue]="null">All Months (YTD)</option><option *ngFor="let item of months" [ngValue]="item.id">{{item.name}}</option></select>
+    </label>
+    <label>Zone
+      <app-searchable-select [options]="asrOptions.divisions" labelKey="name" [selected]="divisionId" placeholder="All Zones" [pageSize]="25" (selectedChange)="divisionId=$event"></app-searchable-select>
+    </label>
+    <label>Branch
+      <app-searchable-select [options]="asrOptions.branches" labelKey="name" [selected]="branchId" placeholder="All Branches" [pageSize]="25" (selectedChange)="branchId=$event"></app-searchable-select>
+    </label>
+    <div class="download-wrap"><button class="primary" type="submit" [disabled]="loading"><span class="material-icons">download</span>{{loading ? 'Preparing...' : 'Download Excel Report'}}</button></div>
+  </form>
+  <div class="error" *ngIf="error">{{error}}</div>
+</section>
+
+<section class="page" *ngIf="isProductivity">
+  <header><div><h1>{{title}}</h1><p>Download {{mode === 'retailer' ? 'retailer' : 'distributor'}} productivity report.</p></div></header>
+  <form class="asr-filter-card" (ngSubmit)="downloadProductivity()">
+    <label>Designation
+      <app-searchable-select [options]="designationOptions" [selected]="designationIds" [multiple]="true" placeholder="Select Designations" (selectedChange)="designationChange($event)"></app-searchable-select>
+    </label>
+    <label>Employee Name
+      <app-searchable-select [options]="asrOptions.users" labelKey="name" [selected]="employeeId" placeholder="All Employees" [pageSize]="25" (selectedChange)="employeeId=$event"></app-searchable-select>
+    </label>
+    <label *ngIf="mode === 'retailer'">Retailer Name
+      <app-searchable-select [options]="asrOptions.retailers || []" labelKey="name" [selected]="retailerId" placeholder="All Retailers" [pageSize]="25" (selectedChange)="retailerId=$event"></app-searchable-select>
+    </label>
+    <label>{{mode === 'retailer' ? 'Distributor Name' : 'Dealer Name'}}
+      <app-searchable-select [options]="asrOptions.dealers || []" labelKey="name" [selected]="dealerId" placeholder="All Distributors" [pageSize]="25" (selectedChange)="dealerId=$event"></app-searchable-select>
+    </label>
+    <label>Year
+      <select [(ngModel)]="year" name="year"><option *ngFor="let item of years" [ngValue]="item">{{item}}</option></select>
+    </label>
+    <label>{{mode === 'retailer' ? 'Zone *' : 'Division'}}
+      <select [(ngModel)]="divisionId" name="productivityDivisionId"><option [ngValue]="null">{{mode === 'retailer' ? 'Select Zone' : 'All Divisions'}}</option><option *ngFor="let item of asrOptions.divisions" [ngValue]="item.id">{{item.name}}</option></select>
+    </label>
+    <label *ngIf="mode === 'retailer'">State
+      <select [(ngModel)]="stateId" name="stateId"><option [ngValue]="null">All States</option><option *ngFor="let item of asrOptions.states" [ngValue]="item.id">{{item.name}}</option></select>
+    </label>
+    <label *ngIf="mode === 'dealer'">Branch
+      <select [(ngModel)]="branchId" name="productivityBranchId"><option [ngValue]="null">All Branches</option><option *ngFor="let item of asrOptions.branches" [ngValue]="item.id">{{item.name}}</option></select>
+    </label>
+    <div class="download-wrap"><button class="primary" type="submit" [disabled]="loading"><span class="material-icons">download</span>{{loading ? 'Preparing...' : 'Download Excel Report'}}</button></div>
+  </form>
+  <div class="error" *ngIf="error">{{error}}</div>
+</section>
+
+<ng-template #standardReport>
+  <ng-container *ngIf="!isProductivity && mode !== 'rating'">
+  <section class="page"><header><div><h1>{{title}}</h1><p>Reporting hierarchy based live report from migrated SQL Server data.</p></div><button class="primary" (click)="download()" [disabled]="!visibleRows.length"><span class="material-icons">download</span>Download</button></header>
+  <div class="summary" *ngIf="summary"><div *ngFor="let item of summary | keyvalue"><small>{{label(item.key)}}</small><strong>{{display(item.value)}}</strong></div></div>
+  <div class="filters"><label>Zone<input [(ngModel)]="zone" placeholder="All zones"></label><label>Branch<input [(ngModel)]="branch" placeholder="All branches"></label><label>Search<input [(ngModel)]="search" placeholder="Search report"></label><button (click)="load()">Apply</button><button (click)="zone='';branch='';search='';load()">Clear</button></div>
+  <div class="error" *ngIf="error">{{error}}</div><div class="table-wrap"><table><thead><tr><th>#</th><th *ngFor="let column of columns">{{label(column)}}</th></tr></thead><tbody><tr *ngFor="let row of visibleRows;let i=index"><td>{{i+1}}</td><td *ngFor="let column of columns">{{display(row[column])}}</td></tr><tr *ngIf="loading"><td [attr.colspan]="columns.length+1" class="empty">Loading report...</td></tr><tr *ngIf="!loading&&!visibleRows.length"><td [attr.colspan]="columns.length+1" class="empty">No report records found.</td></tr></tbody></table></div></section>
+  </ng-container>
+</ng-template>

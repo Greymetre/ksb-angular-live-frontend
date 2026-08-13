@@ -1,0 +1,132 @@
+<div class="expenses-type-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">
+    {{ toast.message }}
+  </div>
+
+  <div class="page-heading">
+    <div class="page-icon">
+      <span class="material-icons">dashboard</span>
+    </div>
+    <h2 class="page-title">Expenses TypeList</h2>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="100"/> entries</label>
+    </div>
+    <div class="toolbar-right">
+      <div class="icon-action-group">
+        <button class="btn-icon-round add-btn" title="Add Expenses Type" (click)="openCreateModal()" *ngIf="canCreate">
+          <span class="material-icons">add</span>
+        </button>
+      </div>
+      <div class="search-group">
+        <label>Search:</label>
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="scheduleSearch()" class="table-search"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading expenses type...</div>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>No <span class="material-icons sort-icon">arrow_upward</span></th>
+            <th>Status</th>
+            <th>Action</th>
+            <th>Allowance Type</th>
+            <th>Name</th>
+            <th>Grade</th>
+            <th>Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of pagedRows; let index = index">
+            <td>{{ pageStart + index + 1 }}</td>
+            <td>
+              <label class="toggle-switch">
+                <input type="checkbox" [checked]="row.active === 'Y'" (change)="toggleActive(row, $event)" [disabled]="!canEdit"/>
+                <span class="slider"></span>
+              </label>
+            </td>
+            <td>
+              <div class="action-btns">
+                <button class="btn-edit" title="Edit Expenses Type" (click)="openEditModal(row)" *ngIf="canEdit">
+                  <span class="material-icons">edit</span>
+                </button>
+              </div>
+            </td>
+            <td>{{ row.allowanceTypeName | firstCaps }}</td>
+            <td class="name-cell">{{ row.name | firstCaps }}</td>
+            <td>{{ row.payrollName }}</td>
+            <td>{{ row.rate | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="!loading && pagedRows.length === 0">
+            <td colspan="7" class="empty-row">No expenses type found</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <app-pagination [total]="filteredRows.length" [pageSize]="showEntries" [(page)]="currentPage"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box expenses-type-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <span class="material-icons">dashboard</span>
+    </div>
+    <div class="modal-header-row">
+      <h3>{{ form.id ? 'Edit Expenses Type' : 'Add Expenses Type' }}</h3>
+      <button class="modal-close-btn" (click)="closeModal()" [disabled]="saving">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="modal-field">
+          <label>Grade <span class="req">*</span></label>
+          <select [(ngModel)]="form.payrollId">
+            <option [ngValue]="null">Please select Grade</option>
+            <option *ngFor="let payroll of payrolls" [ngValue]="payroll.id">{{ payroll.name }}</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>Allowance Type <span class="req">*</span></label>
+          <select [(ngModel)]="form.allowanceTypeId">
+            <option [ngValue]="null">Please select allowance type</option>
+            <option *ngFor="let allowanceType of allowanceTypes" [ngValue]="allowanceType.id">{{ allowanceType.name }}</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>Name <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="form.name" maxlength="200" placeholder="Expenses type name"/>
+        </div>
+        <div class="modal-field">
+          <label>Rate</label>
+          <input type="number" [(ngModel)]="form.rate" min="0" step="0.01" placeholder="0.00"/>
+        </div>
+        <div class="modal-field">
+          <label>Active</label>
+          <select [(ngModel)]="form.active">
+            <option value="Y">Active</option>
+            <option value="N">Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-submit-modal" (click)="submit()" [disabled]="saving">
+          {{ saving ? 'Saving...' : (form.id ? 'UPDATE' : 'SUBMIT') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

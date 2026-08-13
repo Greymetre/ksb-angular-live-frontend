@@ -1,0 +1,24 @@
+<div class="pagination-shell">
+  <span class="entries-info">Showing {{ start }} to {{ end }} of {{ total }} entries</span>
+
+  <div class="pagination" aria-label="Table pagination">
+    <button type="button" class="page-btn nav-btn" title="Previous page" [disabled]="currentPage <= 1" (click)="previous()">
+      <span class="material-icons">chevron_left</span>
+    </button>
+
+    <button
+      type="button"
+      class="page-btn"
+      *ngFor="let item of pages"
+      [class.active]="item === currentPage"
+      [attr.aria-current]="item === currentPage ? 'page' : null"
+      (click)="go(item)"
+    >
+      {{ item }}
+    </button>
+
+    <button type="button" class="page-btn nav-btn" title="Next page" [disabled]="currentPage >= totalPages" (click)="next()">
+      <span class="material-icons">chevron_right</span>
+    </button>
+  </div>
+</div>

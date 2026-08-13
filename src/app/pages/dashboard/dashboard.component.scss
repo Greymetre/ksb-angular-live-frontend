@@ -1,0 +1,11 @@
+.dashboard-welcome {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 120px);
+  h1 {
+    font-size: 32px;
+    font-weight: 400;
+    color: #444;
+  }
+}

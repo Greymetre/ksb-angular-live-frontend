@@ -1,0 +1,30 @@
+FIELDKONNECT FRONTEND - CONTROLS WINDOWS/IIS DEPLOYMENT
+======================================================
+
+Frontend URL:
+https://app.ksbindia.co.in/FieldKonnect/
+
+Configured backend API:
+https://app.ksbindia.co.in/FieldKonnect_API
+
+DEPLOYMENT
+1. In IIS, create/select the FieldKonnect application under the app.ksbindia.co.in website and point it to an empty frontend folder.
+2. Remove or rename any old frontend web.config that contains Angular rewrite rules.
+3. Extract every file from this ZIP directly into that folder. index.html must be at the folder root.
+4. IIS URL Rewrite is not required because this build uses Angular hash routing.
+5. Ensure the IIS site has an HTTPS binding for app.ksbindia.co.in and a valid TLS certificate.
+6. Keep the existing FieldKonnect_API IIS application under the same website.
+7. Give the IIS application-pool identity Read & Execute permission on the frontend folder.
+8. Recycle the website/application pool and browse https://app.ksbindia.co.in/FieldKonnect/.
+
+VERIFY
+- Open browser Developer Tools > Network.
+- Login/API requests must go to https://app.ksbindia.co.in/FieldKonnect_API/api/...
+- Module URLs use the hash format, for example /FieldKonnect/#/customers.
+- Refresh or directly open /FieldKonnect/#/login; it must load without an IIS 404.
+
+CONFIGURATION
+- The API origin is stored in runtime-config.js and can be changed without rebuilding.
+- Do not add /api to apiOrigin; the application adds /api automatically.
+- This build is specifically configured for the /FieldKonnect/ sub-path.
+- Do not deploy the old rewrite-based web.config with this hash-routing build.

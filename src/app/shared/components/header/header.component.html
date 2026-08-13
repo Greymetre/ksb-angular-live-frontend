@@ -1,0 +1,19 @@
+<header class="main-header">
+  <div class="header-left">
+    <div class="logo-area">
+      <img src="assets/img/brand_logo.png" alt="FieldKonnect" class="brand-logo" />
+    </div>
+    <div class="client-logo">
+      <img src="assets/img/ksb-logo-data.svg" alt="KSB" class="ksb-logo" />
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="user-name">{{ userName }}</span>
+    <div class="user-avatar" (click)="logout()">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <circle cx="11" cy="8" r="4" fill="#555"/>
+        <path d="M2 20 C2 15 20 15 20 20" stroke="#555" stroke-width="2" fill="none"/>
+      </svg>
+    </div>
+  </div>
+</header>

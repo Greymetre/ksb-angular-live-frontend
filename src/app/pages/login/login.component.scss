@@ -1,0 +1,187 @@
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 1fr);
+  background: #ffffff;
+}
+
+.login-left {
+  min-height: 100vh;
+  background: #f4f4f4;
+  overflow: hidden;
+}
+
+.login-visual {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.login-right {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 42px;
+  position: relative;
+  background: #ffffff;
+}
+
+.brand-logo {
+  width: min(300px, 82vw);
+  height: auto;
+  display: block;
+}
+
+.login-card {
+  width: min(450px, 100%);
+  padding: 30px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.ksb-logo {
+  width: 120px;
+  max-width: 70%;
+  height: auto;
+  margin-bottom: 14px;
+}
+
+.login-subtitle {
+  color: #007bff;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.alert {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 5px;
+  margin-bottom: 18px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.error-alert {
+  color: #842029;
+  background: #f8d7da;
+  border: 1px solid #f5c2c7;
+}
+
+.field-group {
+  margin-bottom: 18px;
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333333;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+  }
+
+  input {
+    width: 100%;
+    min-height: 42px;
+    padding: 11px 13px;
+    border: 1px solid #dddddd;
+    border-radius: 5px;
+    background: #ffffff;
+    color: #333333;
+    font-size: 14px;
+    outline: none;
+
+    &:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.12);
+    }
+
+    &.invalid {
+      border-color: #dc3545;
+    }
+  }
+}
+
+.password-control {
+  position: relative;
+
+  input {
+    padding-right: 64px;
+  }
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  min-width: 46px;
+  height: 28px;
+  border: 0;
+  border-radius: 5px;
+  background: #eef5ff;
+  color: #007bff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.login-btn {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 6px;
+  padding: 12px 18px;
+  border: 1px solid #007bff;
+  border-radius: 30px;
+  background: #007bff;
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #0069d9;
+    border-color: #0062cc;
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.login-footer {
+  color: #007bff;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .login-left {
+    display: none;
+  }
+
+  .login-right {
+    padding: 30px 18px;
+  }
+
+  .login-card {
+    padding: 26px 20px;
+  }
+}

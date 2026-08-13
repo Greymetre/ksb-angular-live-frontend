@@ -1,0 +1,154 @@
+<div class="roles-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">
+    {{ toast.message }}
+  </div>
+
+  <div class="page-heading">
+    <div class="page-icon">
+      <span class="material-icons">perm_identity</span>
+    </div>
+    <div>
+      <h2 class="page-title">RoleList</h2>
+    </div>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="100"/> entries</label>
+    </div>
+    <div class="toolbar-right">
+      <div class="icon-action-group">
+        <button class="btn-icon-round disabled" title="Attach" disabled><span class="material-icons">attach_file</span></button>
+        <button class="btn-icon-round disabled" title="Upload" disabled><span class="material-icons">cloud_upload</span></button>
+        <button class="btn-icon-round disabled" title="Download" disabled><span class="material-icons">cloud_download</span></button>
+        <button class="btn-icon-round disabled" title="Template" disabled><span class="material-icons">text_snippet</span></button>
+        <button class="btn-icon-round add-btn" title="Add Role" (click)="openCreateModal()" *ngIf="canCreate">
+          <span class="material-icons">add</span>
+        </button>
+      </div>
+      <div class="search-group">
+        <label>Search:</label>
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="scheduleSearch()" class="table-search"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading roles...</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>No <span class="material-icons sort-icon">arrow_upward</span></th>
+          <th>Action</th>
+          <th>Role Name</th>
+          <th>Guard</th>
+          <th>Permissions</th>
+          <th>Created at</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let role of pagedRoles; let index = index">
+          <td>{{ pageStart + index + 1 }}</td>
+          <td>
+            <div class="action-btns">
+              <button class="btn-edit" title="Edit Role" (click)="openEditModal(role)" *ngIf="canEdit">
+                <span class="material-icons">edit</span>
+              </button>
+              <button class="btn-danger" title="Delete Role" (click)="deleteRole(role)" *ngIf="canDelete">
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+          </td>
+          <td>{{ readableName(role.name) }}</td>
+          <td><span class="guard-badge">{{ role.guard_name }}</span></td>
+          <td class="permission-summary" [title]="permissionSummary(role)">{{ permissionSummary(role) }}</td>
+          <td>{{ formatDate(role.created_at) }}</td>
+        </tr>
+        <tr *ngIf="!loading && pagedRoles.length === 0">
+          <td colspan="6" class="empty-row">No roles found</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="table-footer">
+      <app-pagination [total]="filteredRoles.length" [pageSize]="showEntries" [(page)]="currentPage"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showRoleModal" (click)="closeRoleModal()">
+  <div class="modal-box role-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <span class="material-icons">perm_identity</span>
+    </div>
+    <div class="modal-header-row">
+      <h3>{{ roleForm.id ? 'Edit Role' : 'Add Role' }}</h3>
+      <div class="modal-header-actions">
+        <button type="button" class="btn-save-top" (click)="submitRole()" [disabled]="saving">
+          {{ saving ? 'Saving...' : 'Save' }}
+        </button>
+        <button type="button" class="btn-cancel-top" (click)="closeRoleModal()" [disabled]="saving">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="modal-field">
+          <label>Role Name <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="roleForm.name" placeholder="Enter role name"/>
+        </div>
+        <div class="modal-field">
+          <label>Guard Name <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="roleForm.guard_name" placeholder="users"/>
+        </div>
+      </div>
+
+      <div class="modal-permissions">
+        <div class="modal-section-title">Permissions</div>
+        <div class="multi-select">
+          <button type="button" class="multi-select-trigger" (click)="permissionDropdownOpen = !permissionDropdownOpen">
+            <span>{{ selectedPermissionLabel }}</span>
+            <span class="material-icons">expand_more</span>
+          </button>
+
+          <div class="multi-select-menu" *ngIf="permissionDropdownOpen">
+            <div class="multi-select-search">
+              <span class="material-icons">search</span>
+              <input type="text" [(ngModel)]="permissionDropdownSearch" placeholder="Search permission"/>
+              <button type="button" title="Clear" (click)="clearFormPermissions()" *ngIf="roleForm.permissions.length">
+                <span class="material-icons">backspace</span>
+              </button>
+            </div>
+
+            <div class="tool-buttons dropdown-actions">
+              <button type="button" class="mini-btn" (click)="selectAllFormPermissions()">Select All</button>
+              <button type="button" class="mini-btn" (click)="clearFormPermissions()">Unselect All</button>
+            </div>
+
+            <button
+              type="button"
+              class="multi-select-option"
+              [class.selected]="formHasPermission(permission.id)"
+              *ngFor="let permission of filteredModalPermissions"
+              (click)="toggleDropdownPermission(permission.id)"
+            >
+              <span class="option-check">
+                <span class="material-icons" *ngIf="formHasPermission(permission.id)">check</span>
+              </span>
+              <span class="option-copy">
+                <span class="option-name">{{ permission.name }}</span>
+                <span class="option-description">({{ permissionDescription(permission.name) }})</span>
+              </span>
+            </button>
+
+            <div class="dropdown-empty" *ngIf="filteredModalPermissions.length === 0">No permissions found</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

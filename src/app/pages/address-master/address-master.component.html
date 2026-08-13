@@ -1,0 +1,156 @@
+<div class="address-page" *ngIf="config">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">
+    {{ toast.message }}
+  </div>
+
+  <div class="page-heading">
+    <div class="page-icon">
+      <span class="material-icons">{{ config.icon }}</span>
+    </div>
+    <h2 class="page-title">{{ config.title }}</h2>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="100"/> entries</label>
+    </div>
+    <div class="toolbar-right">
+      <input #fileInput type="file" class="file-input" accept=".xlsx,.xls,.csv" (change)="upload($event)"/>
+      <div class="icon-action-group">
+        <button class="btn-icon-round" [title]="uploading ? 'Importing...' : 'Upload'" (click)="triggerUpload()" *ngIf="canUpload" [disabled]="uploading">
+          <span class="material-icons">{{ uploading ? 'hourglass_top' : 'cloud_upload' }}</span>
+        </button>
+        <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download'" (click)="exportItems()" *ngIf="canDownload" [disabled]="exporting">
+          <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
+        </button>
+        <button class="btn-icon-round" [title]="templating ? 'Preparing template...' : 'Template'" (click)="downloadTemplate()" *ngIf="canTemplate" [disabled]="templating">
+          <span class="material-icons">{{ templating ? 'hourglass_top' : 'description' }}</span>
+        </button>
+        <button class="btn-icon-round add-btn" [title]="'Add ' + config.singular" (click)="openCreateModal()" *ngIf="canCreate">
+          <span class="material-icons">add</span>
+        </button>
+      </div>
+      <div class="search-group">
+        <label>Search:</label>
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="scheduleSearch()" class="table-search"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading {{ config.singular.toLowerCase() }}...</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>No <span class="material-icons sort-icon">arrow_upward</span></th>
+          <th>Action</th>
+          <th>Active</th>
+          <th>{{ config.nameLabel }}</th>
+          <th *ngIf="config.parent">{{ config.parent.label }}</th>
+          <th *ngIf="config.hasGstCode">GST Code</th>
+          <th>Created By</th>
+          <th>Created At</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of pagedItems; let index = index">
+          <td>{{ pageStart + index + 1 }}</td>
+          <td>
+            <div class="action-btns">
+              <button class="btn-edit" [title]="'Edit ' + config.singular" (click)="openEditModal(item)" *ngIf="canEdit">
+                <span class="material-icons">edit</span>
+              </button>
+              <button class="btn-danger" [title]="'Delete ' + config.singular" (click)="deleteItem(item)" *ngIf="canDelete">
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+          </td>
+          <td>
+            <label class="toggle-switch">
+              <input type="checkbox" [checked]="item.active === 'Y'" (change)="toggleActive(item, $event)" [disabled]="!canActive"/>
+              <span class="slider"></span>
+            </label>
+          </td>
+          <td class="name-cell">{{ displayName(item) }}</td>
+          <td *ngIf="config.parent">{{ parentName(item) }}</td>
+          <td *ngIf="config.hasGstCode">{{ item.gstCode }}</td>
+          <td>{{ item.createdByName || item.createdBy }}</td>
+          <td>{{ formatDate(item.createdAt) }}</td>
+        </tr>
+        <tr *ngIf="!loading && pagedItems.length === 0">
+          <td [attr.colspan]="config.parent ? (config.hasGstCode ? 8 : 7) : 6" class="empty-row">
+            No {{ config.singular.toLowerCase() }} found
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="table-footer">
+      <app-pagination [total]="isPincode ? totalItems : filteredItems.length" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showModal && config" (click)="closeModal()">
+  <div class="modal-box address-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <span class="material-icons">{{ config.icon }}</span>
+    </div>
+    <div class="modal-header-row">
+      <h3>{{ form.id ? 'Edit ' + config.singular : 'Add ' + config.singular }}</h3>
+      <button class="modal-close-btn" (click)="closeModal()" [disabled]="saving">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="modal-field" *ngIf="config.nameField === 'countryName'">
+          <label>{{ config.nameLabel }} <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="form.countryName" maxlength="200"/>
+        </div>
+        <div class="modal-field" *ngIf="config.nameField === 'stateName'">
+          <label>{{ config.nameLabel }} <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="form.stateName" maxlength="200"/>
+        </div>
+        <div class="modal-field" *ngIf="config.nameField === 'districtName'">
+          <label>{{ config.nameLabel }} <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="form.districtName" maxlength="200"/>
+        </div>
+        <div class="modal-field" *ngIf="config.nameField === 'cityName'">
+          <label>{{ config.nameLabel }} <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="form.cityName" maxlength="200"/>
+        </div>
+        <div class="modal-field" *ngIf="config.nameField === 'pincode'">
+          <label>{{ config.nameLabel }} <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="form.pincode" maxlength="20"/>
+        </div>
+
+        <div class="modal-field" *ngIf="config.parent">
+          <label>{{ config.parent.label }} <span class="req">*</span></label>
+          <app-searchable-select [options]="parentSelectOptions" [selected]="form[config.parent.field]" [disabled]="optionsLoading" [loading]="optionsLoading" loadingText="Loading..." [placeholder]="'Select ' + config.parent.label" [pageSize]="25" (selectedChange)="form[config.parent.field]=$event"></app-searchable-select>
+        </div>
+
+        <div class="modal-field" *ngIf="config.hasGstCode">
+          <label>GST Code <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="form.gstCode" maxlength="20"/>
+        </div>
+
+        <div class="modal-field">
+          <label>Active</label>
+          <select [(ngModel)]="form.active">
+            <option value="Y">Active</option>
+            <option value="N">Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-submit-modal" (click)="submit()" [disabled]="saving">
+          {{ saving ? 'Saving...' : 'SUBMIT' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

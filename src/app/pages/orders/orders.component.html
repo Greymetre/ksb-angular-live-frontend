@@ -1,0 +1,331 @@
+<div class="orders-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">{{ toast.message }}</div>
+
+  <div class="page-heading">
+    <div class="page-icon"><span class="material-icons">shopping_bag</span></div>
+    <h2 class="page-title">OrderList</h2>
+    <button type="button" class="filter-toggle-btn" [class.active]="showFilters" title="Filters" (click)="showFilters = !showFilters">
+      <span class="material-icons">filter_alt</span>
+    </button>
+  </div>
+
+  <div class="filter-panel" *ngIf="showFilters">
+    <div class="filter-field">
+      <label>User</label>
+      <app-searchable-select [options]="users" labelKey="name" [selected]="selectedUserId" placeholder="Select User" (selectedChange)="selectedUserId=$event; applyFilters()"></app-searchable-select>
+    </div>
+    <div class="filter-field">
+      <label>Division</label>
+      <app-searchable-select [options]="divisions" labelKey="name" [selected]="selectedDivisionId" placeholder="Select Division" (selectedChange)="selectedDivisionId=$event; applyFilters()"></app-searchable-select>
+    </div>
+    <div class="filter-field">
+      <label>Retailer</label>
+      <app-searchable-select [options]="retailers" labelKey="name" [selected]="selectedRetailerId" placeholder="Select Retailer" (selectedChange)="selectedRetailerId=$event; applyFilters()"></app-searchable-select>
+    </div>
+    <div class="filter-field">
+      <label>Dealer</label>
+      <app-searchable-select [options]="distributors" labelKey="name" [selected]="selectedDistributorId" placeholder="Select Dealer" (selectedChange)="selectedDistributorId=$event; applyFilters()"></app-searchable-select>
+    </div>
+    <div class="filter-field">
+      <label>Status</label>
+      <select [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">Select Status</option>
+        <option [ngValue]="1">Dispatch</option>
+        <option [ngValue]="2">Partial Dispatch</option>
+        <option [ngValue]="4">Canceled</option>
+        <option [ngValue]="0">Pending</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Designation</label>
+      <app-searchable-select
+        [options]="designationOptions"
+        [selected]="selectedDesignationIds"
+        [multiple]="true"
+        placeholder="Select Designations"
+        (selectedChange)="onDesignationChange($event)">
+      </app-searchable-select>
+    </div>
+    <div class="filter-field">
+      <label>Start Date</label>
+      <input type="date" [(ngModel)]="startDate" (ngModelChange)="applyFilters()"/>
+    </div>
+    <div class="filter-field">
+      <label>End Date</label>
+      <input type="date" [(ngModel)]="endDate" (ngModelChange)="applyFilters()"/>
+    </div>
+    <div class="filter-actions">
+      <button type="button" class="mini-btn light" (click)="clearFilters()">Clear</button>
+    </div>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="100"/> entries</label>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download Orders'" (click)="exportOrders()" [disabled]="exporting || !canExport" *ngIf="canExport">
+        <span class="material-icons">cloud_download</span>
+      </button>
+      <button class="btn-icon-round add-btn" title="Add Order" (click)="openCreateModal()" *ngIf="canCreate">
+        <span class="material-icons">add</span>
+      </button>
+      <div class="search-group">
+        <label>Search:</label>
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="scheduleSearch()" class="table-search"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading orders...</div>
+    <div class="table-scroll">
+      <table class="data-table orders-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Action</th>
+            <th>Employee</th>
+            <th>Branch</th>
+            <th>Order Date</th>
+            <th>Order No</th>
+            <th>Secondary Customer Name</th>
+            <th>Primary Customer Name</th>
+            <th>Completed Date</th>
+            <th>Grand Total</th>
+            <th>Status</th>
+            <th>Created By</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of pagedOrders; let index = index">
+            <td>{{ pageStart + index + 1 }}</td>
+            <td class="action-cell">
+              <div class="row-actions">
+                <button type="button" class="mini-icon info" title="Edit Order" (click)="editOrder(row)" *ngIf="canEdit && row.statusId !== 4">
+                  <span class="material-icons">edit</span>
+                </button>
+                <button type="button" class="mini-icon theme" title="Show Order" (click)="openDetail(row)" *ngIf="canShow">
+                  <span class="material-icons">visibility</span>
+                </button>
+                <button type="button" class="mini-icon warn" title="Delete Order" (click)="deleteOrder(row)" *ngIf="canDelete">
+                  <span class="material-icons">clear</span>
+                </button>
+              </div>
+            </td>
+            <td>{{ row.executiveName | firstCaps }}</td>
+            <td>{{ row.branchName || '-' }}</td>
+            <td>{{ formatDate(row.orderDate) }}</td>
+            <td>{{ row.orderNo || '-' }}</td>
+            <td>{{ row.buyerName || '-' }}</td>
+            <td>{{ row.sellerName || '-' }}</td>
+            <td>{{ formatDate(row.completedDate) }}</td>
+            <td>{{ row.grandTotal | number:'1.2-2' }}</td>
+            <td>
+              <span class="status-pill"
+                [class.pending]="!row.statusId"
+                [class.partial]="row.statusId === 2"
+                [class.dispatched]="row.statusId === 1"
+                [class.cancelled]="row.statusId === 4">
+                {{ row.statusName }}
+              </span>
+            </td>
+            <td>{{ row.createdByName | firstCaps }}</td>
+            <td>{{ formatDateTime(row.createdAt) }}</td>
+          </tr>
+          <tr *ngIf="!loading && pagedOrders.length === 0">
+            <td colspan="13" class="empty-row">No orders found</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <app-pagination [total]="totalOrders" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<div class="swal-overlay" *ngIf="swal.visible" (click)="cancelSwal()">
+  <div class="swal-box" (click)="$event.stopPropagation()">
+    <div class="swal-icon" [class.warning]="swal.icon === 'warning'" [class.success]="swal.icon === 'success'" [class.error]="swal.icon === 'error'" [class.info]="swal.icon === 'info'">
+      <span class="material-icons" *ngIf="swal.icon === 'warning'">priority_high</span>
+      <span class="material-icons" *ngIf="swal.icon === 'success'">check</span>
+      <span class="material-icons" *ngIf="swal.icon === 'error'">close</span>
+      <span class="material-icons" *ngIf="swal.icon === 'info'">info</span>
+    </div>
+    <h3>{{ swal.title }}</h3>
+    <p>{{ swal.text }}</p>
+    <input *ngIf="swal.input" type="text" [(ngModel)]="swal.inputValue" [placeholder]="swal.inputPlaceholder" class="swal-input" autofocus/>
+    <div class="swal-error" *ngIf="swal.inputError">{{ swal.inputError }}</div>
+    <div class="swal-actions">
+      <button type="button" class="swal-btn cancel" *ngIf="swal.showCancel" (click)="cancelSwal()">{{ swal.cancelText }}</button>
+      <button type="button" class="swal-btn confirm" (click)="confirmSwal()">{{ swal.confirmText }}</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+  <div class="modal-box order-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon"><span class="material-icons">shopping_bag</span></div>
+    <div class="modal-header-row">
+      <h3>{{ editingOrderId ? 'Edit Order' : 'Create Order' }}</h3>
+      <div class="modal-actions-top">
+        <button class="mini-btn light" type="button" (click)="closeCreateModal()" [disabled]="saving">Cancel</button>
+        <button class="mini-btn" type="button" (click)="submitOrder()" [disabled]="saving">{{ saving ? 'Saving...' : 'Save' }}</button>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="modal-field">
+          <label>Order Date <span class="req">*</span></label>
+          <input type="date" [(ngModel)]="form.orderDate"/>
+        </div>
+        <div class="modal-field">
+          <label>Employee <span class="req">*</span></label>
+          <select [(ngModel)]="form.executiveId">
+            <option [ngValue]="null">Select Employee</option>
+            <option *ngFor="let user of users" [ngValue]="user.id">{{ user.name | firstCaps }}</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>Customer Type <span class="req">*</span></label>
+          <select [(ngModel)]="form.type" (ngModelChange)="onTypeChange()">
+            <option value="DEALER">DEALER</option>
+            <option value="RETAILER">RETAILER</option>
+            <option value="INFLUENCER">INFLUENCER</option>
+          </select>
+        </div>
+        <div class="modal-field" *ngIf="showBuyer">
+          <label>Customer <span class="req">*</span></label>
+          <select [(ngModel)]="form.buyerId">
+            <option [ngValue]="null">Select Customer</option>
+            <option *ngFor="let retailer of retailers" [ngValue]="retailer.id">{{ retailer.name | firstCaps }}</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>Dealer <span class="req">*</span></label>
+          <select [(ngModel)]="form.sellerId">
+            <option [ngValue]="null">Select Dealer</option>
+            <option *ngFor="let distributor of distributors" [ngValue]="distributor.id">{{ distributor.name | firstCaps }}</option>
+          </select>
+        </div>
+        <div class="modal-field full-field">
+          <label>Order Remark</label>
+          <textarea [(ngModel)]="form.orderRemark" rows="2"></textarea>
+        </div>
+      </div>
+
+      <div class="items-toolbar">
+        <strong>Items</strong>
+        <button class="mini-btn" type="button" (click)="addRow()"><span class="material-icons">add</span>Add Row</button>
+      </div>
+
+      <div class="items-table">
+        <div class="item-row item-head">
+          <span>#</span>
+          <span>Family</span>
+          <span>Products</span>
+          <span>Quantity</span>
+          <span>MRP / HSN</span>
+          <span>Amount</span>
+        </div>
+        <div class="item-row" *ngFor="let row of form.rows; let index = index">
+          <span>{{ index + 1 }}</span>
+          <select [(ngModel)]="row.subcategoryId" (ngModelChange)="onFamilyChange(row)">
+            <option [ngValue]="null">Select Family</option>
+            <option *ngFor="let family of families" [ngValue]="family.id">{{ family.name | firstCaps }}</option>
+          </select>
+          <select [(ngModel)]="row.productId" (ngModelChange)="onProductChange(row)" [disabled]="row.loadingProducts">
+            <option [ngValue]="null">{{ row.loadingProducts ? 'Loading...' : 'Select Product' }}</option>
+            <option *ngFor="let product of row.products" [ngValue]="product.id">{{ product.name }} {{ product.productCode ? '(' + product.productCode + ')' : '' }}</option>
+          </select>
+          <input type="number" min="0" [(ngModel)]="row.quantity" (ngModelChange)="recalculateRow(row)"/>
+          <input type="number" min="0" [(ngModel)]="row.mrp" (ngModelChange)="recalculateRow(row)"/>
+          <input type="number" [ngModel]="row.lineTotal" readonly/>
+        </div>
+      </div>
+
+      <div class="order-total">
+        <span>Total Qty: <strong>{{ totalQty | number:'1.0-2' }}</strong></span>
+        <span>Grand Total: <strong>{{ totalAmount | number:'1.2-2' }}</strong></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showDetailModal" (click)="closeDetailModal()">
+  <div class="modal-box order-modal detail-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon"><span class="material-icons">shopping_bag</span></div>
+    <div class="modal-header-row">
+      <h3>Order Detail</h3>
+      <div class="modal-actions-top">
+        <button class="mini-btn light" type="button" (click)="closeDetailModal()" [disabled]="statusSaving">Close</button>
+      </div>
+    </div>
+
+    <div class="loading-bar" *ngIf="detailLoading">Loading order...</div>
+    <div class="modal-body" *ngIf="selectedOrder as order">
+      <div class="detail-grid">
+        <div><span>Order ID</span><strong>#{{ order.id }}</strong></div>
+        <div><span>Order No</span><strong>{{ order.orderNo || '-' }}</strong></div>
+        <div><span>Date</span><strong>{{ formatDate(order.orderDate) }}</strong></div>
+        <div><span>Status</span><strong>{{ order.statusName }}</strong></div>
+        <div><span>Primary Customer</span><strong>{{ order.sellerName || '-' }}</strong></div>
+        <div><span>Secondary Customer</span><strong>{{ order.buyerName || '-' }}</strong></div>
+        <div><span>Employee</span><strong>{{ order.executiveName || '-' }}</strong></div>
+        <div><span>Created By</span><strong>{{ order.createdByName || '-' }}</strong></div>
+      </div>
+
+      <div class="items-table detail-items">
+        <div class="detail-row detail-head">
+          <span>#</span>
+          <span>Segment</span>
+          <span>Family</span>
+          <span>Product</span>
+          <span>Qty</span>
+          <span>Shipped</span>
+          <span>Cancel Qty</span>
+          <span>Status</span>
+          <span>Rate</span>
+          <span>Total</span>
+        </div>
+        <div class="detail-row" *ngFor="let detail of selectedOrderDetails; let index = index">
+          <span>{{ index + 1 }}</span>
+          <span>{{ detail.categoryName || '-' }}</span>
+          <span>{{ detail.subcategoryName || '-' }}</span>
+          <span>{{ detail.productName || '-' }}</span>
+          <span>{{ detail.quantity | number:'1.0-2' }}</span>
+          <span>{{ detail.shippedQty | number:'1.0-2' }}</span>
+          <span>{{ cancelledQty(detail) | number:'1.0-2' }}</span>
+          <span>{{ detail.statusName }}</span>
+          <span>{{ detail.price | number:'1.2-2' }}</span>
+          <span>{{ detail.lineTotal | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="order-total detail-total">
+        <span>Total Qty: <strong>{{ order.totalQty | number:'1.0-2' }}</strong></span>
+        <span>Shipped Qty: <strong>{{ detailShippedQty | number:'1.0-2' }}</strong></span>
+        <span *ngIf="order.statusId === 4">Cancel Qty: <strong>{{ totalCancelledQty | number:'1.0-2' }}</strong></span>
+        <span>Grand Total: <strong>{{ order.grandTotal | number:'1.2-2' }}</strong></span>
+      </div>
+      <div class="detail-remark" *ngIf="order.orderRemark">
+        <span>Remark</span>
+        <p>{{ order.orderRemark }}</p>
+      </div>
+
+      <div class="status-actions">
+        <button type="button" class="mini-btn success" (click)="openDispatch('full')" [disabled]="statusSaving" *ngIf="canDispatch(order)">Fully Dispatched</button>
+        <button type="button" class="mini-btn" (click)="openDispatch('partial')" [disabled]="statusSaving" *ngIf="canDispatch(order)">Partially Dispatched</button>
+        <button type="button" class="mini-btn danger" (click)="changeOrderStatus(4)" [disabled]="statusSaving" *ngIf="canCancel(order)">Cancel Order</button>
+        <button type="button" class="mini-btn warning" (click)="changeOrderStatus(null)" [disabled]="statusSaving" *ngIf="canMovePending(order)">Pending</button>
+        <button type="button" class="mini-btn danger" disabled *ngIf="order.statusId === 4">Cancelled Order</button>
+        <button type="button" class="mini-btn success" disabled *ngIf="order.statusId === 1">Dispatched</button>
+      </div>
+    </div>
+  </div>
+</div>

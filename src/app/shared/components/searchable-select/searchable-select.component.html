@@ -1,0 +1,26 @@
+<div class="select2-like" [class.open]="opened" [class.disabled]="disabled">
+  <button type="button" class="select-trigger" (click)="toggleOpen()" [disabled]="disabled">
+    <span class="selected-text" [class.placeholder]="selectedArray.length === 0">{{ selectedText }}</span>
+    <span class="select-actions">
+      <span class="material-icons clear-icon" *ngIf="allowClear && selectedArray.length > 0" (click)="clear($event)">close</span>
+      <span class="material-icons arrow-icon">expand_more</span>
+    </span>
+  </button>
+
+  <div class="select-panel" *ngIf="opened" (click)="$event.stopPropagation()">
+    <input class="select-search-box" type="text" [ngModel]="search" (ngModelChange)="onSearchChange($event)" placeholder="Search" [disabled]="loading"/>
+    <div class="select-options">
+      <div class="empty-option" *ngIf="loading">{{ loadingText }}</div>
+      <button type="button" class="select-option" *ngFor="let option of (loading ? [] : visibleOptions)" (click)="choose(option, $event)" [class.selected]="isSelected(option.id)">
+        <span class="material-icons check-icon" [class.visible]="multiple || isSelected(option.id)">{{ multiple ? (isSelected(option.id) ? 'check_box' : 'check_box_outline_blank') : 'check' }}</span>
+        <span>{{ displayLabel(optionLabel(option)) }}</span>
+      </button>
+      <div class="empty-option" *ngIf="!loading && filteredOptions.length === 0">No results found</div>
+    </div>
+    <div class="select-pagination" *ngIf="!loading && pageSize > 0 && filteredOptions.length > pageSize">
+      <button type="button" (click)="changePage(page - 1, $event)" [disabled]="page === 1">Previous</button>
+      <span>{{ page }} / {{ totalPages }}</span>
+      <button type="button" (click)="changePage(page + 1, $event)" [disabled]="page === totalPages">Next</button>
+    </div>
+  </div>
+</div>
