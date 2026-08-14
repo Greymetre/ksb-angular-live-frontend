@@ -745,15 +745,43 @@ export class CustomersComponent implements OnInit {
   }
 
   numField(key: string): number | null {
-    const value = Number(this.field(key));
-    return Number.isFinite(value) && value > 0 ? value : null;
+    return this.parseIdList(this.field(key))[0] ?? null;
   }
 
   numListField(key: string): number[] {
-    return this.field(key)
-      .split(',')
-      .map(value => Number(value.trim()))
-      .filter(value => Number.isFinite(value) && value > 0);
+    return this.parseIdList(this.field(key));
+  }
+
+  private parseIdList(value: string | null | undefined): number[] {
+    const ids = new Set<number>();
+    const collect = (candidate: unknown, depth = 0): void => {
+      if (depth > 6 || candidate === null || candidate === undefined || candidate === '') return;
+      if (Array.isArray(candidate)) {
+        candidate.forEach(item => collect(item, depth + 1));
+        return;
+      }
+      if (typeof candidate === 'number') {
+        if (Number.isSafeInteger(candidate) && candidate > 0) ids.add(candidate);
+        return;
+      }
+      const text = String(candidate).trim();
+      const number = Number(text);
+      if (Number.isSafeInteger(number) && number > 0) {
+        ids.add(number);
+        return;
+      }
+      try {
+        collect(JSON.parse(text), depth + 1);
+        return;
+      } catch {
+        text.split(',').forEach(item => {
+          const parsed = Number(item.replace(/[\[\]"\\]/g, '').trim());
+          if (Number.isSafeInteger(parsed) && parsed > 0) ids.add(parsed);
+        });
+      }
+    };
+    collect(value);
+    return [...ids];
   }
 
   typeName(customer: CustomerItem): string {
