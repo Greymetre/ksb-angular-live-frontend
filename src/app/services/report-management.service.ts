@@ -4,7 +4,7 @@ import { Observable, map } from 'rxjs';
 import { API_BASE_URL } from '../config/api.config';
 import { AuthService } from './auth.service';
 
-export type ReportMode = 'asr' | 'rating' | 'retailer' | 'dealer' | 'market';
+export type ReportMode = 'asr' | 'rating' | 'retailer' | 'dealer' | 'market' | 'activity';
 export interface ReportResult { rows: Record<string, any>[]; summary: Record<string, any>; }
 export interface ReportOption { id: number; name: string; }
 export interface AsrReportOptions {
@@ -112,6 +112,20 @@ export class ReportManagementService {
     return this.http.get(`${API_BASE_URL}/reports/asr-performance/export`, {
       headers: this.headers(), params, responseType: 'blob'
     });
+  }
+
+  activityOptions(): Observable<{ zones: ReportOption[]; branches: Array<ReportOption & { zone_id?: number }>; meets: Array<{ id: string; name: string }> }> {
+    return this.http.get<any>(`${API_BASE_URL}/reports/activity-report/options`, { headers: this.headers() }).pipe(map(response => ({ zones: this.array(response.zones), branches: this.array(response.branches), meets: this.array(response.meets) })));
+  }
+
+  downloadActivity(kind: 'sales-engineer' | 'distributor' | 'gift-summary', filters: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams(); Object.entries(filters).forEach(([key, value]) => { if (value !== null && value !== undefined && value !== '') params = params.set(key, String(value)); });
+    return this.http.get(`${API_BASE_URL}/reports/activity-report/${kind}-export`, { headers: this.headers(), params, responseType: 'blob' });
+  }
+
+  activityPreview(filters: Record<string, any>): Observable<any> {
+    let params = new HttpParams(); Object.entries(filters).forEach(([key, value]) => { if (value !== null && value !== undefined && value !== '') params = params.set(key, String(value)); });
+    return this.http.get<any>(`${API_BASE_URL}/reports/activity-report/preview`, { headers: this.headers(), params }).pipe(map(response => response.data || {}));
   }
 
   private array(value: any): any[] { return Array.isArray(value) ? value : Array.isArray(value?.$values) ? value.$values : []; }

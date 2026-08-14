@@ -55,6 +55,44 @@
   <div class="error" *ngIf="error">{{error}}</div>
 </section>
 
+<section class="page" *ngIf="mode === 'activity'">
+  <header><div><h1>Activity Reports</h1><p>Download submitted promotional activity summaries.</p></div></header>
+  <form class="asr-filter-card" (ngSubmit)="$event.preventDefault()">
+    <label><span class="field-label">Start Date <span class="required">*</span></span><input type="date" [(ngModel)]="startDate" name="activityStartDate" (ngModelChange)="activityFilterChanged()" required></label>
+    <label><span class="field-label">End Date <span class="required">*</span></span><input type="date" [(ngModel)]="endDate" name="activityEndDate" (ngModelChange)="activityFilterChanged()" required></label>
+    <label>Zone
+      <app-searchable-select [options]="activityOptions.zones" labelKey="name" [selected]="divisionId" placeholder="All Zones" [pageSize]="25" (selectedChange)="divisionId=$event;branchId=null;activityFilterChanged()"></app-searchable-select>
+    </label>
+    <label>Branch
+      <app-searchable-select [options]="activityBranches" labelKey="name" [selected]="branchId" placeholder="All Branches" [pageSize]="25" (selectedChange)="branchId=$event;activityFilterChanged()"></app-searchable-select>
+    </label>
+    <label><span class="field-label">Select Meet <span class="required">*</span></span>
+      <select [(ngModel)]="meet" name="activityMeet" (ngModelChange)="activityFilterChanged()" required><option *ngFor="let item of activityOptions.meets" [value]="item.id">{{item.name}}</option></select>
+    </label>
+    <div class="activity-downloads">
+      <button type="button" class="primary" *ngIf="auth.hasPermission('activity_report_sales_engineer_download')" (click)="downloadActivity('sales-engineer')" [disabled]="loading"><span class="material-icons">download</span>Sales Engineer Wise</button>
+      <button type="button" class="primary" *ngIf="auth.hasPermission('activity_report_distributor_download')" (click)="downloadActivity('distributor')" [disabled]="loading"><span class="material-icons">download</span>Distributor Wise</button>
+      <button type="button" class="primary" *ngIf="auth.hasPermission('activity_report_gift_summary_download')" (click)="downloadActivity('gift-summary')" [disabled]="loading"><span class="material-icons">download</span>Gift Summary</button>
+    </div>
+  </form>
+  <div class="error" *ngIf="error">{{error}}</div>
+  <div class="activity-preview">
+    <div class="preview-heading"><div><h2>{{selectedMeetName}} Dashboard</h2><p>Filtered submitted activity overview</p></div><span class="loading-pill" *ngIf="previewLoading">Refreshing...</span></div>
+    <div class="activity-kpis">
+      <div><span class="material-icons">campaign</span><small>Total Meets</small><strong>{{activityPreview.summary.meets || 0}}</strong></div>
+      <div><span class="material-icons">groups</span><small>Participants</small><strong>{{activityPreview.summary.participants || 0}}</strong></div>
+      <div><span class="material-icons">redeem</span><small>Gifts</small><strong>{{activityPreview.summary.gifts || 0}}</strong></div>
+      <div><span class="material-icons">currency_rupee</span><small>Total Expense</small><strong>{{money(activityPreview.summary.expense)}}</strong></div>
+      <div><span class="material-icons">store</span><small>Distributors</small><strong>{{activityPreview.summary.distributors || 0}}</strong></div>
+      <div><span class="material-icons">engineering</span><small>Sales Engineers</small><strong>{{activityPreview.summary.sales_engineers || 0}}</strong></div>
+    </div>
+    <div class="preview-tabs"><button type="button" [class.active]="activityView==='sales'" (click)="activityView='sales'">Sales Engineer Wise</button><button type="button" [class.active]="activityView==='distributor'" (click)="activityView='distributor'">Distributor Wise</button><button type="button" [class.active]="activityView==='gifts'" (click)="activityView='gifts'">Gift Summary</button></div>
+    <div class="preview-table" *ngIf="activityView==='sales'"><table><thead><tr><th>Zone</th><th>Branch</th><th>Sales Engineer</th><th>ASR / DSR Name</th><th>Meets</th><th>Participants</th><th>Gifts</th><th>Expense</th></tr></thead><tbody><tr *ngFor="let row of activityPreview.sales_engineer_wise"><td>{{row.zone}}</td><td>{{row.branch}}</td><td>{{row.sales_engineer}}</td><td>{{row.asr_name}}</td><td>{{row.meets}}</td><td>{{row.participants}}</td><td>{{row.gifts}}</td><td>{{money(row.expense)}}</td></tr><tr *ngIf="!previewLoading&&!activityPreview.sales_engineer_wise?.length"><td colspan="8" class="empty">No activity data found.</td></tr></tbody></table></div>
+    <div class="preview-table" *ngIf="activityView==='distributor'"><table><thead><tr><th>Zone</th><th>Branch</th><th>Distributor</th><th>Sales Engineer</th><th>ASR / DSR Name</th><th>Meets</th><th>Participants</th><th>Gifts</th><th>Expense</th></tr></thead><tbody><tr *ngFor="let row of activityPreview.distributor_wise"><td>{{row.zone}}</td><td>{{row.branch}}</td><td>{{row.distributor}}</td><td>{{row.sales_engineer}}</td><td>{{row.asr_name}}</td><td>{{row.meets}}</td><td>{{row.participants}}</td><td>{{row.gifts}}</td><td>{{money(row.expense)}}</td></tr><tr *ngIf="!previewLoading&&!activityPreview.distributor_wise?.length"><td colspan="9" class="empty">No distributor data found.</td></tr></tbody></table></div>
+    <div class="gift-dashboard" *ngIf="activityView==='gifts'"><div class="gift-card" *ngFor="let gift of activityPreview.gift_summary"><div><span>{{gift.gift_name}}</span><strong>{{gift.count}}</strong></div><div class="gift-track"><span [style.width.%]="giftPercent(gift.count)"></span></div></div><div class="empty" *ngIf="!previewLoading&&!activityPreview.gift_summary?.length">No gift distribution found.</div></div>
+  </div>
+</section>
+
 <section class="page" *ngIf="isProductivity">
   <header><div><h1>{{title}}</h1><p>Download {{mode === 'retailer' ? 'retailer' : 'distributor'}} productivity report.</p></div></header>
   <form class="asr-filter-card" (ngSubmit)="downloadProductivity()">
@@ -88,7 +126,7 @@
 </section>
 
 <ng-template #standardReport>
-  <ng-container *ngIf="!isProductivity && mode !== 'rating'">
+  <ng-container *ngIf="!isProductivity && mode !== 'rating' && mode !== 'activity'">
   <section class="page"><header><div><h1>{{title}}</h1><p>Reporting hierarchy based live report from migrated SQL Server data.</p></div><button class="primary" (click)="download()" [disabled]="!visibleRows.length"><span class="material-icons">download</span>Download</button></header>
   <div class="summary" *ngIf="summary"><div *ngFor="let item of summary | keyvalue"><small>{{label(item.key)}}</small><strong>{{display(item.value)}}</strong></div></div>
   <div class="filters"><label>Zone<input [(ngModel)]="zone" placeholder="All zones"></label><label>Branch<input [(ngModel)]="branch" placeholder="All branches"></label><label>Search<input [(ngModel)]="search" placeholder="Search report"></label><button (click)="load()">Apply</button><button (click)="zone='';branch='';search='';load()">Clear</button></div>

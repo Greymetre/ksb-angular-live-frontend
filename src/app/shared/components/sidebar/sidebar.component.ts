@@ -267,12 +267,12 @@ export class SidebarComponent {
     {
       label: 'Reports Management',
       icon: 'airplay',
-      permission: 'reports',
+      permissions: ['reports', 'activity_report_access'],
       children: [
         {
           label: 'User',
           icon: 'point_of_sale',
-          permission: 'reports_sale',
+          permissions: ['reports_sale', 'activity_report_access'],
           children: [
             { label: 'Attendance Detail', icon: 'report', route: '/attendance-details', permission: 'attendance_report' },
             { label: 'Attendance Summary', icon: 'summarize', route: '/attendance-summary', permission: 'attendance_summary_report' },
@@ -281,6 +281,7 @@ export class SidebarComponent {
             { label: 'Check In & Check Out', icon: 'dashboard_customize', route: '/checkin-checkout-report', permission: 'visit_report' },
             { label: 'ASR Performance', icon: 'summarize', route: '/reports/asr-performance', permission: 'ASR_report_Download' },
             { label: 'Rating Report', icon: 'trending_down', route: '/reports/rating-report', permission: 'asm_rating_report' },
+            { label: 'Activity Reports', icon: 'campaign', route: '/reports/activity-reports', permission: 'activity_report_access' },
             // { label: 'User working report', icon: 'hub', permission: 'user_working_report' },
             // { label: 'FOS Rating Report', icon: 'trending_down', permission: 'fos_rating_report' },
             // { label: 'Primary Sales', icon: 'stay_primary_landscape', permission: 'dashboard_primary_sales_access' },

@@ -67,6 +67,7 @@ const routes: Routes = [
       { path: 'checkin-checkout-report', component: CheckinReportsComponent, canActivate: [authGuard], data: { permission: 'visit_report' } },
       { path: 'reports/asr-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'ASR_report_Download', reportMode: 'asr' } },
       { path: 'reports/rating-report', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'asm_rating_report', reportMode: 'rating' } },
+      { path: 'reports/activity-reports', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'activity_report_access', reportMode: 'activity' } },
       { path: 'reports/retailer-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'retailer_productivity_report', reportMode: 'retailer' } },
       { path: 'reports/dealer-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'retailer_productivity_report', reportMode: 'dealer' } },
       { path: 'reports/market-intelligence', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'market_intelligence_access', reportMode: 'market' } },

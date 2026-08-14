@@ -111,6 +111,10 @@ export class RolesComponent implements OnInit {
     asm_rating_report: 'Reports Management > Rating Report',
     asm_rating_download: 'Rating Report Download (Export)',
     asm_rating_detailed_download: 'Rating Report Detailed Download (Export)',
+    activity_report_access: 'Reports Management > User > Activity Reports Sub Menu',
+    activity_report_sales_engineer_download: 'Activity Reports > Sales Engineer Wise Download (Export)',
+    activity_report_distributor_download: 'Activity Reports > Distributor Wise Download (Export)',
+    activity_report_gift_summary_download: 'Activity Reports > Gift Summary Download (Export)',
     market_intelligence_access: 'Reports Management > Market Intelligence',
     market_intelligence_report_download: 'Market Intelligence Download (Export)',
     customers_report: 'Reports Management > Customer Master Download (Export)',
@@ -141,7 +145,7 @@ export class RolesComponent implements OnInit {
     stock: 'Stock', stockdetails: 'Stock Details', leads: 'Leads', tasks: 'Tasks', payments: 'Payments',
     master_distributor: 'Dealer', loyalty_app_setting: 'Loyalty App Setting', dealer_portal_setting: 'Dealer Portal Setting',
     user_app_details: 'User App Details', market_intelligence: 'Market Intelligence',
-    asm_rating: 'Rating Report', asr: 'ASR Performance', invoice: 'Invoice', estimate: 'Estimate',
+    asm_rating: 'Rating Report', asr: 'ASR Performance', activity_report: 'Activity Reports', invoice: 'Invoice', estimate: 'Estimate',
     process: 'Process', active_process: 'Active Process', call_log: 'Call Log', geo_locator: 'Geo Locator'
   };
 

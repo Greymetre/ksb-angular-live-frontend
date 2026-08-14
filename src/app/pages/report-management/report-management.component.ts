@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AsrReportOptions, ReportManagementService, ReportMode } from '../../services/report-management.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({ standalone: false, selector: 'app-report-management', templateUrl: './report-management.component.html', styleUrls: ['./report-management.component.scss'] })
 export class ReportManagementComponent implements OnInit {
@@ -21,9 +22,15 @@ export class ReportManagementComponent implements OnInit {
   month: number | 'weekly' | null = new Date().getMonth() + 1;
   startDate = this.firstDayOfMonth();
   endDate = this.today();
-  constructor(private route: ActivatedRoute, private service: ReportManagementService, private cdr: ChangeDetectorRef) {}
-  ngOnInit(): void { this.route.data.subscribe(data => { this.mode = data['reportMode'] || 'asr'; this.mode === 'asr' ? this.loadAsrOptions() : this.mode === 'rating' ? this.loadRatingOptions() : (this.mode === 'retailer' || this.mode === 'dealer') ? this.loadProductivityOptions() : this.load(); }); }
-  get title(): string { return this.mode === 'asr' ? 'ASR Performance' : this.mode === 'rating' ? 'Rating Report' : this.mode === 'retailer' ? 'Retailer Performance' : this.mode === 'dealer' ? 'Dealer Performance' : 'Market Intelligence'; }
+  activityOptions: { zones: Array<{id:number;name:string}>; branches: Array<{id:number;name:string;zone_id?:number}>; meets: Array<{id:string;name:string}> } = { zones: [], branches: [], meets: [] };
+  get activityBranches(): Array<{id:number;name:string;zone_id?:number}> { return this.divisionId ? this.activityOptions.branches.filter(x => Number(x.zone_id) === Number(this.divisionId)) : this.activityOptions.branches; }
+  meet = 'retailer';
+  activityPreview: any = { summary: {}, sales_engineer_wise: [], distributor_wise: [], gift_summary: [] };
+  activityView: 'sales'|'distributor'|'gifts' = 'sales';
+  previewLoading = false;
+  constructor(private route: ActivatedRoute, private service: ReportManagementService, public auth: AuthService, private cdr: ChangeDetectorRef) {}
+  ngOnInit(): void { this.route.data.subscribe(data => { this.mode = data['reportMode'] || 'asr'; this.mode === 'asr' ? this.loadAsrOptions() : this.mode === 'rating' ? this.loadRatingOptions() : (this.mode === 'retailer' || this.mode === 'dealer') ? this.loadProductivityOptions() : this.mode === 'activity' ? this.loadActivityOptions() : this.load(); }); }
+  get title(): string { return this.mode === 'asr' ? 'ASR Performance' : this.mode === 'rating' ? 'Rating Report' : this.mode === 'retailer' ? 'Retailer Performance' : this.mode === 'dealer' ? 'Dealer Performance' : this.mode === 'activity' ? 'Activity Reports' : 'Market Intelligence'; }
   get isProductivity(): boolean { return this.mode === 'retailer' || this.mode === 'dealer'; }
   get years(): number[] { const current = new Date().getFullYear(); return Array.from({ length: current - 2019 }, (_, index) => current - index); }
   get months(): Array<{ id: number; name: string }> { return Array.from({ length: 12 }, (_, index) => ({ id: index + 1, name: new Date(2000, index, 1).toLocaleString('en', { month: 'long' }) })); }
@@ -66,6 +73,15 @@ export class ReportManagementComponent implements OnInit {
       .pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); }))
       .subscribe({ next: blob => this.saveBlob(blob, 'Asr_performance_report.xlsx'), error: error => this.handleBlobError(error) });
   }
+
+  loadActivityOptions(): void { this.loading = true; this.error = ''; this.service.activityOptions().pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); })).subscribe({ next: options => { this.activityOptions = options; this.loadActivityPreview(); }, error: error => this.error = error?.error?.message || error.message || 'Unable to load activity report filters.' }); }
+  activityFilters(): Record<string, any> { return { start_date: this.startDate, end_date: this.endDate, zone_id: this.divisionId, branch_id: this.branchId, meet: this.meet }; }
+  activityFilterChanged(): void { if (this.startDate && this.endDate && this.meet && this.startDate <= this.endDate) this.loadActivityPreview(); }
+  loadActivityPreview(): void { if (!this.meet) return; this.previewLoading = true; this.error = ''; this.service.activityPreview(this.activityFilters()).pipe(finalize(() => { this.previewLoading = false; this.cdr.detectChanges(); })).subscribe({ next: data => this.activityPreview = { summary: data.summary || {}, sales_engineer_wise: data.sales_engineer_wise || [], distributor_wise: data.distributor_wise || [], gift_summary: data.gift_summary || [] }, error: error => this.error = error?.error?.message || error.message || 'Unable to load activity report preview.' }); }
+  downloadActivity(kind: 'sales-engineer'|'distributor'|'gift-summary'): void { if (!this.startDate || !this.endDate) { this.error = 'Date range is required.'; return; } if (!this.meet) { this.error = 'Please select a meet before downloading the report.'; return; } if (this.startDate > this.endDate) { this.error = 'Start date cannot be after end date.'; return; } this.loading = true; this.error = ''; this.service.downloadActivity(kind, this.activityFilters()).pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); })).subscribe({ next: blob => this.saveBlob(blob, `${this.selectedMeetName.replace(/\s*\/\s*|\s+/g, '_')}_${kind}_${this.startDate}_${this.endDate}.xlsx`), error: error => this.handleBlobError(error) }); }
+  get selectedMeetName(): string { return this.activityOptions.meets.find(x => x.id === this.meet)?.name || 'Retailer Meet'; }
+  money(value: any): string { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(Number(value || 0)); }
+  giftPercent(count: any): number { const max = Math.max(1, ...(this.activityPreview.gift_summary || []).map((x: any) => Number(x.count || 0))); return Math.max(4, Math.round(Number(count || 0) * 100 / max)); }
 
   loadProductivityOptions(): void {
     this.loading = true; this.error = '';
