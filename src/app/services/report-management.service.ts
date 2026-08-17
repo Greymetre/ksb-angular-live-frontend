@@ -27,6 +27,40 @@ export interface AsrReportFilters {
   startDate: string;
   endDate: string;
 }
+export interface RatingReportFilters {
+  designationId: number;
+  year: number;
+  month?: number | 'weekly' | null;
+  divisionId?: number | null;
+  branchId?: number | null;
+}
+export interface RatingDashboardFilters {
+  designationId: number;
+  divisionId?: number | null;
+  branchId?: number | null;
+  search?: string;
+  page: number;
+  pageSize: number;
+}
+export interface RatingTrendRow {
+  user_id: number; branch: string; employee_code: string; employee_name: string; reporting_manager: string; zone: string;
+  average_rating: number; monthly_ratings: Record<string, number>; monthly_details: Record<string, RatingTrendMonthDetail>;
+}
+export interface RatingTrendComponent {
+  key: string; label: string; percentage: number; actual: number; target: number; weight: number; weighted_score: number; description: string;
+}
+export interface RatingTrendMonthDetail { final_rating: number; components: RatingTrendComponent[]; }
+export interface RatingReportDashboard {
+  period: { label: string; start_date: string; end_date: string; months: Array<{ key: string; label: string; full_label: string }> };
+  summary: {
+    total_employees: number; total_zones: number; average_rating: number; oldest_month_average: number; average_change: number; comparison_month: string;
+    monthly_averages: Record<string, number>;
+    top_rated: { name: string; employee_code: string; branch: string; zone: string; rating: number } | null;
+    needs_attention: { name: string; employee_code: string; branch: string; zone: string; rating: number } | null;
+  };
+  pagination: { page: number; page_size: number; total: number; total_pages: number; from: number; to: number };
+  rows: RatingTrendRow[];
+}
 
 @Injectable({ providedIn: 'root' })
 export class ReportManagementService {
@@ -72,15 +106,19 @@ export class ReportManagementService {
     );
   }
 
-  downloadRating(filters: { designationId: number; year: number; month?: number | 'weekly' | null; divisionId?: number | null; branchId?: number | null }): Observable<Blob> {
-    let params = new HttpParams().set('designation_id', filters.designationId);
-    if (filters.month === 'weekly') params = params.set('period', 'weekly');
-    else {
-      params = params.set('year', filters.year);
-      if (filters.month) params = params.set('month', filters.month);
-    }
-    if (filters.divisionId) params = params.set('division_id', filters.divisionId);
-    if (filters.branchId) params = params.set('branch_id', filters.branchId);
+  ratingDashboard(filters: RatingDashboardFilters): Observable<RatingReportDashboard> {
+    let params = new HttpParams()
+      .set('designation_id', String(filters.designationId))
+      .set('page', String(filters.page))
+      .set('page_size', String(filters.pageSize));
+    if (filters.divisionId) params = params.set('division_id', String(filters.divisionId));
+    if (filters.branchId) params = params.set('branch_id', String(filters.branchId));
+    if (filters.search?.trim()) params = params.set('search', filters.search.trim());
+    return this.http.get<RatingReportDashboard>(`${API_BASE_URL}/reports/rating-report/dashboard`, { headers: this.headers(), params });
+  }
+
+  downloadRating(filters: RatingReportFilters): Observable<Blob> {
+    const params = this.ratingParams(filters);
     return this.http.get(`${API_BASE_URL}/reports/rating-report/export`, { headers: this.headers(), params, responseType: 'blob' });
   }
 
@@ -129,5 +167,16 @@ export class ReportManagementService {
   }
 
   private array(value: any): any[] { return Array.isArray(value) ? value : Array.isArray(value?.$values) ? value.$values : []; }
+  private ratingParams(filters: RatingReportFilters): HttpParams {
+    let params = new HttpParams().set('designation_id', filters.designationId);
+    if (filters.month === 'weekly') params = params.set('period', 'weekly');
+    else {
+      params = params.set('year', filters.year);
+      if (filters.month) params = params.set('month', filters.month);
+    }
+    if (filters.divisionId) params = params.set('division_id', filters.divisionId);
+    if (filters.branchId) params = params.set('branch_id', filters.branchId);
+    return params;
+  }
   private headers(): HttpHeaders { const token = this.auth.getToken(); return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders(); }
 }

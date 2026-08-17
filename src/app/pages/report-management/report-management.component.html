@@ -33,26 +33,164 @@
 </section>
 
 <section class="page" *ngIf="mode === 'rating'">
-  <header><div><h1>Rating Report</h1><p>Download monthly employee rating matrix.</p></div></header>
-  <form class="asr-filter-card" (ngSubmit)="downloadRating()">
+  <header>
+    <div><h1>Rating Report</h1><p>Employee-wise C Final Rating for the latest six calendar months.</p></div>
+    <button type="button" class="filter-toggle-btn" [class.active]="showRatingFilters" title="Filters" aria-label="Toggle rating report filters" [attr.aria-expanded]="showRatingFilters" aria-controls="rating-report-filters" (click)="showRatingFilters = !showRatingFilters">
+      <span class="material-icons">filter_alt</span>
+    </button>
+  </header>
+  <form id="rating-report-filters" class="asr-filter-card rating-filter-card" *ngIf="showRatingFilters" (ngSubmit)="applyRatingFilters()">
     <label><span class="field-label">Designation <span class="required">*</span></span>
       <app-searchable-select [options]="asrOptions.designations" labelKey="name" [selected]="designationId" placeholder="Select Designation" [pageSize]="25" (selectedChange)="designationId=$event"></app-searchable-select>
     </label>
-    <label><span class="field-label">Year <span class="required" *ngIf="month !== 'weekly'">*</span></span>
-      <select [(ngModel)]="year" name="ratingYear" [required]="month !== 'weekly'" [disabled]="month === 'weekly'"><option *ngFor="let item of years" [ngValue]="item">{{item}}</option></select>
-    </label>
-    <label>Month
-      <select [(ngModel)]="month" name="ratingMonth"><option [ngValue]="'weekly'">Weekly (Last 7 Days)</option><option [ngValue]="null">All Months (YTD)</option><option *ngFor="let item of months" [ngValue]="item.id">{{item.name}}</option></select>
-    </label>
     <label>Zone
-      <app-searchable-select [options]="asrOptions.divisions" labelKey="name" [selected]="divisionId" placeholder="All Zones" [pageSize]="25" (selectedChange)="divisionId=$event"></app-searchable-select>
+      <app-searchable-select [options]="asrOptions.divisions" labelKey="name" [selected]="divisionId" placeholder="All Zones" [pageSize]="25" (selectedChange)="divisionId=$event;branchId=null"></app-searchable-select>
     </label>
     <label>Branch
       <app-searchable-select [options]="asrOptions.branches" labelKey="name" [selected]="branchId" placeholder="All Branches" [pageSize]="25" (selectedChange)="branchId=$event"></app-searchable-select>
     </label>
-    <div class="download-wrap"><button class="primary" type="submit" [disabled]="loading"><span class="material-icons">download</span>{{loading ? 'Preparing...' : 'Download Excel Report'}}</button></div>
+    <div class="rating-export-separator"><span>Excel Download Options</span><small>These period fields apply only to the detailed Excel report.</small></div>
+    <label><span class="field-label">Excel Report Year <span class="required" *ngIf="month !== 'weekly'">*</span></span>
+      <select [(ngModel)]="year" name="ratingYear" [required]="month !== 'weekly'" [disabled]="month === 'weekly'"><option *ngFor="let item of years" [ngValue]="item">{{item}}</option></select>
+    </label>
+    <label>Excel Report Period
+      <select [(ngModel)]="month" name="ratingMonth"><option [ngValue]="'weekly'">Weekly (Last 7 Days)</option><option [ngValue]="null">All Months (YTD)</option><option *ngFor="let item of months" [ngValue]="item.id">{{item.name}}</option></select>
+    </label>
+    <div class="download-wrap rating-filter-actions">
+      <button class="secondary-action" type="button" (click)="clearRatingFilters()" [disabled]="ratingDashboardLoading">Clear</button>
+      <button class="primary apply-rating" type="submit" [disabled]="ratingDashboardLoading"><span class="material-icons">check</span>{{ratingDashboardLoading ? 'Applying...' : 'Apply Filters'}}</button>
+      <button class="primary" type="button" (click)="downloadRating()" [disabled]="loading"><span class="material-icons">download</span>{{loading ? 'Preparing...' : 'Download Excel Report'}}</button>
+    </div>
   </form>
   <div class="error" *ngIf="error">{{error}}</div>
+
+  <div class="rating-loading" *ngIf="ratingDashboardLoading && !ratingDashboard">
+    <span class="material-icons">hourglass_top</span><strong>Preparing rating dashboard...</strong>
+  </div>
+
+  <div class="rating-dashboard" *ngIf="ratingDashboard as dashboard">
+    <div class="rating-period-bar">
+      <div><span class="material-icons">calendar_month</span><div><small>Last 6 Months</small><strong>{{dashboard.period.label}}</strong></div></div>
+      <span class="refreshing" *ngIf="ratingDashboardLoading"><span class="material-icons">sync</span>Refreshing</span>
+    </div>
+
+    <div class="rating-kpis">
+      <article class="rating-kpi employees">
+        <span class="material-icons">badge</span><small>Total Employees</small><strong>{{dashboard.summary.total_employees}}</strong><p>Across {{dashboard.summary.total_zones}} zone{{dashboard.summary.total_zones === 1 ? '' : 's'}}</p>
+      </article>
+      <article class="rating-kpi average">
+        <span class="material-icons">trending_up</span><small>Average Rating (Last 6 Months)</small><strong>{{fixed(dashboard.summary.average_rating)}}</strong>
+        <p [class.negative]="dashboard.summary.average_change < 0">{{dashboard.summary.average_change >= 0 ? '+' : ''}}{{fixed(dashboard.summary.average_change)}} vs {{dashboard.summary.comparison_month}} alone</p>
+      </article>
+      <article class="rating-kpi top">
+        <span class="material-icons">emoji_events</span><small>Top Rated (Last 6 Months)</small><strong class="person">{{dashboard.summary.top_rated?.name || '-'}}</strong><p>{{fixed(dashboard.summary.top_rated?.rating)}} avg · {{dashboard.summary.top_rated?.branch || dashboard.summary.top_rated?.zone || '-'}}</p>
+      </article>
+      <article class="rating-kpi needs-attention">
+        <span class="material-icons">notification_important</span><small>Needs Attention (Last 6 Months)</small><strong class="person">{{dashboard.summary.needs_attention?.name || '-'}}</strong><p>{{fixed(dashboard.summary.needs_attention?.rating)}} avg · {{dashboard.summary.needs_attention?.branch || dashboard.summary.needs_attention?.zone || '-'}}</p>
+      </article>
+    </div>
+
+    <section class="rating-table-card">
+      <div class="rating-table-heading">
+        <div><h2>Ratings</h2><p>{{dashboard.pagination.total}} employees · C Final Rating month-wise</p></div>
+        <label class="rating-search"><span class="material-icons">search</span><input type="search" [ngModel]="ratingSearch" (ngModelChange)="ratingSearchChanged($event)" placeholder="Search name, employee code, branch or manager"></label>
+      </div>
+      <div class="rating-table-tools">
+        <label>Show
+          <select [ngModel]="ratingPageSize" (ngModelChange)="ratingPageSizeChanged($event)">
+            <option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option>
+          </select>
+          Entries
+        </label>
+      </div>
+      <div class="rating-legend"><span><i class="excellent"></i>85 and above</span><span><i class="good"></i>65 to 84.99</span><span><i class="attention"></i>35 to 64.99</span><span><i class="critical"></i>Below 35</span></div>
+      <div class="rating-table-scroll">
+        <table class="rating-matrix">
+          <thead>
+            <tr>
+              <th>#</th><th>Employee</th><th>Branch / Zone</th><th>Reporting Manager</th><th>Avg ({{dashboard.period.months[0]?.label}}–{{dashboard.period.months[5]?.label}})</th>
+              <th *ngFor="let periodMonth of dashboard.period.months" [title]="periodMonth.full_label">{{periodMonth.label}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of ratingRows; let index = index">
+              <td>{{(ratingPage - 1) * ratingPageSize + index + 1}}</td>
+              <td class="employee-cell">
+                <button type="button" class="employee-rating-link" (click)="openRatingDetails(row)" [attr.aria-label]="'View monthly rating details for ' + row.employee_name">
+                  <strong>{{row.employee_name}}</strong><small>{{row.employee_code || '-'}}</small>
+                </button>
+              </td>
+              <td><strong>{{row.branch || '-'}}</strong><small>{{row.zone || '-'}}</small></td>
+              <td>{{row.reporting_manager || '-'}}</td>
+              <td><span class="rating-chip" [ngClass]="ratingScoreClass(row.average_rating)">{{fixed(row.average_rating)}}</span></td>
+              <td *ngFor="let periodMonth of dashboard.period.months"><span class="rating-chip" [ngClass]="ratingScoreClass(row.monthly_ratings[periodMonth.key])">{{fixed(row.monthly_ratings[periodMonth.key])}}</span></td>
+            </tr>
+            <tr *ngIf="!ratingDashboardLoading && !ratingRows.length"><td [attr.colspan]="5 + dashboard.period.months.length" class="empty">No employee rating data found for the selected filters.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <app-pagination [total]="dashboard.pagination.total" [pageSize]="ratingPageSize" [page]="ratingPage" (pageChange)="ratingPageChanged($event)"></app-pagination>
+    </section>
+  </div>
+
+  <div class="rating-detail-backdrop" *ngIf="selectedRatingEmployee as employee" (click)="closeRatingDetails()">
+    <section class="rating-detail-modal" role="dialog" aria-modal="true" aria-labelledby="rating-detail-title" (click)="$event.stopPropagation()">
+      <header class="rating-detail-header">
+        <div><small>Employee Rating Details</small><h2 id="rating-detail-title">{{employee.employee_name}}</h2></div>
+        <button type="button" class="rating-detail-close" (click)="closeRatingDetails()" aria-label="Close rating details"><span class="material-icons">close</span></button>
+      </header>
+
+      <div class="rating-detail-content">
+        <div class="rating-employee-meta">
+          <span><strong>{{employee.branch || '-'}}</strong><small>Branch</small></span>
+          <span><strong>{{employee.zone || '-'}}</strong><small>Zone</small></span>
+          <span><strong>{{employee.employee_code || '-'}}</strong><small>Employee Code</small></span>
+          <span><strong>{{employee.reporting_manager || '-'}}</strong><small>Reporting Manager</small></span>
+          <span class="average"><strong>{{fixed(employee.average_rating)}}%</strong><small>Last 6 Months Average</small></span>
+        </div>
+
+        <div class="rating-trend-heading">
+          <div><h3>Month-wise Final Rating</h3><p>Select a month to inspect the rating drivers.</p></div>
+          <strong>{{selectedRatingMonth?.full_label}}</strong>
+        </div>
+        <div class="rating-month-bars" *ngIf="ratingDashboard as dashboard">
+          <svg class="rating-trend-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <polyline [attr.points]="ratingTrendPoints(employee)"></polyline>
+          </svg>
+          <button type="button" class="rating-month-bar" *ngFor="let periodMonth of dashboard.period.months"
+            [ngClass]="ratingScoreClass(employee.monthly_ratings[periodMonth.key])"
+            [class.active]="selectedRatingMonthKey === periodMonth.key" (click)="selectRatingMonth(periodMonth.key)"
+            [attr.aria-label]="periodMonth.full_label + ' rating ' + fixed(employee.monthly_ratings[periodMonth.key]) + ' percent'">
+            <strong>{{fixed(employee.monthly_ratings[periodMonth.key])}}%</strong>
+            <span class="rating-bar-track">
+              <i [style.height.%]="ratingBarHeight(employee.monthly_ratings[periodMonth.key])"></i>
+              <b class="rating-bar-point" [style.bottom.%]="ratingTrendPoint(employee.monthly_ratings[periodMonth.key])"></b>
+            </span>
+            <small>{{periodMonth.label}}</small>
+          </button>
+        </div>
+
+        <div class="rating-driver-heading">
+          <div><h3>Needs Attention</h3><p>Only rating components below 85% for {{selectedRatingMonth?.full_label}} are shown.</p></div>
+          <span>{{selectedWeakRatingComponents.length}} of 5</span>
+        </div>
+        <div class="rating-driver-list" *ngIf="selectedWeakRatingComponents.length; else allRatingTargetsMet">
+          <article *ngFor="let component of selectedWeakRatingComponents">
+            <div class="rating-driver-main">
+              <span class="material-icons">{{component.key === 'market_days' ? 'calendar_month' : component.key === 'customer_visits' ? 'groups' : component.key === 'sales_achievement' ? 'trending_up' : component.key === 'promotional_activity' ? 'campaign' : 'storefront'}}</span>
+              <div><h4>{{component.label}}</h4><p>{{component.description}}</p></div>
+              <strong [ngClass]="ratingScoreClass(component.percentage)">{{fixed(component.percentage)}}%</strong>
+            </div>
+            <div class="rating-driver-progress"><span [style.width.%]="ratingBarHeight(component.percentage)"></span></div>
+            <small>Weight {{fixed(component.weight)}}% · Score {{fixed(component.weighted_score)}}/{{fixed(component.weight)}}</small>
+          </article>
+        </div>
+        <ng-template #allRatingTargetsMet>
+          <div class="rating-all-met"><span class="material-icons">verified</span><div><strong>All rating components are on track</strong><p>Every component scored 85% or above for this month.</p></div></div>
+        </ng-template>
+      </div>
+    </section>
+  </div>
 </section>
 
 <section class="page" *ngIf="mode === 'activity'">
