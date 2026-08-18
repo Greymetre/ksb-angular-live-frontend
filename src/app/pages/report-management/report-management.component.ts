@@ -145,7 +145,9 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
 
   openRatingDetails(row: RatingTrendRow): void {
     this.selectedRatingEmployee = row;
-    this.selectedRatingMonthKey = this.ratingDashboard?.period.months[0]?.key || Object.keys(row.monthly_ratings || {})[0] || '';
+    const months = this.ratingDashboard?.period.months || [];
+    this.selectedRatingMonthKey = months.find(month => !row.rating_start_month || month.key >= row.rating_start_month)?.key
+      || months[0]?.key || Object.keys(row.monthly_ratings || {})[0] || '';
   }
 
   closeRatingDetails(): void {

@@ -44,7 +44,8 @@ export interface RatingDashboardFilters {
 }
 export interface RatingTrendRow {
   user_id: number; branch: string; employee_code: string; employee_name: string; reporting_manager: string; zone: string;
-  average_rating: number; monthly_ratings: Record<string, number>; monthly_details: Record<string, RatingTrendMonthDetail>;
+  average_rating: number; date_of_joining?: string | null; rating_start_month?: string; average_month_count?: number;
+  monthly_ratings: Record<string, number>; monthly_details: Record<string, RatingTrendMonthDetail>;
 }
 export interface RatingTrendComponent {
   key: string; label: string; percentage: number; actual: number; target: number; weight: number; weighted_score: number; description: string;

@@ -474,6 +474,27 @@
   </ng-template>
 </div>
 
+<div class="modal-overlay" *ngIf="showPreGstNotice" (click)="closePreGstNotice()">
+  <div class="modal-box pre-gst-notice" role="dialog" aria-modal="true" aria-labelledby="pre-gst-notice-title"
+    (click)="$event.stopPropagation()">
+    <div class="pre-gst-notice-icon" aria-hidden="true">
+      <span class="material-icons">receipt_long</span>
+    </div>
+    <h3 id="pre-gst-notice-title">Before You Create the Invoice</h3>
+    <p>Please enter the <strong>pre-GST invoice amount only</strong> in the invoice form.</p>
+    <div class="pre-gst-notice-hint">
+      <span class="material-icons" aria-hidden="true">info</span>
+      <span>Do not include GST in the invoice amount.</span>
+    </div>
+    <div class="pre-gst-notice-actions">
+      <button type="button" class="pre-gst-cancel" (click)="closePreGstNotice()">Cancel</button>
+      <button type="button" class="pre-gst-continue" (click)="continueCreateInvoice()">
+        Continue to Create Invoice
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
   <div class="modal-box invoice-modal" (click)="$event.stopPropagation()">
     <div class="modal-icon"><span class="material-icons">receipt_long</span></div>
@@ -540,6 +561,10 @@
         <div class="modal-field">
           <label>Pre-GST Amount <span class="req">*</span></label>
           <input type="number" [(ngModel)]="form.amount" min="0.01" step="0.01" />
+          <small class="pre-gst-inline-info" role="note">
+            <span class="material-icons" aria-hidden="true">info</span>
+            Enter the pre-GST invoice amount only. Do not include GST.
+          </small>
         </div>
         <div class="modal-field">
           <label>Attachment <span class="req">*</span></label>

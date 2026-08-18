@@ -433,6 +433,11 @@ export class CustomersComponent implements OnInit {
       this.showToast('Mobile is required.', 'error');
       return;
     }
+    // The dealer code doubles as the dealer login password, so it cannot be blank.
+    if (this.isDistributor && !(this.form.customerCode || this.field('distributor_code') || '').trim()) {
+      this.showToast('Dealer Code is required.', 'error');
+      return;
+    }
 
     this.saving = true;
     const request = this.form.id ? this.customerService.update(this.form.id, payload) : this.customerService.create(payload);

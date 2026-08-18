@@ -20,6 +20,10 @@ export class OrderDispatchComponent implements OnInit {
   form = { invoiceNo: '', invoiceDate: this.today(), lrNo: '', dispatchDate: this.today(), transportDetails: '', remark: '' };
   quantities: Record<number, number> = {};
   newLines: NewDispatchLine[] = []; families: UserOption[] = [];
+  // Scheme-linked dispatch is deferred to a future release, so the picker is hidden
+  // and no scheme is sent. Setting this back to true restores the dropdown, the
+  // attachment requirement and the loyalty invoice entry; nothing was removed.
+  readonly schemeSelectionEnabled = false;
   schemes: InvoiceSchemeOption[] = []; selectedSchemeId: number | null = null; schemeLoading = false; private nextLineKey = 1;
   invoiceAttachment: File | null = null;
   private routeLoadVersion = 0;
@@ -52,15 +56,16 @@ export class OrderDispatchComponent implements OnInit {
   removeLine(index: number): void { this.newLines.splice(index, 1); }
   onFamilyChange(line: NewDispatchLine): void { line.productId = null; line.products = []; if (!line.familyId) return; this.service.getProductsByFamily(line.familyId).subscribe({ next: products => line.products = products, error: e => this.error = e.message }); }
   onInvoiceDateChange(): void { this.selectedSchemeId = null; this.loadSchemes(); }
-  private loadSchemes(): void { if (!this.order?.buyerId || !this.form.invoiceDate) { this.schemes = []; return; } this.schemeLoading = true; this.invoiceService.schemes(this.order.buyerId, this.form.invoiceDate).pipe(finalize(() => { this.schemeLoading = false; this.cdr.detectChanges(); })).subscribe({ next: rows => this.schemes = rows, error: e => { this.schemes = []; this.error = e.message; } }); }
+  private loadSchemes(): void { if (!this.schemeSelectionEnabled) { this.schemes = []; this.selectedSchemeId = null; return; }
+    if (!this.order?.buyerId || !this.form.invoiceDate) { this.schemes = []; return; } this.schemeLoading = true; this.invoiceService.schemes(this.order.buyerId, this.form.invoiceDate).pipe(finalize(() => { this.schemeLoading = false; this.cdr.detectChanges(); })).subscribe({ next: rows => this.schemes = rows, error: e => { this.schemes = []; this.error = e.message; } }); }
   submit(): void { if (!this.order) return; this.error = ''; if (!this.form.invoiceNo.trim() || !this.form.invoiceDate || !this.form.dispatchDate) { this.error = 'Invoice Date, Invoice Number and Dispatch Date are required.'; return; }
-    if (this.selectedSchemeId && !this.invoiceAttachment) { this.error = 'Invoice Attachment is required when a scheme is selected.'; return; }
+    if (this.schemeSelectionEnabled && this.selectedSchemeId && !this.invoiceAttachment) { this.error = 'Invoice Attachment is required when a scheme is selected.'; return; }
     if (this.newLines.some(x => !x.familyId || !x.productId || Number(x.quantity) <= 0)) { this.error = 'Select family, product and a quantity greater than zero for every new line.'; return; }
     const ids = this.newLines.map(x => x.productId).filter(x => !!x); if (new Set(ids).size !== ids.length) { this.error = 'The same new product cannot be added more than once.'; return; }
     const items = [...this.visibleDetails.map(x => ({ orderDetailId: x.id, quantity: this.mode === 'full' ? this.remaining(x) : Number(this.quantities[x.id] || 0) })).filter(x => x.quantity > 0), ...this.newLines.map(x => ({ orderDetailId: null, productId: x.productId, subcategoryId: x.familyId, categoryId: x.categoryId, quantity: Number(x.quantity) }))];
     if (!items.length) { this.error = 'Enter dispatch quantity for at least one product.'; return; }
     const dispatchMode: 'full' | 'partial' = this.mode === 'full' ? 'full' : 'partial';
-    this.saving = true; this.service.dispatchOrder(this.orderId, { mode: dispatchMode, invoiceNo: this.form.invoiceNo, invoiceDate: this.form.invoiceDate, lrNo: this.form.lrNo, dispatchDate: this.form.dispatchDate, transportDetails: this.form.transportDetails, remark: this.form.remark, loyaltySchemeId: this.selectedSchemeId, removedOrderDetailIds: [], items, invoiceAttachment: this.invoiceAttachment }).pipe(finalize(() => { this.saving = false; this.cdr.detectChanges(); })).subscribe({ next: r => { this.success = r.message; setTimeout(() => this.router.navigate(['/order-dispatch', dispatchMode]), 700); }, error: e => this.error = e.message }); }
+    this.saving = true; this.service.dispatchOrder(this.orderId, { mode: dispatchMode, invoiceNo: this.form.invoiceNo, invoiceDate: this.form.invoiceDate, lrNo: this.form.lrNo, dispatchDate: this.form.dispatchDate, transportDetails: this.form.transportDetails, remark: this.form.remark, loyaltySchemeId: this.schemeSelectionEnabled ? this.selectedSchemeId : null, removedOrderDetailIds: [], items, invoiceAttachment: this.invoiceAttachment }).pipe(finalize(() => { this.saving = false; this.cdr.detectChanges(); })).subscribe({ next: r => { this.success = r.message; setTimeout(() => this.router.navigate(['/order-dispatch', dispatchMode]), 700); }, error: e => this.error = e.message }); }
   back(): void { this.router.navigate(this.orderId ? ['/orders'] : ['/orders']); }
   showDispatch(row: OrderDispatch): void {
     if (!this.canShow || this.detailLoading) return;

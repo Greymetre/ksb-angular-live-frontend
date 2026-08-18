@@ -70,6 +70,7 @@ export class NewInvoicesComponent implements OnInit {
   exporting = false;
   showFilters = false;
   showModal = false;
+  showPreGstNotice = false;
   approvalHistoryVisible = false;
   attachmentZoom = 1;
   attachmentFullscreen = false;
@@ -310,6 +311,17 @@ export class NewInvoicesComponent implements OnInit {
   }
 
   openCreateModal(): void {
+    this.showPreGstNotice = true;
+    this.refreshView();
+  }
+
+  closePreGstNotice(): void {
+    this.showPreGstNotice = false;
+    this.refreshView();
+  }
+
+  continueCreateInvoice(): void {
+    this.showPreGstNotice = false;
     this.form = this.emptyForm();
     this.selectedRetailer = null;
     this.selectedAttachmentFile = null;
