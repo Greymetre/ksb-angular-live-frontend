@@ -173,11 +173,13 @@
 }
 
 .entries-input {
-  width: 70px;
+  width: 78px;
   min-height: 34px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 0 8px;
+  background: white;
+  cursor: pointer;
 }
 
 .data-table {

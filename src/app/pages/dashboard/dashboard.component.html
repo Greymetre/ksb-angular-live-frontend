@@ -1,3 +1,166 @@
-<div class="dashboard-welcome">
-  <h1>Welcome to Field Konnect</h1>
+<!-- Dealer/distributor CRM users get a summary of their own network. -->
+<div class="dash" *ngIf="data as d; else plainWelcome">
+  <header class="dash-hero">
+    <div>
+      <p class="dash-greet">{{ greeting }},</p>
+      <h1 class="dash-name">{{ d.dealer.name }}</h1>
+      <p class="dash-meta">
+        <span *ngIf="d.dealer.code" class="dash-chip">{{ d.dealer.code }}</span>
+        <span *ngIf="d.dealer.city">{{ d.dealer.city }}</span>
+        <span *ngIf="d.dealer.mobile">{{ d.dealer.mobile }}</span>
+      </p>
+    </div>
+    <button type="button" class="dash-cta" *ngIf="can('new_invoice_create')" (click)="createInvoice()">
+      <span class="material-icons">add</span> New Invoice
+    </button>
+  </header>
+
+  <section class="dash-kpis">
+    <article class="dash-kpi retailers" (click)="go('/customers')">
+      <span class="material-icons">storefront</span>
+      <div>
+        <small>My Retailers</small>
+        <strong>{{ d.retailers.total }}</strong>
+        <p>{{ d.retailers.active }} ordered ever · {{ activeRetailerPercent }}%</p>
+      </div>
+    </article>
+
+    <article class="dash-kpi invoices" (click)="go('/new-invoices')">
+      <span class="material-icons">receipt_long</span>
+      <div>
+        <small>Invoices</small>
+        <strong>{{ d.invoices.total }}</strong>
+        <p>{{ d.invoices.thisMonth }} this month</p>
+      </div>
+    </article>
+
+    <article class="dash-kpi orders" (click)="go('/orders')">
+      <span class="material-icons">local_shipping</span>
+      <div>
+        <small>Orders</small>
+        <strong>{{ d.orders.total }}</strong>
+        <p>{{ money(d.orders.totalValue) }} total value</p>
+      </div>
+    </article>
+
+    <article class="dash-kpi rewards">
+      <span class="material-icons">payments</span>
+      <div>
+        <small>Approved Invoice Value</small>
+        <strong>{{ money(d.invoices.approvedAmount) }}</strong>
+        <p>{{ d.invoices.approved }} approved by HO</p>
+      </div>
+    </article>
+  </section>
+
+
+  <!-- Scheme ticker: scrolls slowly and continuously, pauses on hover. -->
+  <section class="sl" *ngIf="schemes.length" (mouseenter)="pauseSchemes()" (mouseleave)="resumeSchemes()">
+    <div class="sl-head">
+      <i class="sl-accent"></i>
+      <div class="sl-copy">
+        <h2>Schemes</h2>
+        <p>{{ liveSchemeCount ? liveSchemeCount + ' running' : 'None running' }} · {{ schemes.length }} total</p>
+      </div>
+      <span class="sl-count">{{ schemes.length }}</span>
+    </div>
+
+    <div class="sl-view">
+      <div class="sl-track" #schemeTrack>
+        <article class="sl-card" *ngFor="let scheme of tickerSchemes" [ngClass]="scheme.status">
+          <i class="sl-ring outer"></i>
+          <i class="sl-ring inner"></i>
+          <header>
+            <span class="sl-eyebrow">{{ scheme.tag | uppercase }} SCHEME</span>
+            <span class="sl-pill">{{ scheme.statusLabel }}</span>
+          </header>
+          <h3>{{ scheme.name }}</h3>
+          <p class="sl-code" *ngIf="scheme.code">{{ scheme.code }}</p>
+          <footer>
+            <div>
+              <small>VALIDITY</small>
+              <b>{{ schemeDate(scheme.startDate) }} — {{ schemeDate(scheme.endDate) }}</b>
+            </div>
+            <span class="sl-days" *ngIf="scheme.isLive && scheme.daysRemaining > 0">{{ scheme.daysRemaining }} days left</span>
+          </footer>
+          <button type="button" class="sl-cta" (click)="openScheme(scheme.id)">View details &nbsp;&rarr;</button>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <div class="dash-grid">
+    <section class="dash-card">
+      <h2>Invoice Status</h2>
+      <ul class="dash-status">
+        <li><i class="dot pending"></i> Pending <b>{{ d.invoices.pending }}</b></li>
+        <li><i class="dot process"></i> In Process <b>{{ d.invoices.inProcess }}</b></li>
+        <li><i class="dot approved"></i> Approved <b>{{ d.invoices.approved }}</b></li>
+        <li><i class="dot rejected"></i> Rejected <b>{{ d.invoices.rejected }}</b></li>
+      </ul>
+      <div class="dash-bar" *ngIf="d.invoices.total">
+        <span class="approved" [style.width.%]="approvedInvoicePercent"></span>
+      </div>
+      <p class="dash-note" *ngIf="d.invoices.total">{{ approvedInvoicePercent }}% approved by HO</p>
+      <p class="dash-empty" *ngIf="!d.invoices.total">No invoice uploaded yet.</p>
+    </section>
+
+    <!-- Orders only. Nothing from invoices is mixed in here. -->
+    <section class="dash-card">
+      <h2>Secondary Sale</h2>
+      <div class="dash-month">
+        <div><small>Total Order Value</small><strong>{{ money(d.orders.totalValue) }}</strong></div>
+        <div><small>Total Quantity</small><strong>{{ d.orders.totalQty | number }}</strong></div>
+        <div><small>Total Orders</small><strong>{{ d.orders.total | number }}</strong></div>
+        <div><small>Active Retailers</small><strong>{{ d.retailers.active | number }}</strong></div>
+      </div>
+      <div class="dash-bar" *ngIf="d.retailers.total">
+        <span class="active" [style.width.%]="activeRetailerPercent"></span>
+      </div>
+      <p class="dash-note" *ngIf="d.retailers.total">
+        {{ d.retailers.active }} of {{ d.retailers.total }} retailers have placed at least one order · {{ activeRetailerPercent }}%
+      </p>
+      <p class="dash-empty" *ngIf="!d.orders.total">No order placed yet.</p>
+    </section>
+
+    <!-- Invoices only. Retailer counts here come from invoices, not from orders. -->
+    <section class="dash-card">
+      <h2>Scheme Details</h2>
+      <div class="dash-month">
+        <div><small>Retailers With Invoices</small><strong>{{ d.invoices.retailers | number }}</strong></div>
+        <div><small>Total Invoices</small><strong>{{ d.invoices.total | number }}</strong></div>
+        <div><small>Total Invoice Amount</small><strong>{{ money(d.invoices.totalAmount) }}</strong></div>
+        <div><small>Approved Amount</small><strong>{{ money(d.invoices.approvedAmount) }}</strong></div>
+      </div>
+
+      <div class="dash-points">
+        <article class="earned">
+          <small>POINTS EARNED</small>
+          <strong>{{ d.invoices.pointsEarned | number:'1.0-2' }}</strong>
+          <p>On {{ d.invoices.approved }} HO approved invoices</p>
+        </article>
+        <article class="expected">
+          <small>EXPECTED POINTS</small>
+          <strong>{{ d.invoices.pointsExpected | number:'1.0-2' }}</strong>
+          <p>On {{ money(d.invoices.expectedAmount) }} awaiting approval</p>
+        </article>
+      </div>
+
+      <div class="dash-bar" *ngIf="d.retailers.total">
+        <span class="approved" [style.width.%]="invoiceRetailerPercent"></span>
+      </div>
+      <p class="dash-note" *ngIf="d.retailers.total">
+        {{ d.invoices.retailers }} of {{ d.retailers.total }} retailers have submitted an invoice · {{ invoiceRetailerPercent }}%
+      </p>
+      <p class="dash-empty" *ngIf="!d.invoices.total">No invoice uploaded yet.</p>
+    </section>
+  </div>
 </div>
+
+<ng-template #plainWelcome>
+  <div class="dash-loading" *ngIf="loading">Loading your dashboard...</div>
+  <div class="dashboard-welcome" *ngIf="!loading">
+    <h1>Welcome to Field Konnect</h1>
+    <p class="dash-error" *ngIf="error">{{ error }}</p>
+  </div>
+</ng-template>

@@ -29,6 +29,7 @@ export class RolesComponent implements OnInit {
   permissions: Permission[] = [];
   showEntries = 10;
   currentPage = 1;
+  totalRows = 0;
   searchQuery = '';
   appliedSearchQuery = '';
   permissionSearch = '';
@@ -159,18 +160,8 @@ export class RolesComponent implements OnInit {
     this.loadData();
   }
 
-  get filteredRoles(): Role[] {
-    const q = this.appliedSearchQuery.trim().toLowerCase();
-    if (!q) return this.roles;
-
-    return this.roles.filter(role =>
-      (role.name ?? '').toLowerCase().includes(q)
-      || (role.guard_name ?? '').toLowerCase().includes(q)
-    );
-  }
-
   get pagedRoles(): Role[] {
-    return this.filteredRoles.slice(this.pageStart, this.pageStart + this.safeShowEntries);
+    return this.roles;
   }
 
   get pageStart(): number {
@@ -237,7 +228,7 @@ export class RolesComponent implements OnInit {
 
   loadRoles(): void {
     this.loading = true;
-    this.roleService.getRoles('', true).pipe(
+    this.roleService.getRoles(this.appliedSearchQuery, true, this.currentPage, this.safeShowEntries).pipe(
       timeout(15000),
       finalize(() => {
         this.loading = false;
@@ -246,7 +237,7 @@ export class RolesComponent implements OnInit {
     ).subscribe({
       next: roles => {
         this.roles = roles;
-        this.currentPage = 1;
+        this.totalRows = roles.total;
         if (roles.length === 0) {
           this.errorMessage = 'Roles API returned 200, but no roles were found in the response.';
         }
@@ -263,6 +254,13 @@ export class RolesComponent implements OnInit {
 
   resetPage(): void {
     this.currentPage = 1;
+    this.loadRoles();
+  }
+
+  onPageChange(page: number): void {
+    if (page === this.currentPage) return;
+    this.currentPage = page;
+    this.loadRoles();
   }
 
   scheduleSearch(): void {
@@ -270,7 +268,7 @@ export class RolesComponent implements OnInit {
     this.searchTimeoutId = window.setTimeout(() => {
       this.appliedSearchQuery = this.searchQuery;
       this.currentPage = 1;
-      this.refreshView();
+      this.loadRoles();
     }, 400);
   }
 

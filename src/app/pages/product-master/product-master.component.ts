@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
+import { PagedArray } from '../../shared/utils/paged-array';
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { ProductFamily, ProductItem, ProductSegment, ProductService } from '../../services/product.service';
@@ -26,6 +27,7 @@ export class ProductMasterComponent implements OnInit {
   families: ProductFamily[] = [];
   showEntries = 10;
   currentPage = 1;
+  totalRows = 0;
   searchQuery = '';
   loading = false;
   saving = false;
@@ -36,6 +38,7 @@ export class ProductMasterComponent implements OnInit {
   showModal = false;
   selectedSegmentId: number | null = null;
   selectedFamilyId: number | null = null;
+  catalogueDetail: ProductItem | null = null;
   selectedFile: File | null = null;
   toast = { visible: false, message: '', type: 'success' as 'success' | 'error' };
   form = this.emptyForm();
@@ -80,7 +83,7 @@ export class ProductMasterComponent implements OnInit {
   }
 
   get pagedRows(): Array<ProductSegment | ProductFamily | ProductItem> {
-    return this.rows.slice(this.pageStart, this.pageStart + this.safeShowEntries);
+    return this.rows;
   }
 
   get pageStart(): number {
@@ -89,6 +92,87 @@ export class ProductMasterComponent implements OnInit {
 
   get filteredFamilies(): ProductFamily[] {
     return this.form.segmentId ? this.families.filter(family => family.segmentId === this.form.segmentId) : [];
+  }
+
+  // ---- Distributor catalogue -------------------------------------------------
+  // Dealers browse the catalogue segment-first: pick a segment, then narrow the
+  // products with the family chips of that segment. Chip filtering is done in
+  // memory because the whole segment is already loaded, which keeps it instant.
+
+  get isCatalogue(): boolean {
+    return this.mode === 'product' && this.authService.isDistributorUser();
+  }
+
+  get catalogueSegment(): ProductSegment | undefined {
+    return this.segments.find(segment => segment.id === this.selectedSegmentId);
+  }
+
+  get catalogueFamilies(): ProductFamily[] {
+    return this.families
+      .filter(family => family.segmentId === this.selectedSegmentId && family.active !== 'N')
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  get catalogueProducts(): ProductItem[] {
+    const products = this.rows as ProductItem[];
+    return this.selectedFamilyId
+      ? products.filter(product => product.familyId === this.selectedFamilyId)
+      : products;
+  }
+
+  get catalogueSegments(): ProductSegment[] {
+    const term = this.searchQuery.trim().toLowerCase();
+    const active = this.segments.filter(segment => segment.active !== 'N');
+    return term ? active.filter(segment => segment.name.toLowerCase().includes(term)) : active;
+  }
+
+  // The list response already carries every product field, so the detail view
+  // needs no extra request. There is no products/{id} endpoint to call anyway.
+  get canShowProduct(): boolean {
+    return this.authService.hasPermission('product_show');
+  }
+
+  openCatalogueProduct(product: ProductItem): void {
+    if (!this.canShowProduct) return;
+    this.catalogueDetail = product;
+    this.refreshView();
+  }
+
+  closeCatalogueProduct(): void {
+    this.catalogueDetail = null;
+    this.refreshView();
+  }
+
+  familyProductCount(familyId: number | null): number {
+    const products = this.rows as ProductItem[];
+    return familyId === null ? products.length : products.filter(product => product.familyId === familyId).length;
+  }
+
+  openCatalogueSegment(segment: ProductSegment): void {
+    this.selectedSegmentId = segment.id;
+    this.selectedFamilyId = null;
+    this.searchQuery = '';
+    this.loadRows();
+  }
+
+  backToCatalogueSegments(): void {
+    if (this.searchTimeoutId) window.clearTimeout(this.searchTimeoutId);
+    this.selectedSegmentId = null;
+    this.selectedFamilyId = null;
+    this.searchQuery = '';
+    this.rows = [];
+    this.catalogueDetail = null;
+    this.refreshView();
+  }
+
+  selectCatalogueFamily(familyId: number | null): void {
+    this.selectedFamilyId = familyId;
+    this.refreshView();
+  }
+
+  catalogueSearchChanged(): void {
+    if (this.selectedSegmentId) this.scheduleSearch();
+    else this.refreshView();
   }
 
   get canCreate(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}_create`); }
@@ -100,19 +184,33 @@ export class ProductMasterComponent implements OnInit {
   get canTemplate(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}_template`); }
 
   loadRows(): void {
+    // Catalogue starts on the segment picker, so nothing is fetched until a
+    // segment is chosen. Loading every product up front would be wasteful.
+    if (this.isCatalogue && !this.selectedSegmentId) {
+      this.rows = [];
+      this.loading = false;
+      this.refreshView();
+      return;
+    }
+
     this.loading = true;
-    this.currentPage = 1;
-    const request: Observable<Array<ProductSegment | ProductFamily | ProductItem>> = this.mode === 'segment'
-      ? this.productService.listSegments(this.searchQuery)
+    // The catalogue loads a whole segment at once so its family chips can count
+    // and filter without a round trip; the master table pages on the server.
+    const page = this.isCatalogue ? undefined : this.currentPage;
+    const size = this.isCatalogue ? undefined : this.safeShowEntries;
+    const request = (this.mode === 'segment'
+      ? this.productService.listSegments(this.searchQuery, page, size)
       : this.mode === 'family'
-        ? this.productService.listFamilies(this.selectedSegmentId, this.searchQuery)
-        : this.productService.listProducts(this.selectedSegmentId, this.selectedFamilyId, this.searchQuery);
+        ? this.productService.listFamilies(this.selectedSegmentId, this.searchQuery, page, size)
+        : this.productService.listProducts(this.selectedSegmentId, this.selectedFamilyId, this.searchQuery, page, size)
+    ) as Observable<PagedArray<ProductSegment | ProductFamily | ProductItem>>;
     request.pipe(finalize(() => {
       this.loading = false;
       this.refreshView();
     })).subscribe({
       next: rows => {
         this.rows = rows;
+        this.totalRows = this.isCatalogue ? rows.length : rows.total;
         this.refreshView();
       },
       error: error => {
@@ -130,6 +228,12 @@ export class ProductMasterComponent implements OnInit {
 
   applyFilters(): void {
     this.currentPage = 1;
+    this.loadRows();
+  }
+
+  onPageChange(page: number): void {
+    if (page === this.currentPage) return;
+    this.currentPage = page;
     this.loadRows();
   }
 
@@ -152,6 +256,7 @@ export class ProductMasterComponent implements OnInit {
 
   resetPage(): void {
     this.currentPage = 1;
+    this.loadRows();
   }
 
   openCreate(): void {

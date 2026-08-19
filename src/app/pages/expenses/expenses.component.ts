@@ -39,6 +39,7 @@ export class ExpensesComponent implements OnInit {
 
   showEntries = 10;
   currentPage = 1;
+  totalRows = 0;
   searchQuery = '';
   appliedSearchQuery = '';
   showFilters = false;
@@ -78,22 +79,8 @@ export class ExpensesComponent implements OnInit {
     this.loadRows();
   }
 
-  get filteredRows(): Expense[] {
-    const query = this.appliedSearchQuery.trim().toLowerCase();
-    if (!query) return this.rows;
-    return this.rows.filter(row =>
-      String(row.id).includes(query)
-      || row.date.toLowerCase().includes(query)
-      || (row.userName ?? '').toLowerCase().includes(query)
-      || (row.designationName ?? '').toLowerCase().includes(query)
-      || (row.expenseTypeName ?? '').toLowerCase().includes(query)
-      || row.checkerStatusName.toLowerCase().includes(query)
-      || (row.note ?? '').toLowerCase().includes(query)
-    );
-  }
-
   get pagedRows(): Expense[] {
-    return this.filteredRows.slice(this.pageStart, this.pageStart + this.safeShowEntries);
+    return this.rows;
   }
 
   get pageStart(): number {
@@ -143,8 +130,9 @@ export class ExpensesComponent implements OnInit {
   loadRows(): void {
     this.loading = true;
     this.errorMessage = '';
-    this.currentPage = 1;
     this.expenseService.list({
+      page: this.currentPage,
+      pageSize: this.safeShowEntries,
       executiveId: this.selectedUserId,
       expensesType: this.selectedExpenseTypeId,
       branchId: this.selectedBranchId,
@@ -154,7 +142,7 @@ export class ExpensesComponent implements OnInit {
       startDate: this.startDate || null,
       endDate: this.endDate || null,
       expenseId: this.expenseId,
-      search: null
+      search: this.appliedSearchQuery || null
     }).pipe(
       timeout(20000),
       finalize(() => {
@@ -164,6 +152,7 @@ export class ExpensesComponent implements OnInit {
     ).subscribe({
       next: rows => {
         this.rows = rows;
+        this.totalRows = rows.total;
         this.refreshView();
       },
       error: error => {
@@ -190,6 +179,7 @@ export class ExpensesComponent implements OnInit {
 
   applyFilters(): void {
     if (this.searchTimeoutId) window.clearTimeout(this.searchTimeoutId);
+    this.currentPage = 1;
     this.loadRows();
   }
 
@@ -198,7 +188,7 @@ export class ExpensesComponent implements OnInit {
     this.searchTimeoutId = window.setTimeout(() => {
       this.appliedSearchQuery = this.searchQuery;
       this.currentPage = 1;
-      this.refreshView();
+      this.loadRows();
     }, 400);
   }
 
@@ -215,11 +205,19 @@ export class ExpensesComponent implements OnInit {
     this.expenseId = null;
     this.searchQuery = '';
     this.appliedSearchQuery = '';
+    this.currentPage = 1;
     this.loadRows();
   }
 
   resetPage(): void {
     this.currentPage = 1;
+    this.loadRows();
+  }
+
+  onPageChange(page: number): void {
+    if (page === this.currentPage) return;
+    this.currentPage = page;
+    this.loadRows();
   }
 
   openCreateModal(): void {

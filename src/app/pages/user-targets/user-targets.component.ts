@@ -30,6 +30,7 @@ export class UserTargetsComponent implements OnInit {
 
   showEntries = 10;
   currentPage = 1;
+  totalRows = 0;
   searchQuery = '';
   appliedSearchQuery = '';
   selectedBranchId: number | null = null;
@@ -64,20 +65,8 @@ export class UserTargetsComponent implements OnInit {
     this.loadTargets();
   }
 
-  get filteredTargets(): UserTarget[] {
-    const query = this.appliedSearchQuery.trim().toLowerCase();
-    if (!query) return this.targets;
-    return this.targets.filter(row =>
-      (row.employeeCode ?? '').toLowerCase().includes(query)
-      || (row.userName ?? '').toLowerCase().includes(query)
-      || (row.designationName ?? '').toLowerCase().includes(query)
-      || (row.branchName ?? '').toLowerCase().includes(query)
-      || row.type.toLowerCase().includes(query)
-    );
-  }
-
   get pagedTargets(): UserTarget[] {
-    return this.filteredTargets.slice(this.pageStart, this.pageStart + this.safeShowEntries);
+    return this.targets;
   }
 
   get pageStart(): number {
@@ -115,8 +104,7 @@ export class UserTargetsComponent implements OnInit {
   loadTargets(): void {
     this.loading = true;
     this.errorMessage = '';
-    this.currentPage = 1;
-    this.userTargetService.getTargets(this.currentFilters()).pipe(
+    this.userTargetService.getTargets({ ...this.currentFilters(), page: this.currentPage, pageSize: this.safeShowEntries }).pipe(
       timeout(20000),
       finalize(() => {
         this.loading = false;
@@ -125,6 +113,7 @@ export class UserTargetsComponent implements OnInit {
     ).subscribe({
       next: rows => {
         this.targets = rows;
+        this.totalRows = rows.total;
         this.refreshView();
       },
       error: error => {
@@ -149,6 +138,7 @@ export class UserTargetsComponent implements OnInit {
 
   applyFilters(): void {
     if (this.searchTimeoutId) window.clearTimeout(this.searchTimeoutId);
+    this.currentPage = 1;
     this.loadTargets();
   }
 
@@ -172,11 +162,19 @@ export class UserTargetsComponent implements OnInit {
     this.selectedFinancialYear = '';
     this.searchQuery = '';
     this.appliedSearchQuery = '';
+    this.currentPage = 1;
     this.loadTargets();
   }
 
   resetPage(): void {
     this.currentPage = 1;
+    this.loadTargets();
+  }
+
+  onPageChange(page: number): void {
+    if (page === this.currentPage) return;
+    this.currentPage = page;
+    this.loadTargets();
   }
 
   openCreateModal(): void {

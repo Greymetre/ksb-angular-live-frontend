@@ -23,6 +23,7 @@ export class ExpensesTypeComponent implements OnInit {
 
   showEntries = 10;
   currentPage = 1;
+  totalRows = 0;
   searchQuery = '';
   appliedSearchQuery = '';
   loading = false;
@@ -46,19 +47,8 @@ export class ExpensesTypeComponent implements OnInit {
     this.loadRows();
   }
 
-  get filteredRows(): ExpenseType[] {
-    const query = this.appliedSearchQuery.trim().toLowerCase();
-    if (!query) return this.rows;
-    return this.rows.filter(row =>
-      row.allowanceTypeName.toLowerCase().includes(query)
-      || row.name.toLowerCase().includes(query)
-      || row.payrollName.toLowerCase().includes(query)
-      || String(row.rate).includes(query)
-    );
-  }
-
   get pagedRows(): ExpenseType[] {
-    return this.filteredRows.slice(this.pageStart, this.pageStart + this.safeShowEntries);
+    return this.rows;
   }
 
   get pageStart(): number {
@@ -76,8 +66,7 @@ export class ExpensesTypeComponent implements OnInit {
   loadRows(): void {
     this.loading = true;
     this.errorMessage = '';
-    this.currentPage = 1;
-    this.expenseTypeService.list().pipe(
+    this.expenseTypeService.list(this.appliedSearchQuery, this.currentPage, this.safeShowEntries).pipe(
       timeout(20000),
       finalize(() => {
         this.loading = false;
@@ -86,6 +75,7 @@ export class ExpensesTypeComponent implements OnInit {
     ).subscribe({
       next: rows => {
         this.rows = rows;
+        this.totalRows = rows.total;
         this.refreshView();
       },
       error: error => {
@@ -108,6 +98,13 @@ export class ExpensesTypeComponent implements OnInit {
 
   resetPage(): void {
     this.currentPage = 1;
+    this.loadRows();
+  }
+
+  onPageChange(page: number): void {
+    if (page === this.currentPage) return;
+    this.currentPage = page;
+    this.loadRows();
   }
 
   scheduleSearch(): void {
@@ -115,7 +112,7 @@ export class ExpensesTypeComponent implements OnInit {
     this.searchTimeoutId = window.setTimeout(() => {
       this.appliedSearchQuery = this.searchQuery;
       this.currentPage = 1;
-      this.refreshView();
+      this.loadRows();
     }, 400);
   }
 

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { PagedArray, asPagedArray } from '../shared/utils/paged-array';
 import { AuthService } from './auth.service';
 import { API_BASE_URL } from '../config/api.config';
 import { UserOption } from './user.service';
@@ -45,11 +46,13 @@ export class ExpenseTypeService {
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
-  list(search = ''): Observable<ExpenseType[]> {
-    let params = new HttpParams();
+  list(search = '', page = 1, pageSize = 10): Observable<PagedArray<ExpenseType>> {
+    let params = new HttpParams().set('page', String(page)).set('page_size', String(pageSize));
     if (search.trim()) params = params.set('search', search.trim());
     return this.http.get<ApiResponse>(this.baseUrl, { headers: this.authHeaders(), params }).pipe(
-      map(response => this.pickArray(response, ['expenses_types', 'expensesTypes', 'data.expenses_types', 'data']).map(row => this.normalize(row))),
+      map(response => asPagedArray(
+        this.pickArray(response, ['expenses_types', 'expensesTypes', 'data.expenses_types', 'data']).map(row => this.normalize(row)),
+        response, page, pageSize)),
       catchError(error => this.handleError(error))
     );
   }

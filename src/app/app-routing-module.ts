@@ -28,6 +28,7 @@ import { ReportManagementComponent } from './pages/report-management/report-mana
 import { FieldKonnectAppSettingComponent } from './pages/field-konnect-app-setting/field-konnect-app-setting.component';
 import { OrderDispatchComponent } from './pages/order-dispatch/order-dispatch.component';
 import { UserMonitoringComponent } from './pages/user-monitoring/user-monitoring.component';
+import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.component';
 
 const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -56,7 +57,11 @@ const routes: Routes = [
       { path: 'customers/:id', component: CustomerShowComponent, canActivate: [authGuard], data: { permission: 'customer_access' } },
       { path: 'new-invoices', component: NewInvoicesComponent, canActivate: [authGuard], data: { permission: 'new_invoice_access' } },
       { path: 'new-invoices/:id', component: NewInvoicesComponent, canActivate: [authGuard], data: { permission: 'new_invoice_access' } },
+      // Scheme management stays behind scheme_access_list. Dealers read their own
+      // schemes through /dealer/schemes/:id instead of this admin screen.
       { path: 'loyalty-schemes', component: LoyaltySchemesComponent, canActivate: [authGuard], data: { permission: 'scheme_access_list' } },
+      // Dealer-only read view of a scheme, reached from the dashboard slider.
+      { path: 'dealer/schemes/:id', component: DealerSchemeComponent, canActivate: [authGuard], data: { permission: 'dashboard_access' } },
       { path: 'redemptions', component: RedemptionsComponent, canActivate: [authGuard], data: { permission: 'redemption_access' } },
       { path: 'orders', component: OrdersComponent, canActivate: [authGuard], data: { permission: 'order_access' } },
       { path: 'orders/:id/dispatch/:mode', component: OrderDispatchComponent, canActivate: [authGuard], data: { permission: 'order_dispatch' } },

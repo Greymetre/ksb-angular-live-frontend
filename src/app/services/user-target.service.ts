@@ -1,3 +1,4 @@
+import { PagedArray, asPagedArray } from '../shared/utils/paged-array';
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
@@ -28,6 +29,8 @@ export interface UserTarget {
 }
 
 export interface UserTargetFilters {
+  page?: number;
+  pageSize?: number;
   branchId?: number | null;
   userId?: number | null;
   divisionId?: number | null;
@@ -65,12 +68,12 @@ export class UserTargetService {
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
-  getTargets(filters: UserTargetFilters = {}): Observable<UserTarget[]> {
+  getTargets(filters: UserTargetFilters = {}): Observable<PagedArray<UserTarget>> {
     return this.http.get<ApiResponse>(`${this.baseUrl}/user-targets`, {
       headers: this.authHeaders(),
       params: this.filterParams(filters)
     }).pipe(
-      map(response => this.readTargets(response)),
+      map(response => asPagedArray(this.readTargets(response), response as Record<string, unknown>, filters.page, filters.pageSize)),
       catchError(error => this.handleError(error))
     );
   }
@@ -138,7 +141,12 @@ export class UserTargetService {
   }
 
   private filterParams(filters: UserTargetFilters): HttpParams {
+    // Page params are added only for list calls. Export reuses this method and
+    // must stay unpaged, otherwise the file would contain a single page.
     let params = new HttpParams();
+    if (filters.page && filters.pageSize) {
+      params = params.set('page', String(filters.page)).set('page_size', String(filters.pageSize));
+    }
     if (filters.branchId) params = params.set('branch_id', String(filters.branchId));
     if (filters.userId) params = params.set('user_id', String(filters.userId));
     if (filters.divisionId) params = params.set('division_id', String(filters.divisionId));

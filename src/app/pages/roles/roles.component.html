@@ -16,7 +16,7 @@
 
   <div class="table-toolbar">
     <div class="toolbar-left">
-      <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="100"/> entries</label>
+      <label>Show <select [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input"><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option></select> entries</label>
     </div>
     <div class="toolbar-right">
       <div class="icon-action-group">
@@ -72,7 +72,7 @@
       </tbody>
     </table>
     <div class="table-footer">
-      <app-pagination [total]="filteredRoles.length" [pageSize]="showEntries" [(page)]="currentPage"></app-pagination>
+      <app-pagination [total]="totalRows" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
     </div>
   </div>
 </div>

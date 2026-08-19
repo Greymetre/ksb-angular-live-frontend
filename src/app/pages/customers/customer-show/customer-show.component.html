@@ -176,7 +176,7 @@
                   <strong>{{ (invoice.approvalStatus === 3 ? invoice.schemePoints : (invoice.approvalStatus === 4 ? 0 : invoice.expectedSchemePoints)) | number:'1.0-2' }}</strong>
                   <small>{{ invoice.approvalStatus === 3 ? 'Reward Earned' : (invoice.approvalStatus === 4 ? 'Rejected' : 'Expected Reward') }}</small>
                 </td>
-                <td><span class="status-badge" [ngClass]="statusClass(invoice.approvalStatus)">{{ invoice.approvalStatusLabel }}</span></td>
+                <td><span class="status-badge" [ngClass]="statusClass(invoice.approvalStatus)">{{ invoiceStatusLabel(invoice) }}</span></td>
               </tr>
             </tbody>
           </table>

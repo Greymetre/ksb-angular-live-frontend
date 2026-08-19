@@ -392,6 +392,19 @@ export class CustomerShowComponent implements OnInit {
     return formatKolkataDate(value, '-');
   }
 
+  /// Customers never see the internal SS/Sales stages; both read as In Process.
+  invoiceStatusLabel(invoice: { approvalStatus: number; approvalStatusLabel: string }): string {
+    if (!this.authService.isDistributorUser()) return invoice.approvalStatusLabel;
+    switch (invoice.approvalStatus) {
+      case 0: return 'Pending';
+      case 1:
+      case 2: return 'In Process';
+      case 3: return 'Approved';
+      case 4: return 'Rejected';
+      default: return invoice.approvalStatusLabel;
+    }
+  }
+
   statusClass(status: number): string {
     return `status-${status}`;
   }

@@ -1,3 +1,4 @@
+import { PagedArray, asPagedArray } from '../shared/utils/paged-array';
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
@@ -66,6 +67,8 @@ export interface LoyaltySchemePayload {
 }
 
 export interface LoyaltySchemeFilter {
+  page?: number;
+  pageSize?: number;
   search?: string;
   status?: string;
 }
@@ -90,12 +93,14 @@ export class LoyaltySchemeService {
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
-  list(filter: LoyaltySchemeFilter): Observable<LoyaltyScheme[]> {
+  list(filter: LoyaltySchemeFilter): Observable<PagedArray<LoyaltyScheme>> {
     return this.http.get<ApiResponse>(this.baseUrl, {
       headers: this.authHeaders(),
       params: this.filterParams(filter)
     }).pipe(
-      map(response => this.pickArray(response, ['schemes', 'data.schemes', 'data']).map(row => this.normalizeScheme(row))),
+      map(response => asPagedArray(
+        this.pickArray(response, ['schemes', 'data.schemes', 'data']).map(row => this.normalizeScheme(row)),
+        response, filter.page, filter.pageSize)),
       catchError(error => this.handleError(error))
     );
   }
@@ -177,6 +182,9 @@ export class LoyaltySchemeService {
 
   private filterParams(filter: LoyaltySchemeFilter): HttpParams {
     let params = new HttpParams();
+    if (filter.page && filter.pageSize) {
+      params = params.set('page', String(filter.page)).set('page_size', String(filter.pageSize));
+    }
     Object.entries(filter).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== '') params = params.set(key, String(value));
     });

@@ -82,8 +82,7 @@ export class HrComponent implements OnInit {
   }
 
   get visibleRows(): HrRecord[] {
-    if (this.isAttendance) return this.rows;
-    return this.rows.slice(this.pageStart, this.pageStart + this.safeShowEntries);
+    return this.isSummary ? this.rows.slice(this.pageStart, this.pageStart + this.safeShowEntries) : this.rows;
   }
 
   get pageStart(): number {
@@ -116,11 +115,11 @@ export class HrComponent implements OnInit {
     this.loading = true;
     this.errorMessage = '';
     if (resetPage) this.currentPage = 1;
+    // Attendance summary is an aggregate, not a list, so it stays unpaged.
+    // Everything else pages on the server with the filters applied there too.
     const request = this.isSummary
       ? this.hrService.list('attendance-summary', this.filter, 'summary')
-      : this.isAttendance
-        ? this.hrService.listPaged(this.config.path, { ...this.filter, page: this.currentPage, page_size: this.safeShowEntries }, this.config.key)
-      : this.hrService.list(this.config.path, this.filter, this.config.key);
+      : this.hrService.listPaged(this.config.path, { ...this.filter, page: this.currentPage, page_size: this.safeShowEntries }, this.config.key);
 
     request.pipe(timeout(20000), finalize(() => {
       this.loading = false;
@@ -128,7 +127,7 @@ export class HrComponent implements OnInit {
     })).subscribe({
       next: rows => {
         this.rows = rows;
-        this.totalRows = this.isAttendance && 'total' in rows ? Number(rows.total) : rows.length;
+        this.totalRows = this.isSummary ? rows.length : Number((rows as { total?: number }).total ?? rows.length);
         this.selectedIds.clear();
         this.refreshView();
       },
@@ -157,12 +156,13 @@ export class HrComponent implements OnInit {
 
   resetPage(): void {
     this.currentPage = 1;
-    if (this.isAttendance) this.loadRows(false);
+    if (!this.isSummary) this.loadRows(false);
   }
 
   onPageChange(page: number): void {
+    if (page === this.currentPage) return;
     this.currentPage = page;
-    if (this.isAttendance) this.loadRows(false);
+    if (!this.isSummary) this.loadRows(false);
   }
 
   openCreate(): void {

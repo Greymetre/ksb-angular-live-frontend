@@ -107,22 +107,8 @@ export class AddressMasterComponent implements OnInit, OnDestroy {
     if (this.searchTimeoutId) window.clearTimeout(this.searchTimeoutId);
   }
 
-  get filteredItems(): AddressItem[] {
-    if (this.isPincode) return this.items;
-    const q = this.appliedSearchQuery.trim().toLowerCase();
-    if (!q) return this.items;
-
-    return this.items.filter(item =>
-      this.displayName(item).toLowerCase().includes(q)
-      || this.parentName(item).toLowerCase().includes(q)
-      || (item.gstCode ?? '').toLowerCase().includes(q)
-      || (item.createdByName ?? '').toLowerCase().includes(q)
-    );
-  }
-
   get pagedItems(): AddressItem[] {
-    if (this.isPincode) return this.items;
-    return this.filteredItems.slice(this.pageStart, this.pageStart + this.safeShowEntries);
+    return this.items;
   }
 
   get pageStart(): number {
@@ -160,38 +146,17 @@ export class AddressMasterComponent implements OnInit, OnDestroy {
   loadItems(): void {
     this.loading = true;
     this.errorMessage = '';
-    if (this.isPincode) {
-      this.addressService.listPaged(this.config, this.currentPage, this.safeShowEntries, this.appliedSearchQuery).pipe(
-        timeout(20000),
-        finalize(() => {
-          this.loading = false;
-          this.refreshView();
-        })
-      ).subscribe({
-        next: result => {
-          this.items = result.items;
-          this.totalItems = result.total;
-          this.currentPage = result.page;
-          this.refreshView();
-        },
-        error: error => {
-          this.errorMessage = error.name === 'TimeoutError' ? `${this.config.singular} API request timed out.` : error.message;
-          this.refreshView();
-        }
-      });
-      return;
-    }
-
-    this.addressService.list(this.config).pipe(
+    this.addressService.listPaged(this.config, this.currentPage, this.safeShowEntries, this.appliedSearchQuery).pipe(
       timeout(20000),
       finalize(() => {
         this.loading = false;
         this.refreshView();
       })
     ).subscribe({
-      next: items => {
-        this.items = items;
-        this.totalItems = items.length;
+      next: result => {
+        this.items = result.items;
+        this.totalItems = result.total;
+        this.currentPage = result.page;
         this.refreshView();
       },
       error: error => {
@@ -203,12 +168,12 @@ export class AddressMasterComponent implements OnInit, OnDestroy {
 
   resetPage(): void {
     this.currentPage = 1;
-    if (this.isPincode) this.loadItems();
+    this.loadItems();
   }
 
   onPageChange(page: number): void {
     this.currentPage = page;
-    if (this.isPincode) this.loadItems();
+    this.loadItems();
   }
 
   scheduleSearch(): void {
@@ -216,8 +181,7 @@ export class AddressMasterComponent implements OnInit, OnDestroy {
     this.searchTimeoutId = window.setTimeout(() => {
       this.appliedSearchQuery = this.searchQuery;
       this.currentPage = 1;
-      if (this.isPincode) this.loadItems();
-      else this.refreshView();
+      this.loadItems();
     }, 400);
   }
 

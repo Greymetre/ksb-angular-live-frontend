@@ -146,6 +146,16 @@ export class AuthService {
     return this.isSuperAdmin();
   }
 
+  // Dealer/distributor CRM users get a catalogue-style product listing instead of
+  // the master data table. Superadmin keeps the full master view for support.
+  isDistributorUser(): boolean {
+    if (this.isSuperAdmin()) return false;
+    return this.getCurrentUser()?.user_type?.some(role => {
+      const name = role.trim().toLowerCase();
+      return name === 'distributor' || name === 'dealer';
+    }) ?? false;
+  }
+
   private isSuperAdmin(): boolean {
     return this.getCurrentUser()?.user_type?.some(role =>
       role.toLowerCase() === 'superadmin'

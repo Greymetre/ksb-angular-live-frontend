@@ -65,6 +65,7 @@ export class LoyaltySchemesComponent implements OnInit {
 
   showEntries = 10;
   currentPage = 1;
+  totalRows = 0;
   searchQuery = '';
   appliedSearchQuery = '';
   selectedStatus = '';
@@ -95,21 +96,8 @@ export class LoyaltySchemesComponent implements OnInit {
     this.loadSchemes();
   }
 
-  get filteredSchemes(): LoyaltyScheme[] {
-    const q = this.appliedSearchQuery.trim().toLowerCase();
-    if (!q) return this.schemes;
-
-    return this.schemes.filter(scheme =>
-      scheme.schemeName.toLowerCase().includes(q)
-      || scheme.schemeCode.toLowerCase().includes(q)
-      || scheme.customerType.toLowerCase().includes(q)
-      || scheme.areaDisplay.toLowerCase().includes(q)
-      || scheme.schemeTag.toLowerCase().includes(q)
-    );
-  }
-
   get pagedSchemes(): LoyaltyScheme[] {
-    return this.filteredSchemes.slice(this.pageStart, this.pageStart + this.safeShowEntries);
+    return this.schemes;
   }
 
   get pageStart(): number {
@@ -177,8 +165,12 @@ export class LoyaltySchemesComponent implements OnInit {
   loadSchemes(): void {
     this.loading = true;
     this.errorMessage = '';
-    this.currentPage = 1;
-    this.schemeService.list({ status: this.selectedStatus || undefined }).pipe(
+    this.schemeService.list({
+      status: this.selectedStatus || undefined,
+      search: this.appliedSearchQuery || undefined,
+      page: this.currentPage,
+      pageSize: this.safeShowEntries
+    }).pipe(
       timeout(20000),
       finalize(() => {
         this.loading = false;
@@ -187,6 +179,7 @@ export class LoyaltySchemesComponent implements OnInit {
     ).subscribe({
       next: schemes => {
         this.schemes = schemes;
+        this.totalRows = schemes.total;
         this.refreshView();
       },
       error: error => {
@@ -217,7 +210,7 @@ export class LoyaltySchemesComponent implements OnInit {
     this.searchTimeoutId = window.setTimeout(() => {
       this.appliedSearchQuery = this.searchQuery;
       this.currentPage = 1;
-      this.refreshView();
+      this.loadSchemes();
     }, 400);
   }
 
@@ -232,6 +225,13 @@ export class LoyaltySchemesComponent implements OnInit {
 
   resetPage(): void {
     this.currentPage = 1;
+    this.loadSchemes();
+  }
+
+  onPageChange(page: number): void {
+    if (page === this.currentPage) return;
+    this.currentPage = page;
+    this.loadSchemes();
   }
 
   openCreate(): void {

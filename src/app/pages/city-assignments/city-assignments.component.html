@@ -9,7 +9,7 @@
   <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
 
   <div class="table-toolbar">
-    <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="5000" /> entries</label>
+    <label>Show <select [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input"><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option></select> entries</label>
     <div class="toolbar-actions">
       <input #fileInput type="file" class="file-input" accept=".xlsx,.xls" (change)="upload($event)" />
       <button class="btn-icon-round" [title]="uploading ? 'Importing...' : 'Upload'" (click)="triggerUpload()" [disabled]="uploading">

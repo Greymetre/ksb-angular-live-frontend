@@ -44,6 +44,7 @@ import { ReportManagementComponent } from './pages/report-management/report-mana
 import { FieldKonnectAppSettingComponent } from './pages/field-konnect-app-setting/field-konnect-app-setting.component';
 import { OrderDispatchComponent } from './pages/order-dispatch/order-dispatch.component';
 import { UserMonitoringComponent } from './pages/user-monitoring/user-monitoring.component';
+import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.component';
 
 @NgModule({
   declarations: [
@@ -80,6 +81,7 @@ import { UserMonitoringComponent } from './pages/user-monitoring/user-monitoring
     FieldKonnectAppSettingComponent,
     OrderDispatchComponent,
     UserMonitoringComponent,
+    DealerSchemeComponent,
   ],
   imports: [BrowserModule, CommonModule, FormsModule, ReactiveFormsModule, AppRoutingModule],
   providers: [provideHttpClient()],

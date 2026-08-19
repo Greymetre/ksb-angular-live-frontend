@@ -44,6 +44,7 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
   items: MasterItem[] = [];
   showEntries = 10;
   currentPage = 1;
+  totalRows = 0;
   searchQuery = '';
   appliedSearchQuery = '';
   loading = false;
@@ -84,19 +85,8 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
     if (this.searchTimeoutId) window.clearTimeout(this.searchTimeoutId);
   }
 
-  get filteredItems(): MasterItem[] {
-    const q = this.appliedSearchQuery.trim().toLowerCase();
-    if (!q) return this.items;
-
-    return this.items.filter(item =>
-      this.displayName(item).toLowerCase().includes(q)
-      || (item.branchCode ?? '').toLowerCase().includes(q)
-      || (item.createdByName ?? '').toLowerCase().includes(q)
-    );
-  }
-
   get pagedItems(): MasterItem[] {
-    return this.filteredItems.slice(this.pageStart, this.pageStart + this.safeShowEntries);
+    return this.items;
   }
 
   get pageStart(): number {
@@ -122,9 +112,8 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
   loadItems(): void {
     this.loading = true;
     this.errorMessage = '';
-    this.currentPage = 1;
 
-    this.masterService.list(this.config, '').pipe(
+    this.masterService.list(this.config, this.appliedSearchQuery, this.currentPage, this.safeShowEntries).pipe(
       timeout(20000),
       finalize(() => {
         this.loading = false;
@@ -133,6 +122,7 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: items => {
         this.items = items;
+        this.totalRows = items.total;
         this.refreshView();
       },
       error: error => {
@@ -146,6 +136,13 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
 
   resetPage(): void {
     this.currentPage = 1;
+    this.loadItems();
+  }
+
+  onPageChange(page: number): void {
+    if (page === this.currentPage) return;
+    this.currentPage = page;
+    this.loadItems();
   }
 
   scheduleSearch(): void {
@@ -153,7 +150,7 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
     this.searchTimeoutId = window.setTimeout(() => {
       this.appliedSearchQuery = this.searchQuery;
       this.currentPage = 1;
-      this.refreshView();
+      this.loadItems();
     }, 400);
   }
 

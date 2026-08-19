@@ -1,3 +1,4 @@
+import { PagedArray, asPagedArray } from '../shared/utils/paged-array';
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
@@ -50,15 +51,15 @@ export class MasterCrudService {
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
-  list(config: MasterConfig, search = ''): Observable<MasterItem[]> {
-    let params = new HttpParams();
+  list(config: MasterConfig, search = '', page = 1, pageSize = 10): Observable<PagedArray<MasterItem>> {
+    let params = new HttpParams().set('page', String(page)).set('page_size', String(pageSize));
     if (search.trim()) params = params.set('search', search.trim());
 
     return this.http.get<MasterApiResponse>(`${this.baseUrl}/${config.path}`, {
       headers: this.authHeaders(),
       params
     }).pipe(
-      map(response => this.readItems(response, config.listKey)),
+      map(response => asPagedArray(this.readItems(response, config.listKey), response as Record<string, unknown>, page, pageSize)),
       catchError(error => this.handleError(error))
     );
   }

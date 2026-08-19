@@ -84,7 +84,7 @@ export interface NewInvoiceFilter {
   scheme_id?: number | null;
   retailer_search?: string;
   invoice_number?: string;
-  approval_status?: number | null;
+  approval_status?: number | 'in_process' | null;
   zone_id?: number | null;
   branch_id?: number | null;
   from_date?: string;
@@ -250,7 +250,14 @@ export class NewInvoiceService {
   private filterParams(filter: NewInvoiceFilter): HttpParams {
     let params = new HttpParams();
     Object.entries(filter).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') params = params.set(key, String(value));
+      if (value === null || value === undefined || value === '') return;
+      // The customer view collapses the two internal stages into one choice, which
+      // the API takes as a repeated approval_statuses parameter.
+      if (key === 'approval_status' && value === 'in_process') {
+        params = params.append('approval_statuses', '1').append('approval_statuses', '2');
+        return;
+      }
+      params = params.set(key, String(value));
     });
     return params;
   }

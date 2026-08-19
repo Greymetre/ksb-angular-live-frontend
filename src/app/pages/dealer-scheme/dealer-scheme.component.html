@@ -1,0 +1,86 @@
+<div class="ds">
+  <header class="ds-top">
+    <button type="button" class="ds-back" (click)="back()" aria-label="Back to dashboard">
+      <span class="material-icons">arrow_back</span>
+    </button>
+    <h2>Scheme Details</h2>
+  </header>
+
+  <div class="ds-loading" *ngIf="loading">Loading scheme...</div>
+
+  <div class="ds-empty" *ngIf="!loading && (error || !detail)">
+    <span class="material-icons">error_outline</span>
+    <p>{{ error || 'Scheme not found' }}</p>
+  </div>
+
+  <ng-container *ngIf="!loading && detail as d">
+    <section class="ds-hero" [ngClass]="d.status">
+      <i class="ds-ring outer"></i>
+      <i class="ds-ring inner"></i>
+      <div class="ds-hero-top">
+        <h1>{{ d.name }}</h1>
+        <span class="ds-pill">{{ d.statusLabel }}</span>
+      </div>
+      <p class="ds-code" *ngIf="d.code">{{ d.code }}</p>
+      <p class="ds-desc" *ngIf="d.description">{{ d.description }}</p>
+      <p class="ds-dates">
+        {{ date(d.startDate) }} — {{ date(d.endDate) }}
+        <span *ngIf="d.isLive && d.daysRemaining > 0"> · {{ d.daysRemaining }} days left</span>
+      </p>
+      <div class="ds-tags">
+        <span>{{ d.tag }}</span>
+        <span>{{ d.basedOn === 'Percentage' ? '% based' : 'Value based' }}</span>
+        <span>{{ d.areaScope }}</span>
+      </div>
+    </section>
+
+    <section class="ds-stats">
+      <article><small>SCHEME RETAILERS</small><strong>{{ d.summary.schemeRetailers }}</strong><p>With invoices</p></article>
+      <article><small>TOTAL INVOICES</small><strong>{{ d.summary.totalInvoices }}</strong><p>{{ d.summary.approvedInvoices }} approved</p></article>
+      <article><small>INVOICE AMOUNT</small><strong>{{ money(d.summary.totalInvoiceAmount) }}</strong><p>Approved {{ money(d.summary.approvedInvoiceAmount) }}</p></article>
+      <article><small>PENDING AMOUNT</small><strong>{{ money(d.summary.expectedInvoiceAmount) }}</strong><p>{{ d.summary.pendingInvoices }} invoices</p></article>
+    </section>
+
+    <section class="ds-points">
+      <article class="earned">
+        <small>POINTS EARNED</small>
+        <strong>{{ points(d.summary.pointsEarned) }}</strong>
+        <p>On HO approved invoices</p>
+      </article>
+      <article class="expected">
+        <small>EXPECTED POINTS</small>
+        <strong>{{ points(d.summary.pointsExpected) }}</strong>
+        <p>On invoices awaiting approval</p>
+      </article>
+    </section>
+
+    <section class="ds-card" *ngIf="d.slabs.length">
+      <h3>Slabs</h3>
+      <div class="ds-slab" *ngFor="let slab of d.slabs">
+        <div>
+          <strong>{{ slab.tierName }}</strong>
+          <small>{{ slabRange(slab) }}</small>
+        </div>
+        <span class="ds-reward">{{ slabReward(slab) }}</span>
+      </div>
+    </section>
+
+    <section class="ds-card">
+      <h3>Retailer wise ({{ d.retailers.length }})</h3>
+      <div class="ds-empty small" *ngIf="!d.retailers.length">
+        <span class="material-icons">inbox</span>
+        <p>No invoices under this scheme yet</p>
+      </div>
+      <div class="ds-retailer" *ngFor="let retailer of d.retailers">
+        <div class="ds-retailer-main">
+          <strong>{{ retailer.shopName || retailer.retailerName }}</strong>
+          <small>{{ retailer.invoiceCount }} invoice{{ retailer.invoiceCount === 1 ? '' : 's' }} · {{ money(retailer.invoiceAmount) }}</small>
+        </div>
+        <div class="ds-retailer-points">
+          <b>{{ points(retailer.pointsEarned) }}</b>
+          <small *ngIf="retailer.pointsExpected">+{{ points(retailer.pointsExpected) }} expected</small>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+</div>

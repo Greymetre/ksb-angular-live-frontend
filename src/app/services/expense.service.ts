@@ -1,3 +1,4 @@
+import { PagedArray, asPagedArray } from '../shared/utils/paged-array';
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
@@ -57,6 +58,8 @@ export interface ExpensePayload {
 }
 
 export interface ExpenseFilters {
+  page?: number;
+  pageSize?: number;
   executiveId?: number | null;
   expensesType?: number | null;
   branchId?: number | null;
@@ -91,9 +94,11 @@ export class ExpenseService {
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
-  list(filters: ExpenseFilters = {}): Observable<Expense[]> {
+  list(filters: ExpenseFilters = {}): Observable<PagedArray<Expense>> {
     return this.http.get<ApiResponse>(this.baseUrl, { headers: this.authHeaders(), params: this.filterParams(filters) }).pipe(
-      map(response => this.pickArray(response, ['expenses', 'Expenses', 'data.expenses', 'data']).map(row => this.normalize(row))),
+      map(response => asPagedArray(
+        this.pickArray(response, ['expenses', 'Expenses', 'data.expenses', 'data']).map(row => this.normalize(row)),
+        response, filters.page, filters.pageSize)),
       catchError(error => this.handleError(error))
     );
   }
@@ -144,7 +149,12 @@ export class ExpenseService {
   }
 
   private filterParams(filters: ExpenseFilters): HttpParams {
+    // Page params are added only for list calls. Export reuses this method and
+    // must stay unpaged, otherwise the file would contain a single page.
     let params = new HttpParams();
+    if (filters.page && filters.pageSize) {
+      params = params.set('page', String(filters.page)).set('page_size', String(filters.pageSize));
+    }
     if (filters.executiveId) params = params.set('executive_id', String(filters.executiveId));
     if (filters.expensesType) params = params.set('expenses_type', String(filters.expensesType));
     if (filters.branchId) params = params.set('branch_id', String(filters.branchId));

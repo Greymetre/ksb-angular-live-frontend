@@ -26,12 +26,13 @@
   }
 }
 .entries-input {
-  width: 60px;
+  width: 78px;
   padding: 5px 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  text-align: center;
   font-size: 13px;
+  background: white;
+  cursor: pointer;
 }
 .icon-action-group { display: flex; gap: 8px; }
 .btn-icon-round {

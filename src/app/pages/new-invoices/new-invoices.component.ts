@@ -80,7 +80,9 @@ export class NewInvoicesComponent implements OnInit {
   private readonly backendOrigin = this.resolveBackendOrigin();
   private filterSearchTimeoutId?: number;
 
-  readonly approvalStatusOptions: SelectOption[] = [
+  // Internal users see every approval stage. Customers (dealer/distributor) must only
+  // ever see Pending, In Process, Approved, Rejected — SS and Sales are internal.
+  private readonly internalStatusOptions: SelectOption[] = [
     { id: '', label: 'All Status' },
     { id: 0, label: 'Pending' },
     { id: 1, label: 'Approved By SS' },
@@ -88,6 +90,35 @@ export class NewInvoicesComponent implements OnInit {
     { id: 3, label: 'Approved By HO' },
     { id: 4, label: 'Rejected' }
   ];
+
+  private readonly customerStatusOptions: SelectOption[] = [
+    { id: '', label: 'All Status' },
+    { id: 0, label: 'Pending' },
+    { id: 'in_process', label: 'In Process' },
+    { id: 3, label: 'Approved' },
+    { id: 4, label: 'Rejected' }
+  ];
+
+  get isCustomerView(): boolean {
+    return this.authService.isDistributorUser();
+  }
+
+  get approvalStatusOptions(): SelectOption[] {
+    return this.isCustomerView ? this.customerStatusOptions : this.internalStatusOptions;
+  }
+
+  /// Collapses the two internal stages for customers; internal users keep the detail.
+  statusLabel(invoice: { approvalStatus: number; approvalStatusLabel: string }): string {
+    if (!this.isCustomerView) return invoice.approvalStatusLabel;
+    switch (invoice.approvalStatus) {
+      case 0: return 'Pending';
+      case 1:
+      case 2: return 'In Process';
+      case 3: return 'Approved';
+      case 4: return 'Rejected';
+      default: return invoice.approvalStatusLabel;
+    }
+  }
 
   private toastTimeoutId?: number;
 
@@ -112,6 +143,15 @@ export class NewInvoicesComponent implements OnInit {
         this.selectedInvoice = null;
         this.loadInvoices();
       }
+    });
+
+    // The dealer dashboard links here with ?create=1 so the pre-GST notice opens
+    // straight away instead of making the dealer hunt for the add button.
+    this.route.queryParamMap.subscribe(params => {
+      if (params.get('create') !== '1' || !this.canCreate) return;
+      this.openCreateModal();
+      // Drop the flag so a refresh or a back-navigation does not reopen it.
+      this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
     });
   }
 
@@ -531,7 +571,7 @@ export class NewInvoicesComponent implements OnInit {
     this.loadInvoices();
   }
 
-  filterByApprovalStatus(status: number | null): void {
+  filterByApprovalStatus(status: number | 'in_process' | null): void {
     this.filter.approval_status = status;
     this.currentPage = 1;
     this.loadInvoices();

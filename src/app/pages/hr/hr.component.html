@@ -88,7 +88,7 @@
   <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
 
   <div class="table-toolbar">
-    <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="100" /> entries</label>
+    <label>Show <select [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input"><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option></select> entries</label>
     <div class="toolbar-actions">
       <button class="btn-icon-round" title="Approve" (click)="approveSelected()" *ngIf="isTour || isLeave || isAttendance">
         <span class="material-icons">task_alt</span>
@@ -226,7 +226,7 @@
 
     <div class="empty-row" *ngIf="!loading && visibleRows.length === 0">No {{ config.title | lowercase }} found</div>
     <div class="table-footer">
-      <app-pagination [total]="isAttendance ? totalRows : rows.length" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
+      <app-pagination [total]="totalRows" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
     </div>
   </div>
 </div>

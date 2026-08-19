@@ -1,7 +1,7 @@
 <div class="product-page">
   <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">{{ toast.message }}</div>
 
-  <div class="page-heading">
+  <div class="page-heading" *ngIf="!isCatalogue">
     <div class="page-icon"><span class="material-icons">{{ mode === 'product' ? 'widgets' : mode === 'family' ? 'account_tree' : 'category' }}</span></div>
     <h2 class="page-title">{{ title }}</h2>
     <button type="button" class="filter-toggle-btn" [class.active]="showFilters" title="Filters" (click)="showFilters = !showFilters" *ngIf="mode !== 'segment'">
@@ -9,7 +9,7 @@
     </button>
   </div>
 
-  <div class="filter-panel" *ngIf="mode !== 'segment' && showFilters">
+  <div class="filter-panel" *ngIf="!isCatalogue && mode !== 'segment' && showFilters">
     <div class="filter-field">
       <label>Segment</label>
       <select [(ngModel)]="selectedSegmentId" (ngModelChange)="selectedFamilyId = null; applyFilters()">
@@ -29,9 +29,93 @@
     </div>
   </div>
 
-  <div class="table-toolbar">
+
+  <!-- Distributor catalogue: segment first, then family chips over the product list. -->
+  <ng-container *ngIf="isCatalogue">
+    <div class="cat-heading">
+      <div class="cat-heading-main">
+        <button type="button" class="cat-back" *ngIf="selectedSegmentId" (click)="backToCatalogueSegments()" title="All segments">
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <div class="page-icon"><span class="material-icons">{{ selectedSegmentId ? 'widgets' : 'category' }}</span></div>
+        <div>
+          <h2 class="page-title">{{ selectedSegmentId ? (catalogueSegment?.name | firstCaps) : 'Product Catalogue' }}</h2>
+          <p class="cat-sub">
+            <ng-container *ngIf="!selectedSegmentId">Select a segment to browse its products</ng-container>
+            <ng-container *ngIf="selectedSegmentId">
+              <span class="cat-crumb" (click)="backToCatalogueSegments()">Catalogue</span>
+              <span class="material-icons cat-crumb-sep">chevron_right</span>
+              {{ catalogueSegment?.name | firstCaps }}
+            </ng-container>
+          </p>
+        </div>
+      </div>
+      <label class="cat-search">
+        <span class="material-icons">search</span>
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="catalogueSearchChanged()"
+               [placeholder]="selectedSegmentId ? 'Search product or part number' : 'Search segment'"/>
+      </label>
+    </div>
+
+    <!-- Step 1: segments -->
+    <div class="cat-segment-grid" *ngIf="!selectedSegmentId">
+      <button type="button" class="cat-segment-card" *ngFor="let segment of catalogueSegments" (click)="openCatalogueSegment(segment)">
+        <span class="cat-segment-mark">{{ segment.name.charAt(0) | uppercase }}</span>
+        <span class="cat-segment-name">{{ segment.name | firstCaps }}</span>
+        <span class="material-icons cat-segment-go">chevron_right</span>
+      </button>
+      <p class="cat-empty" *ngIf="!catalogueSegments.length">No segment found.</p>
+    </div>
+
+    <!-- Step 2: family chips + products -->
+    <ng-container *ngIf="selectedSegmentId">
+      <div class="cat-chip-bar" *ngIf="!loading">
+        <button type="button" class="cat-chip" [class.active]="selectedFamilyId === null" (click)="selectCatalogueFamily(null)">
+          All <span class="cat-chip-count">{{ familyProductCount(null) }}</span>
+        </button>
+        <button type="button" class="cat-chip" *ngFor="let family of catalogueFamilies"
+                [class.active]="selectedFamilyId === family.id" (click)="selectCatalogueFamily(family.id)">
+          {{ family.name | firstCaps }} <span class="cat-chip-count">{{ familyProductCount(family.id) }}</span>
+        </button>
+      </div>
+
+      <div class="cat-loading" *ngIf="loading"><span class="material-icons">hourglass_top</span> Loading products...</div>
+
+      <div class="cat-result-line" *ngIf="!loading">
+        {{ catalogueProducts.length }} product{{ catalogueProducts.length === 1 ? '' : 's' }}
+        <ng-container *ngIf="selectedFamilyId"> in this family</ng-container>
+      </div>
+
+      <div class="cat-product-grid" *ngIf="!loading">
+        <article class="cat-product-card" *ngFor="let product of catalogueProducts"
+                 [class.clickable]="canShowProduct"
+                 [attr.role]="canShowProduct ? 'button' : null"
+                 [attr.tabindex]="canShowProduct ? 0 : null"
+                 (click)="openCatalogueProduct(product)"
+                 (keydown.enter)="openCatalogueProduct(product)"
+                 (keydown.space)="openCatalogueProduct(product)">
+          <header class="cat-product-top">
+            <span class="cat-part">{{ product.partNo || '—' }}</span>
+            <span class="cat-stock" [class.off]="product.active === 'N'">{{ product.active === 'N' ? 'Inactive' : 'Available' }}</span>
+          </header>
+          <h3 class="cat-product-name">{{ product.productName | firstCaps }}</h3>
+          <p class="cat-family" *ngIf="product.familyName">{{ product.familyName | firstCaps }}</p>
+          <footer class="cat-product-foot">
+            <span class="cat-price" *ngIf="product.mrp">₹{{ product.mrp | number:'1.2-2' }}</span>
+            <span class="cat-price muted" *ngIf="!product.mrp">Price on request</span>
+            <a class="cat-doc" *ngIf="product.attachment" [href]="mediaUrl(product.attachment)" target="_blank" rel="noopener" title="Open specification" (click)="$event.stopPropagation()">
+              <span class="material-icons">description</span>
+            </a>
+          </footer>
+        </article>
+        <p class="cat-empty" *ngIf="!catalogueProducts.length">No product found for this selection.</p>
+      </div>
+    </ng-container>
+  </ng-container>
+
+  <div class="table-toolbar" *ngIf="!isCatalogue">
     <div class="toolbar-left">
-      <label>Show <input type="number" [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input" min="5" max="100"/> entries</label>
+      <label>Show <select [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input"><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option></select> entries</label>
     </div>
     <div class="toolbar-right">
       <div class="icon-action-group">
@@ -48,7 +132,7 @@
     </div>
   </div>
 
-  <div class="table-card">
+  <div class="table-card" *ngIf="!isCatalogue">
     <div class="loading-bar" *ngIf="loading">Loading {{ label.toLowerCase() }}s...</div>
     <div class="table-scroll">
       <table class="data-table">
@@ -98,7 +182,7 @@
       </table>
     </div>
     <div class="table-footer">
-      <app-pagination [total]="rows.length" [pageSize]="showEntries" [(page)]="currentPage"></app-pagination>
+      <app-pagination [total]="totalRows" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
     </div>
   </div>
 </div>
@@ -155,6 +239,34 @@
       <div class="modal-actions">
         <button class="btn-submit-modal" (click)="submit()" [disabled]="saving">{{ saving ? 'Saving...' : 'SUBMIT' }}</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="catalogueDetail as product" (click)="closeCatalogueProduct()">
+  <div class="modal-box cat-detail-box" (click)="$event.stopPropagation()">
+    <div class="modal-icon"><span class="material-icons">widgets</span></div>
+    <div class="modal-header-row">
+      <h3>Product Details</h3>
+      <button type="button" class="modal-close-btn" (click)="closeCatalogueProduct()"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="cat-detail-hero">
+        <span class="cat-part">{{ product.partNo || '—' }}</span>
+        <h4>{{ product.productName | firstCaps }}</h4>
+        <span class="cat-stock" [class.off]="product.active === 'N'">{{ product.active === 'N' ? 'Inactive' : 'Available' }}</span>
+      </div>
+      <dl class="cat-detail-grid">
+        <div><dt>Segment</dt><dd>{{ (product.segmentName | firstCaps) || '-' }}</dd></div>
+        <div><dt>Family</dt><dd>{{ (product.familyName | firstCaps) || '-' }}</dd></div>
+        <div><dt>Part Number</dt><dd>{{ product.partNo || '-' }}</dd></div>
+        <div><dt>MRP</dt><dd>{{ product.mrp ? '₹' + (product.mrp | number:'1.2-2') : 'Price on request' }}</dd></div>
+        <div><dt>Created By</dt><dd>{{ product.createdByName || '-' }}</dd></div>
+        <div><dt>Created At</dt><dd>{{ formatDate(product.createdAt) || '-' }}</dd></div>
+      </dl>
+      <a class="cat-detail-doc" *ngIf="product.attachment" [href]="mediaUrl(product.attachment)" target="_blank" rel="noopener">
+        <span class="material-icons">description</span> View specification
+      </a>
     </div>
   </div>
 </div>

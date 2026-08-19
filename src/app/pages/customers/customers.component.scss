@@ -163,11 +163,12 @@
 .file-input { display: none; }
 
 .entries-input {
-  width: 62px;
+  width: 78px;
   padding: 5px 8px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  text-align: center;
+  background: white;
+  cursor: pointer;
 }
 
 .table-card { overflow: auto; }

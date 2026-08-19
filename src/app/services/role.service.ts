@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { PagedArray, asPagedArray } from '../shared/utils/paged-array';
 import { AuthService } from './auth.service';
 import { API_BASE_URL } from '../config/api.config';
 
@@ -39,8 +40,9 @@ export class RoleService {
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
-  getRoles(search = '', includePermissions = true): Observable<Role[]> {
-    let params = new HttpParams().set('include_permissions', String(includePermissions));
+  getRoles(search = '', includePermissions = true, page = 1, pageSize = 10): Observable<PagedArray<Role>> {
+    let params = new HttpParams().set('include_permissions', String(includePermissions))
+      .set('page', String(page)).set('page_size', String(pageSize));
     if (search.trim()) {
       params = params.set('search', search.trim());
     }
@@ -49,7 +51,7 @@ export class RoleService {
       headers: this.authHeaders(),
       params
     }).pipe(
-      map(response => this.readRoles(response)),
+      map(response => asPagedArray(this.readRoles(response), response as Record<string, unknown>, page, pageSize)),
       catchError(error => this.handleError(error))
     );
   }

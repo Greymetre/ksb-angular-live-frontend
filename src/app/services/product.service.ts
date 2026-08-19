@@ -1,3 +1,4 @@
+import { PagedArray, asPagedArray } from '../shared/utils/paged-array';
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
@@ -44,24 +45,24 @@ export class ProductService {
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
-  listSegments(search?: string): Observable<ProductSegment[]> {
-    return this.getArray<ProductSegment>('segments', 'segments', { search });
+  listSegments(search?: string, page?: number, pageSize?: number): Observable<PagedArray<ProductSegment>> {
+    return this.getPagedArray<ProductSegment>('segments', 'segments', { search }, page, pageSize);
   }
 
   listSegmentOptions(search?: string): Observable<ProductSegment[]> {
     return this.getArray<ProductSegment>('getsegments', 'segments', { search });
   }
 
-  listFamilies(segmentId?: number | null, search?: string): Observable<ProductFamily[]> {
-    return this.getArray<ProductFamily>('families', 'families', { segment_id: segmentId, search });
+  listFamilies(segmentId?: number | null, search?: string, page?: number, pageSize?: number): Observable<PagedArray<ProductFamily>> {
+    return this.getPagedArray<ProductFamily>('families', 'families', { segment_id: segmentId, search }, page, pageSize);
   }
 
   listFamilyOptions(segmentId?: number | null, search?: string): Observable<ProductFamily[]> {
     return this.getArray<ProductFamily>('getfamilies', 'families', { segment_id: segmentId, search });
   }
 
-  listProducts(segmentId?: number | null, familyId?: number | null, search?: string): Observable<ProductItem[]> {
-    return this.getArray<ProductItem>('products', 'products', { segment_id: segmentId, family_id: familyId, search });
+  listProducts(segmentId?: number | null, familyId?: number | null, search?: string, page?: number, pageSize?: number): Observable<PagedArray<ProductItem>> {
+    return this.getPagedArray<ProductItem>('products', 'products', { segment_id: segmentId, family_id: familyId, search }, page, pageSize);
   }
 
   saveSegment(payload: Partial<ProductSegment>, id?: number): Observable<string> {
@@ -119,6 +120,19 @@ export class ProductService {
     form.append('import_file', file);
     return this.http.post<Record<string, unknown>>(`${this.baseUrl}/${path}/upload`, form, { headers: this.authHeaders() })
       .pipe(map(response => this.message(response)), catchError(error => this.handleError(error)));
+  }
+
+  // Paging is opt-in: option/dropdown calls omit page so they still get every row.
+  private getPagedArray<T>(path: string, key: string, values: Record<string, unknown>, page?: number, pageSize?: number): Observable<PagedArray<T>> {
+    let params = new HttpParams();
+    Object.entries(values).forEach(([name, value]) => {
+      if (value !== undefined && value !== null && value !== '') params = params.set(name, String(value));
+    });
+    if (page && pageSize) params = params.set('page', String(page)).set('page_size', String(pageSize));
+    return this.http.get<Record<string, unknown>>(`${this.baseUrl}/${path}`, { headers: this.authHeaders(), params })
+      .pipe(
+        map(response => asPagedArray(this.array(response, key).map(row => this.camelize(row) as T), response, page ?? 1, pageSize ?? 0)),
+        catchError(error => this.handleError(error)));
   }
 
   private getArray<T>(path: string, key: string, values: Record<string, unknown>): Observable<T[]> {
