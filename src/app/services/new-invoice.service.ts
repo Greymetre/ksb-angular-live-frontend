@@ -112,6 +112,15 @@ export interface NewInvoiceSummary {
   totalExpectedReward: number;
 }
 
+/** Counts per approval stage across the filters, ignoring the selected stage. */
+export interface NewInvoiceStageCounts {
+  pending: number;
+  approvedSs: number;
+  approvedSales: number;
+  approvedHo: number;
+  rejected: number;
+}
+
 export interface RetailerOption {
   id: number;
   ownerName: string;
@@ -124,6 +133,7 @@ export interface RetailerOption {
 export interface NewInvoiceListResult {
   invoices: NewInvoiceItem[];
   summary: NewInvoiceSummary;
+  stageCounts: NewInvoiceStageCounts;
   total: number;
   page: number;
   pageSize: number;
@@ -144,9 +154,14 @@ export class NewInvoiceService {
     }).pipe(
       map(response => {
         const data = this.asRecord(this.pickFirstValue(response, ['new_invoices', 'data.new_invoices', 'data']) ?? response);
+        const summary = this.normalizeSummary(data['summary']);
+        const stageCounts = data['stage_counts'] ?? data['stageCounts'];
         return {
           invoices: this.pickArray(data, ['invoices', 'new_invoices', 'data']).map(row => this.normalizeInvoice(row)),
-          summary: this.normalizeSummary(data['summary']),
+          summary,
+          // An API that predates stage_counts still carries the same counts inside
+          // the summary, so the tiles keep working until that server is updated.
+          stageCounts: stageCounts ? this.normalizeStageCounts(stageCounts) : this.stageCountsFromSummary(summary),
           total: this.readNumber(data['total']),
           page: this.readNumber(data['page']) || Number(filter.page) || 1,
           pageSize: this.readNumber(data['page_size'] ?? data['pageSize']) || Number(filter.page_size) || 10
@@ -355,6 +370,27 @@ export class NewInvoiceService {
       mobileNumber: this.readString(row['mobile_number'] ?? row['mobileNumber']),
       cityName: this.readNullableString(row['city_name'] ?? row['cityName']),
       address: this.readNullableString(row['address'] ?? row['Address'])
+    };
+  }
+
+  private stageCountsFromSummary(summary: NewInvoiceSummary): NewInvoiceStageCounts {
+    return {
+      pending: summary.pending,
+      approvedSs: summary.approvedSs,
+      approvedSales: summary.approvedSales,
+      approvedHo: summary.approvedHo,
+      rejected: summary.rejected
+    };
+  }
+
+  private normalizeStageCounts(value: unknown): NewInvoiceStageCounts {
+    const row = this.asRecord(value);
+    return {
+      pending: this.readNumber(row['pending']),
+      approvedSs: this.readNumber(row['approved_ss'] ?? row['approvedSs']),
+      approvedSales: this.readNumber(row['approved_sales'] ?? row['approvedSales']),
+      approvedHo: this.readNumber(row['approved_ho'] ?? row['approvedHo']),
+      rejected: this.readNumber(row['rejected'])
     };
   }
 

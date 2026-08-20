@@ -455,11 +455,20 @@ export class ExpensesComponent implements OnInit {
     this.refreshView();
   }
 
+  /**
+   * The API returns a full URL built from its own host, which on live leaves out
+   * the path the API is mounted on and gives a broken link. Anything stored under
+   * uploads is re-anchored to this client's API origin, so the file resolves
+   * whichever form the server sends.
+   */
   attachmentUrl(url: string): string {
     if (!url) return '#';
+
+    const uploadsAt = url.indexOf('/uploads/');
+    if (uploadsAt >= 0) return `${this.apiOrigin()}${url.slice(uploadsAt)}`;
     if (url.startsWith('http')) return url;
-    const baseUrl = this.apiOrigin();
-    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+
+    return `${this.apiOrigin()}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 
   isImageAttachment(file: { mimeType?: string | null; fileName?: string | null }): boolean {

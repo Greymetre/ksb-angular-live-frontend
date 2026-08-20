@@ -1,6 +1,6 @@
 # FieldKonnect Frontend
 
-Current release: `v6.7`
+Current release: `v6.8`
 
 Release tags are kept in sync with the backend repository. Build a production
 bundle from the matching tag with:

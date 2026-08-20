@@ -3,7 +3,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, timeout } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { InvoiceSchemeOption, NewInvoiceFilter, NewInvoiceItem, NewInvoicePayload, NewInvoiceService, NewInvoiceSummary, RetailerOption } from '../../services/new-invoice.service';
+import { InvoiceSchemeOption, NewInvoiceFilter, NewInvoiceItem, NewInvoicePayload, NewInvoiceService, NewInvoiceStageCounts, NewInvoiceSummary, RetailerOption } from '../../services/new-invoice.service';
 import { API_ORIGIN } from '../../config/api.config';
 import { isPdfOrImageFile } from '../../shared/utils/file-validation';
 import { formatKolkataDate, formatKolkataLongDateTime, kolkataDateInput, kolkataTodayInput } from '../../shared/utils/date-time';
@@ -56,6 +56,7 @@ export class NewInvoicesComponent implements OnInit {
   branchFilterOptions: SelectOption[] = [];
   filter: NewInvoiceFilter = {};
   summary: NewInvoiceSummary = this.emptySummary();
+  stageCounts: NewInvoiceStageCounts = this.emptyStageCounts();
   form: InvoiceFormModel = this.emptyForm();
   selectedAttachmentFile: File | null = null;
   approvalDialog: ApprovalDialogModel = this.emptyApprovalDialog();
@@ -211,16 +212,29 @@ export class NewInvoicesComponent implements OnInit {
     return (this.currentPage - 1) * this.safeShowEntries;
   }
 
+  /**
+   * The stage tiles read server counts that cover every invoice the filters match
+   * and deliberately ignore the selected stage, so the tiles keep working as
+   * navigation. Counting the loaded rows would only describe the current page.
+   */
   get pendingFromSs(): number {
-    return this.invoices.filter(invoice => invoice.approvalStatus === 0).length;
+    return this.stageCounts.pending;
   }
 
   get pendingFromSales(): number {
-    return this.invoices.filter(invoice => invoice.approvalStatus === 1).length;
+    return this.stageCounts.approvedSs;
   }
 
   get pendingFromHo(): number {
-    return this.invoices.filter(invoice => invoice.approvalStatus === 2).length;
+    return this.stageCounts.approvedSales;
+  }
+
+  get rejectedCount(): number {
+    return this.stageCounts.rejected;
+  }
+
+  get approvedHoCount(): number {
+    return this.stageCounts.approvedHo;
   }
 
   get canCreate(): boolean {
@@ -281,6 +295,7 @@ export class NewInvoicesComponent implements OnInit {
       next: result => {
         this.invoices = result.invoices;
         this.summary = result.summary;
+        this.stageCounts = result.stageCounts;
         this.totalInvoices = result.total;
         this.refreshView();
       },
@@ -774,6 +789,10 @@ export class NewInvoicesComponent implements OnInit {
       points: 0,
       attachment: null
     };
+  }
+
+  private emptyStageCounts(): NewInvoiceStageCounts {
+    return { pending: 0, approvedSs: 0, approvedSales: 0, approvedHo: 0, rejected: 0 };
   }
 
   private emptySummary(): NewInvoiceSummary {

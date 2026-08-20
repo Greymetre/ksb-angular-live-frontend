@@ -324,12 +324,12 @@
       <button type="button" class="summary-tile summary-action" [class.active]="filter.approval_status === 4"
         (click)="filterByApprovalStatus(4)">
         <span>Rejected</span>
-        <strong>{{ summary.rejected }}</strong>
+        <strong>{{ rejectedCount }}</strong>
       </button>
       <button type="button" class="summary-tile summary-action" [class.active]="filter.approval_status === 3"
         (click)="filterByApprovalStatus(3)">
         <span>{{ isCustomerView ? 'Approved' : 'Approved HO' }}</span>
-        <strong>{{ summary.approvedHo }}</strong>
+        <strong>{{ approvedHoCount }}</strong>
       </button>
     </div>
 
