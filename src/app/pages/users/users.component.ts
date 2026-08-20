@@ -53,6 +53,7 @@ export class UsersComponent implements OnInit {
   users: User[] = [];
   roles: UserOption[] = [];
   branches: UserOption[] = [];
+  payrolls: UserOption[] = [];
   designations: UserOption[] = [];
   divisions: UserOption[] = [];
   departments: UserOption[] = [];
@@ -212,6 +213,7 @@ export class UsersComponent implements OnInit {
       next: options => {
         this.roles = options.roles;
         this.branches = options.branches;
+        this.payrolls = options.payrolls;
         this.designations = options.designations;
         this.divisions = options.divisions;
         this.departments = options.departments;

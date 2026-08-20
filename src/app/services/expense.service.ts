@@ -72,8 +72,13 @@ export interface ExpenseFilters {
   search?: string | null;
 }
 
+export interface ExpenseUserOption extends UserOption {
+  /** users.payroll - the grade that decides which expense types this employee may claim. */
+  payroll: string | null;
+}
+
 export interface ExpenseOptions {
-  users: UserOption[];
+  users: ExpenseUserOption[];
   expenseTypes: ExpenseType[];
   branches: UserOption[];
   divisions: UserOption[];
@@ -108,7 +113,7 @@ export class ExpenseService {
       map(response => {
         const source = this.asRecord(this.pickFirstValue(response, ['options', 'data.options']) ?? response);
         return {
-          users: this.optionArray(source, 'users'),
+          users: this.expenseUserArray(source, 'users'),
           expenseTypes: this.asArray(source['expenseTypes'] ?? source['expense_types']).map(row => this.normalizeExpenseType(row)),
           branches: this.optionArray(source, 'branches'),
           divisions: this.optionArray(source, 'divisions'),
@@ -137,6 +142,14 @@ export class ExpenseService {
   status(id: number, status: number, approveAmount?: number | null, reason?: string | null): Observable<ExpenseActionResult> {
     return this.http.patch<ApiResponse>(`${this.baseUrl}/${id}/status`, { status, approve_amount: approveAmount, reason }, { headers: this.authHeaders() }).pipe(
       map(response => this.actionResult(response, 'Status changed successfully')),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  /** Drops one already-uploaded file. Allowed only while the expense is Pending. */
+  removeAttachment(id: number, attachmentId: number): Observable<ExpenseActionResult> {
+    return this.http.delete<ApiResponse>(`${this.baseUrl}/${id}/attachments/${attachmentId}`, { headers: this.authHeaders() }).pipe(
+      map(response => this.actionResult(response, 'attachment removed successfully')),
       catchError(error => this.handleError(error))
     );
   }
@@ -248,6 +261,19 @@ export class ExpenseService {
       payrollId: this.readNullableNumber(row['payrollId'] ?? row['PayrollId'] ?? row['payroll_id']),
       payrollName: this.readString(row['payrollName'] ?? row['PayrollName'] ?? row['payroll_name'])
     };
+  }
+
+  private expenseUserArray(source: Record<string, unknown>, key: string): ExpenseUserOption[] {
+    return this.asArray(source[key])
+      .map(value => {
+        const row = this.asRecord(value);
+        return {
+          id: this.readNumber(row['id'] ?? row['Id']),
+          name: this.readString(row['name'] ?? row['Name']),
+          payroll: this.readNullableString(row['payroll'] ?? row['Payroll'])
+        };
+      })
+      .filter(option => option.id > 0);
   }
 
   private optionArray(source: Record<string, unknown>, key: string): UserOption[] {

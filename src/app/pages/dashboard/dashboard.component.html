@@ -1,5 +1,5 @@
 <!-- Dealer/distributor CRM users get a summary of their own network. -->
-<div class="dash" *ngIf="data as d; else plainWelcome">
+<div class="dash" *ngIf="data as d">
   <header class="dash-hero">
     <div>
       <p class="dash-greet">{{ greeting }},</p>
@@ -157,10 +157,656 @@
   </div>
 </div>
 
-<ng-template #plainWelcome>
+
+<!-- One tab per dashboard, shown only where the role holds the permission. -->
+<nav class="dash-tabs" *ngIf="tabs.length > 1">
+  <button type="button" *ngFor="let tab of tabs" [class.on]="activeTab === tab.key" (click)="selectTab(tab.key)">
+    <span class="material-icons">{{ tab.icon }}</span> {{ tab.label }}
+  </button>
+</nav>
+
+<!-- Every internal CRM user gets the team view. What it counts is decided by the
+     API, using the same reporting visibility the SFA app applies. -->
+<div class="dash" *ngIf="activeTab === 'secondary' && team as t">
+  <header class="dash-hero">
+    <div>
+      <p class="dash-greet">{{ greeting }}, {{ todayLabel }}</p>
+      <h1 class="dash-name">{{ t.user.name }}</h1>
+      <p class="dash-meta">
+        <span *ngIf="t.user.designation" class="dash-chip">{{ t.user.designation }}</span>
+      </p>
+    </div>
+    <div class="hero-figure">
+      <small>SALES YTD</small>
+      <strong>{{ money(t.orders.year.value) }}</strong>
+      <p>{{ t.orders.year.orders | number }} orders · {{ t.orders.year.quantity | number }} qty</p>
+    </div>
+  </header>
+
+  <section class="dash-kpis">
+    <article class="dash-kpi" (click)="go('/users')">
+      <span class="material-icons">groups</span>
+      <div>
+        <small>Team Size</small>
+        <strong>{{ t.team.total | number }}</strong>
+        <p>{{ t.team.asr }} ASR · {{ t.team.dsr }} DSR</p>
+      </div>
+    </article>
+
+    <article class="dash-kpi attendance" (click)="go('/attendance')">
+      <span class="material-icons">how_to_reg</span>
+      <div>
+        <small>Present Today</small>
+        <strong>{{ t.attendance.all.present | number }}</strong>
+        <p>{{ percent(t.attendance.all.present, t.team.total) }}% of team · {{ t.attendance.all.notPunched }} not punched in</p>
+      </div>
+    </article>
+
+    <article class="dash-kpi orders" (click)="go('/orders')">
+      <span class="material-icons">shopping_cart</span>
+      <div>
+        <small>Orders This Month</small>
+        <strong>{{ t.orders.month.orders | number }}</strong>
+        <p>{{ money(t.orders.month.value) }} · {{ t.orders.month.quantity | number }} qty</p>
+      </div>
+    </article>
+
+    <article class="dash-kpi rewards" (click)="go('/customers')">
+      <span class="material-icons">storefront</span>
+      <div>
+        <small>Retailer Network</small>
+        <strong>{{ t.customers.retailers | number }}</strong>
+        <p>{{ t.customers.withOrderYear | number }} ordered this year · {{ percent(t.customers.withOrderYear, t.customers.retailers) }}%</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- Attendance, today -->
+  <section class="dash-card wide">
+    <div class="card-head">
+      <h2>Attendance</h2>
+      <span class="tag">TODAY</span>
+      <a class="card-link" (click)="go('/attendance')">View all &rarr;</a>
+    </div>
+
+    <div class="tile-row">
+      <div class="tile total"><small>Total</small><strong>{{ t.attendance.all.total | number }}</strong></div>
+      <div class="tile present"><small>Present</small><strong>{{ t.attendance.all.present | number }}</strong></div>
+      <div class="tile leave"><small>On Leave</small><strong>{{ t.attendance.all.onLeave | number:'1.0-1' }}</strong></div>
+      <div class="tile mis"><small>Mis Punch</small><strong>{{ t.attendance.all.misPunch | number }}</strong><i>punch-out pending</i></div>
+      <div class="tile absent"><small>Not Punched In</small><strong>{{ t.attendance.all.notPunched | number }}</strong></div>
+    </div>
+
+    <div class="split">
+      <div class="split-col" *ngFor="let row of [{ label: 'ASR', data: t.attendance.asr }, { label: 'DSR', data: t.attendance.dsr }]">
+        <p class="split-head"><b>{{ row.label }}</b> <span>{{ row.data.present }} / {{ row.data.total }} present</span></p>
+        <div class="dash-bar"><span class="active" [style.width.%]="percent(row.data.present, row.data.total)"></span></div>
+        <p class="dash-note">{{ row.data.onLeave | number:'1.0-1' }} on leave · {{ row.data.misPunch }} punch-out pending</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="dash-grid two">
+    <!-- Target vs achievement -->
+    <section class="dash-card">
+      <div class="card-head">
+        <h2>Target vs Achievement</h2>
+        <div class="toggle">
+          <button type="button" [class.on]="targetRange === 'month'" (click)="targetRange = 'month'">Month</button>
+          <button type="button" [class.on]="targetRange === 'ytd'" (click)="targetRange = 'ytd'">YTD</button>
+        </div>
+      </div>
+
+      <ng-container *ngIf="target as tg">
+        <p class="dash-note range">{{ targetRangeLabel }} · secondary sale · {{ tg.users }} users with a target</p>
+
+        <div class="meter">
+          <p class="meter-head"><b>Value</b> <span>{{ tg.achievementPercent | number:'1.0-1' }}%</span></p>
+          <div class="dash-bar tall"><span class="active" [style.width.%]="barWidth(tg.achievementPercent)"></span></div>
+          <p class="meter-foot">
+            <span>Achieved <b>{{ compact(tg.achievement) }}</b></span>
+            <span>Target <b>{{ compact(tg.target) }}</b></span>
+          </p>
+        </div>
+
+        <div class="meter">
+          <p class="meter-head"><b>Quantity</b> <span>{{ tg.quantityAchievementPercent | number:'1.0-1' }}%</span></p>
+          <div class="dash-bar tall"><span class="approved" [style.width.%]="barWidth(tg.quantityAchievementPercent)"></span></div>
+          <p class="meter-foot">
+            <span>Achieved <b>{{ tg.quantityAchievement | number:'1.0-0' }}</b></span>
+            <span>Target <b>{{ tg.quantityTarget | number:'1.0-0' }}</b></span>
+          </p>
+        </div>
+
+        <div class="split">
+          <div class="split-col">
+            <p class="split-head"><b>ASR</b> <span>{{ t.target.asr.achievementPercent | number:'1.0-1' }}%</span></p>
+            <div class="dash-bar"><span class="active" [style.width.%]="barWidth(t.target.asr.achievementPercent)"></span></div>
+          </div>
+          <div class="split-col">
+            <p class="split-head"><b>DSR</b> <span>{{ t.target.dsr.achievementPercent | number:'1.0-1' }}%</span></p>
+            <div class="dash-bar"><span class="active" [style.width.%]="barWidth(t.target.dsr.achievementPercent)"></span></div>
+          </div>
+        </div>
+        <p class="dash-empty" *ngIf="!tg.target">No target set for this period.</p>
+      </ng-container>
+    </section>
+
+    <!-- Secondary sale trend -->
+    <section class="dash-card">
+      <div class="card-head">
+        <h2>Secondary Sale Trend</h2>
+        <span class="tag">{{ trend.length ? 'THIS YEAR' : '' }}</span>
+      </div>
+
+      <div class="chart" *ngIf="trendPeak > 0">
+        <div class="chart-col" *ngFor="let point of trend" [class.current]="point.isCurrent">
+          <span class="chart-tip">{{ point.label }} · {{ compact(point.value) }} · {{ point.orders | number }} orders</span>
+          <i class="chart-bar" [style.height.%]="trendHeight(point)"></i>
+          <small>{{ point.label }}</small>
+        </div>
+      </div>
+      <p class="dash-empty" *ngIf="trendPeak <= 0">No orders recorded this year.</p>
+
+      <div class="tile-row compact" *ngIf="trendPeak > 0">
+        <div class="tile"><small>Today</small><strong>{{ orderValue(t.orders.today) }}</strong><i>{{ t.orders.today.orders }} orders</i></div>
+        <div class="tile"><small>This Month</small><strong>{{ orderValue(t.orders.month) }}</strong><i>{{ t.orders.month.orders }} orders</i></div>
+        <div class="tile"><small>This Year</small><strong>{{ orderValue(t.orders.year) }}</strong><i>{{ t.orders.year.orders | number }} orders</i></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="dash-grid two">
+    <!-- Retailers -->
+    <section class="dash-card">
+      <div class="card-head">
+        <h2>Retailers</h2>
+        <span class="tag">YTD</span>
+        <a class="card-link" (click)="go('/customers')">View all &rarr;</a>
+      </div>
+
+      <div class="dash-month">
+        <div><small>Total Retailers</small><strong>{{ t.customers.retailers | number }}</strong></div>
+        <div><small>Pending KYC</small><strong>{{ t.customers.pendingKyc | number }}</strong></div>
+        <div><small>Approved This Year</small><strong>{{ t.customers.approvedYear | number }}</strong></div>
+        <div><small>Added Today</small><strong>{{ t.customers.approvedToday | number }}</strong></div>
+        <div><small>Dealers</small><strong>{{ t.customers.dealers | number }}</strong></div>
+      </div>
+
+      <div class="dash-bar"><span class="active" [style.width.%]="percent(t.customers.withOrderYear, t.customers.retailers)"></span></div>
+      <p class="dash-note">
+        {{ t.customers.withOrderYear | number }} of {{ t.customers.retailers | number }} retailers ordered this year ·
+        {{ percent(t.customers.withOrderYear, t.customers.retailers) }}%
+      </p>
+
+      <ul class="mini-list">
+        <li><span>Unique buyers this month</span><b>{{ t.customers.uniqueBuyersMonth | number }}</b></li>
+        <li><span>Unique buyers this year</span><b>{{ t.customers.uniqueBuyersYear | number }}</b></li>
+        <li><span>Retailers added this month</span><b>{{ t.customers.retailersThisMonth | number }}</b></li>
+      </ul>
+    </section>
+
+    <!-- Field + promotional activity -->
+    <section class="dash-card">
+      <div class="card-head">
+        <h2>Field Activities</h2>
+        <div class="toggle">
+          <button type="button" [class.on]="activityRange === 'today'" (click)="activityRange = 'today'">Today</button>
+          <button type="button" [class.on]="activityRange === 'month'" (click)="activityRange = 'month'">Month</button>
+          <button type="button" [class.on]="activityRange === 'year'" (click)="activityRange = 'year'">Year</button>
+        </div>
+      </div>
+
+      <ng-container *ngIf="fieldActivity as act">
+        <p class="dash-note range">{{ activityRangeLabel }} · {{ fieldActivityTotal | number }} activities logged</p>
+        <ul class="mini-list bars">
+          <li *ngFor="let row of [
+                { label: 'Retailer Visit', value: act.retailerVisit, tone: 'blue' },
+                { label: 'Retailer Meet', value: act.retailerMeet, tone: 'green' },
+                { label: 'Nukkad Meet', value: act.nukkadMeet, tone: 'amber' },
+                { label: 'Field Demo', value: act.fieldDemo, tone: 'purple' },
+                { label: 'Other', value: act.other, tone: 'grey' }]">
+            <span>{{ row.label }}</span>
+            <i class="mini-bar" [ngClass]="row.tone"><em [style.width.%]="percent(row.value, fieldActivityTotal)"></em></i>
+            <b>{{ row.value | number }}</b>
+          </li>
+        </ul>
+        <p class="dash-empty" *ngIf="!fieldActivityTotal">Nothing logged for this period.</p>
+      </ng-container>
+
+      <div class="promo">
+        <p class="promo-head">Promotional Activities <span>this year</span></p>
+        <div class="dash-month">
+          <div><small>Activities</small><strong>{{ t.activities.promotional.year | number }}</strong></div>
+          <div><small>This Month</small><strong>{{ t.activities.promotional.month | number }}</strong></div>
+          <div><small>Gifts Given</small><strong>{{ t.activities.promotional.gifts | number }}</strong></div>
+          <div><small>Total Expense</small><strong>{{ money(t.activities.promotional.expense) }}</strong></div>
+        </div>
+        <p class="chips" *ngIf="t.activities.promotional.types.length">
+          <span *ngFor="let type of t.activities.promotional.types">{{ type.name }} · {{ type.count }}</span>
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <div class="dash-grid two">
+    <!-- Top SKUs -->
+    <section class="dash-card">
+      <div class="card-head">
+        <h2>Top Performing SKUs</h2>
+        <span class="tag">YTD</span>
+      </div>
+
+      <p class="sub-head">By quantity</p>
+      <ul class="sku-list">
+        <li *ngFor="let row of t.topProducts.quantity; let i = index">
+          <span class="rank">{{ i + 1 }}</span>
+          <div>
+            <p class="sku-name" [title]="row.name">{{ row.name }}</p>
+            <i class="mini-bar blue"><em [style.width.%]="share(row.quantity, t.topProducts.quantity, false)"></em></i>
+          </div>
+          <b>{{ row.quantity | number }}</b>
+        </li>
+      </ul>
+
+      <p class="sub-head">By value</p>
+      <ul class="sku-list">
+        <li *ngFor="let row of t.topProducts.value; let i = index">
+          <span class="rank">{{ i + 1 }}</span>
+          <div>
+            <p class="sku-name" [title]="row.name">{{ row.name }}</p>
+            <i class="mini-bar green"><em [style.width.%]="share(row.value, t.topProducts.value, true)"></em></i>
+          </div>
+          <b>{{ compact(row.value) }}</b>
+        </li>
+      </ul>
+      <p class="dash-empty" *ngIf="!t.topProducts.quantity.length">No product sales recorded this year.</p>
+    </section>
+
+    <!-- Leaderboard -->
+    <section class="dash-card">
+      <div class="card-head">
+        <h2>Top Performers</h2>
+        <span class="tag">YTD</span>
+      </div>
+
+      <div class="table-wrap" *ngIf="t.performers.length">
+        <table class="lead">
+          <thead>
+            <tr><th>#</th><th>User</th><th class="num">Orders</th><th class="num">Qty</th><th class="num">Value</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of t.performers; let i = index">
+              <td><span class="rank" [class.top]="i < 3">{{ i + 1 }}</span></td>
+              <td>
+                <p class="lead-name">{{ row.name }}</p>
+                <small>{{ row.designation }}</small>
+              </td>
+              <td class="num">{{ row.orders | number }}</td>
+              <td class="num">{{ row.quantity | number }}</td>
+              <td class="num strong">{{ compact(row.value) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="dash-empty" *ngIf="!t.performers.length">No orders booked by this team yet.</p>
+    </section>
+  </div>
+</div>
+
+
+<!-- ------------------------------------------------------------- loyalty -->
+<div class="dash" *ngIf="activeTab === 'loyalty' && loyalty as l">
+  <header class="dash-hero loyalty">
+    <div>
+      <p class="dash-greet">Loyalty programme · {{ l.user.scopeLabel }}</p>
+      <h1 class="dash-name">Invoice &amp; Scheme Performance</h1>
+      <p class="dash-meta">
+        <span class="dash-chip">{{ l.schemes.live }} live schemes</span>
+        <span><span class="material-icons hero-ico">storefront</span> {{ l.invoices.retailers | number }} retailers</span>
+        <span><span class="material-icons hero-ico">store</span> {{ l.invoices.dealers | number }} dealers</span>
+      </p>
+    </div>
+    <div class="hero-figure">
+      <small>POINTS EARNED</small>
+      <strong>{{ l.invoices.pointsEarned | number:'1.0-0' }}</strong>
+      <p>{{ l.invoices.pointsExpected | number:'1.0-0' }} expected</p>
+    </div>
+  </header>
+
+  <section class="dash-kpis">
+    <article class="dash-kpi" (click)="go('/new-invoices')">
+      <span class="material-icons">receipt_long</span>
+      <div>
+        <small>Invoices This Year</small>
+        <strong>{{ l.invoices.total | number }}</strong>
+        <p>{{ l.invoices.thisMonth | number }} this month</p>
+      </div>
+    </article>
+    <article class="dash-kpi orders">
+      <span class="material-icons">currency_rupee</span>
+      <div>
+        <small>Invoice Value</small>
+        <strong>{{ money(l.invoices.totalAmount) }}</strong>
+        <p>{{ money(l.invoices.hoAmount) }} approved by HO</p>
+      </div>
+    </article>
+    <article class="dash-kpi rewards">
+      <span class="material-icons">verified</span>
+      <div>
+        <small>Approved by HO</small>
+        <strong>{{ l.invoices.approvedHo | number }}</strong>
+        <p>{{ percent(l.invoices.approvedHo, l.invoices.total) }}% of all invoices</p>
+      </div>
+    </article>
+    <article class="dash-kpi invoices">
+      <span class="material-icons">hourglass_top</span>
+      <div>
+        <small>Awaiting Approval</small>
+        <strong>{{ l.invoices.pending + l.invoices.approvedSs + l.invoices.approvedSales | number }}</strong>
+        <p>{{ money(l.invoices.expectedAmount) }} in the pipeline</p>
+      </div>
+    </article>
+  </section>
+
+  <div class="dash-grid two">
+    <section class="dash-card">
+      <div class="card-head">
+        <h2>Approval Pipeline</h2>
+        <a class="card-link" (click)="go('/new-invoices')">Open invoices &rarr;</a>
+      </div>
+      <ul class="mini-list bars">
+        <li *ngFor="let stage of loyaltyStages">
+          <span>{{ stage.label }}</span>
+          <i class="mini-bar" [ngClass]="stage.tone"><em [style.width.%]="percent(stage.value, l.invoices.total)"></em></i>
+          <b>{{ stage.value | number }}</b>
+        </li>
+      </ul>
+
+      <div class="dash-month stage-amounts">
+        <div><small>SS Approved</small><strong>{{ money(l.invoices.ssAmount) }}</strong></div>
+        <div><small>Sales Approved</small><strong>{{ money(l.invoices.salesAmount) }}</strong></div>
+        <div><small>HO Approved</small><strong>{{ money(l.invoices.hoAmount) }}</strong></div>
+        <div><small>Expected</small><strong>{{ money(l.invoices.expectedAmount) }}</strong></div>
+      </div>
+      <p class="dash-empty" *ngIf="!l.invoices.total">No invoice uploaded this year.</p>
+    </section>
+
+    <section class="dash-card">
+      <div class="card-head">
+        <h2>Invoice Trend</h2>
+        <span class="tag">THIS YEAR</span>
+      </div>
+      <div class="chart" *ngIf="loyaltyPeak > 0">
+        <div class="chart-col" *ngFor="let point of loyaltyTrend" [class.current]="point.isCurrent">
+          <span class="chart-tip">{{ point.label }} · {{ point.invoices }} invoices · {{ compact(point.amount) }}</span>
+          <i class="chart-bar" [style.height.%]="loyaltyHeight(point)"></i>
+          <small>{{ point.label }}</small>
+        </div>
+      </div>
+      <p class="dash-empty" *ngIf="loyaltyPeak <= 0">No invoice value recorded this year.</p>
+
+      <div class="dash-points" *ngIf="l.invoices.total">
+        <article class="earned">
+          <small>POINTS EARNED</small>
+          <strong>{{ l.invoices.pointsEarned | number:'1.0-2' }}</strong>
+          <p>On {{ l.invoices.approvedHo }} HO approved invoices</p>
+        </article>
+        <article class="expected">
+          <small>EXPECTED POINTS</small>
+          <strong>{{ l.invoices.pointsExpected | number:'1.0-2' }}</strong>
+          <p>On {{ money(l.invoices.expectedAmount) }} awaiting approval</p>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <section class="dash-card wide">
+    <div class="card-head">
+      <h2>Schemes</h2>
+      <span class="tag">{{ l.schemes.live }} LIVE · {{ l.schemes.total }} TOTAL</span>
+      <a class="card-link" *ngIf="can('scheme_access_list')" (click)="go('/loyalty-schemes')">Manage &rarr;</a>
+    </div>
+    <div class="table-wrap" *ngIf="l.schemes.rows.length">
+      <table class="lead">
+        <thead>
+          <tr><th>Scheme</th><th>Validity</th><th>Status</th><th class="num">Invoices</th><th class="num">Retailers</th><th class="num">Value</th><th class="num">Points</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of l.schemes.rows">
+            <td>
+              <p class="lead-name">{{ row.name }}</p>
+              <small>{{ row.code }} · {{ row.tag }}</small>
+            </td>
+            <td><small>{{ schemeDate(row.startDate) }} — {{ schemeDate(row.endDate) }}</small></td>
+            <td><span class="pill" [ngClass]="row.status">{{ row.statusLabel }}</span></td>
+            <td class="num">{{ row.invoices | number }}</td>
+            <td class="num">{{ row.retailers | number }}</td>
+            <td class="num">{{ compact(row.amount) }}</td>
+            <td class="num strong">{{ row.points | number:'1.0-0' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="dash-empty" *ngIf="!l.schemes.rows.length">No invoice scheme created yet.</p>
+  </section>
+
+  <div class="dash-grid two">
+    <section class="dash-card">
+      <div class="card-head"><h2>Top Retailers</h2><span class="tag">BY VALUE</span></div>
+      <div class="table-wrap" *ngIf="l.topRetailers.length">
+        <table class="lead">
+          <thead><tr><th>#</th><th>Retailer</th><th class="num">Inv.</th><th class="num">Value</th><th class="num">Points</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let row of l.topRetailers; let i = index">
+              <td><span class="rank" [class.top]="i < 3">{{ i + 1 }}</span></td>
+              <td>
+                <p class="lead-name">{{ row.shopName || row.name }}</p>
+                <small>{{ row.dealer }}</small>
+              </td>
+              <td class="num">{{ row.invoices }}</td>
+              <td class="num">{{ compact(row.amount) }}</td>
+              <td class="num strong">{{ row.points | number:'1.0-0' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="dash-empty" *ngIf="!l.topRetailers.length">No retailer has uploaded an invoice yet.</p>
+    </section>
+
+    <section class="dash-card">
+      <div class="card-head"><h2>Top Dealers</h2><span class="tag">BY VALUE</span></div>
+      <div class="table-wrap" *ngIf="l.topDealers.length">
+        <table class="lead">
+          <thead><tr><th>#</th><th>Dealer</th><th class="num">Retailers</th><th class="num">Inv.</th><th class="num">Value</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let row of l.topDealers; let i = index">
+              <td><span class="rank" [class.top]="i < 3">{{ i + 1 }}</span></td>
+              <td><p class="lead-name">{{ row.name }}</p></td>
+              <td class="num">{{ row.retailers }}</td>
+              <td class="num">{{ row.invoices }}</td>
+              <td class="num strong">{{ compact(row.amount) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="dash-empty" *ngIf="!l.topDealers.length">No dealer activity yet.</p>
+    </section>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------ activity -->
+<div class="dash" *ngIf="activeTab === 'activity' && activity as a">
+  <header class="dash-hero activity">
+    <div>
+      <p class="dash-greet">Field activity · {{ a.user.scopeLabel }}</p>
+      <h1 class="dash-name">Team on the Ground</h1>
+      <p class="dash-meta">
+        <span class="dash-chip">{{ a.team.total | number }} users</span>
+        <span><span class="material-icons hero-ico">badge</span> {{ a.team.asr }} ASR · {{ a.team.dsr }} DSR</span>
+        <span><span class="material-icons hero-ico">event_available</span> {{ a.attendance.month.workingDays }} working days logged</span>
+      </p>
+    </div>
+    <div class="hero-figure">
+      <small>PRESENT TODAY</small>
+      <strong>{{ a.attendance.all.present | number }}</strong>
+      <p>of {{ a.attendance.all.total | number }} · {{ percent(a.attendance.all.present, a.attendance.all.total) }}%</p>
+    </div>
+  </header>
+
+  <section class="dash-card wide">
+    <div class="card-head">
+      <h2>Attendance</h2>
+      <span class="tag">TODAY</span>
+      <a class="card-link" (click)="go('/attendance')">View all &rarr;</a>
+    </div>
+    <div class="tile-row">
+      <div class="tile total"><small>Total</small><strong>{{ a.attendance.all.total | number }}</strong></div>
+      <div class="tile present"><small>Present</small><strong>{{ a.attendance.all.present | number }}</strong></div>
+      <div class="tile leave"><small>On Leave</small><strong>{{ a.attendance.all.onLeave | number:'1.0-1' }}</strong></div>
+      <div class="tile mis"><small>Mis Punch</small><strong>{{ a.attendance.all.misPunch | number }}</strong><i>punch-out pending</i></div>
+      <div class="tile absent"><small>Not Punched In</small><strong>{{ a.attendance.all.notPunched | number }}</strong></div>
+    </div>
+    <div class="split">
+      <div class="split-col" *ngFor="let row of [{ label: 'ASR', data: a.attendance.asr }, { label: 'DSR', data: a.attendance.dsr }]">
+        <p class="split-head"><b>{{ row.label }}</b> <span>{{ row.data.present }} / {{ row.data.total }} present</span></p>
+        <div class="dash-bar"><span class="active" [style.width.%]="percent(row.data.present, row.data.total)"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="dash-grid two">
+    <section class="dash-card">
+      <div class="card-head"><h2>Last 14 Days</h2><span class="tag">PUNCH-INS</span></div>
+      <div class="chart" *ngIf="attendancePeak > 0">
+        <div class="chart-col" *ngFor="let point of attendanceTrend" [class.current]="point.isToday">
+          <span class="chart-tip">{{ point.label }} · {{ point.present }} present</span>
+          <i class="chart-bar" [style.height.%]="attendanceHeight(point)"></i>
+          <small>{{ point.weekday }}</small>
+        </div>
+      </div>
+      <p class="dash-empty" *ngIf="attendancePeak <= 0">No punch-in recorded in the last fortnight.</p>
+
+      <div class="dash-month">
+        <div><small>Punch-ins This Month</small><strong>{{ a.attendance.month.punchIns | number }}</strong></div>
+        <div><small>Users Seen</small><strong>{{ a.attendance.month.uniqueUsers | number }}</strong></div>
+        <div><small>Avg. Present / Day</small><strong>{{ a.attendance.month.averagePresent | number:'1.0-1' }}</strong></div>
+        <div><small>Punch-out Pending</small><strong>{{ a.attendance.month.punchOutPending | number }}</strong></div>
+      </div>
+    </section>
+
+    <section class="dash-card">
+      <div class="card-head">
+        <h2>Field Work</h2>
+        <div class="toggle">
+          <button type="button" [class.on]="activityRange === 'today'" (click)="activityRange = 'today'">Today</button>
+          <button type="button" [class.on]="activityRange === 'month'" (click)="activityRange = 'month'">Month</button>
+          <button type="button" [class.on]="activityRange === 'year'" (click)="activityRange = 'year'">Year</button>
+        </div>
+      </div>
+      <ng-container *ngIf="workingActivity as w">
+        <p class="dash-note range">{{ activityRangeLabel }} · {{ workingTotal | number }} activities logged</p>
+        <ul class="mini-list bars">
+          <li *ngFor="let row of [
+                { label: 'Retailer Visit', value: w.retailerVisit, tone: 'blue' },
+                { label: 'Retailer Meet', value: w.retailerMeet, tone: 'green' },
+                { label: 'Nukkad Meet', value: w.nukkadMeet, tone: 'amber' },
+                { label: 'Field Demo', value: w.fieldDemo, tone: 'purple' },
+                { label: 'Other', value: w.other, tone: 'grey' }]">
+            <span>{{ row.label }}</span>
+            <i class="mini-bar" [ngClass]="row.tone"><em [style.width.%]="percent(row.value, workingTotal)"></em></i>
+            <b>{{ row.value | number }}</b>
+          </li>
+        </ul>
+        <p class="dash-empty" *ngIf="!workingTotal">Nothing logged for this period.</p>
+      </ng-container>
+
+      <div class="promo">
+        <p class="promo-head">Promotional Activities <span>this year</span></p>
+        <div class="dash-month">
+          <div><small>Activities</small><strong>{{ a.promotional.year | number }}</strong></div>
+          <div><small>This Month</small><strong>{{ a.promotional.month | number }}</strong></div>
+          <div><small>Gifts Given</small><strong>{{ a.promotional.gifts | number }}</strong></div>
+          <div><small>Total Expense</small><strong>{{ money(a.promotional.expense) }}</strong></div>
+        </div>
+        <p class="chips" *ngIf="a.promotional.types.length">
+          <span *ngFor="let type of a.promotional.types">{{ type.name }} · {{ type.count }}</span>
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <section class="dash-kpis">
+    <article class="dash-kpi" (click)="go('/tour-plan')">
+      <span class="material-icons">map</span>
+      <div>
+        <small>Tour Plans This Month</small>
+        <strong>{{ a.tours.month | number }}</strong>
+        <p>{{ a.tours.approved }} approved · {{ a.tours.pending }} pending · {{ a.tours.users }} users</p>
+      </div>
+    </article>
+    <article class="dash-kpi invoices" (click)="go('/leaves')">
+      <span class="material-icons">event_busy</span>
+      <div>
+        <small>Leaves This Month</small>
+        <strong>{{ a.leaves.month | number }}</strong>
+        <p>{{ a.leaves.pending }} pending · {{ a.leaves.approved }} approved</p>
+      </div>
+    </article>
+    <article class="dash-kpi orders" (click)="go('/expenses')">
+      <span class="material-icons">account_balance_wallet</span>
+      <div>
+        <small>Expense Claims</small>
+        <strong>{{ money(a.expenses.claimed) }}</strong>
+        <p>{{ a.expenses.monthClaims }} claims · {{ money(a.expenses.approved) }} approved</p>
+      </div>
+    </article>
+    <article class="dash-kpi rewards">
+      <span class="material-icons">campaign</span>
+      <div>
+        <small>Promotional Spend</small>
+        <strong>{{ money(a.promotional.expense) }}</strong>
+        <p>{{ a.promotional.completed }} completed · {{ a.promotional.draft }} draft</p>
+      </div>
+    </article>
+  </section>
+
+  <section class="dash-card wide">
+    <div class="card-head">
+      <h2>Attendance by User</h2>
+      <span class="tag">THIS MONTH</span>
+    </div>
+    <div class="table-wrap" *ngIf="a.users.length">
+      <table class="lead">
+        <thead>
+          <tr><th>User</th><th class="num">Present Days</th><th class="num">Leave</th><th class="num">Punch-out Pending</th><th>Last Seen</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of a.users">
+            <td>
+              <p class="lead-name">{{ row.name }}</p>
+              <small>{{ row.designation }}</small>
+            </td>
+            <td class="num strong">{{ row.presentDays }}</td>
+            <td class="num">{{ row.leaveDays | number:'1.0-1' }}</td>
+            <td class="num">{{ row.punchOutPending }}</td>
+            <td><small>{{ row.lastSeen ? schemeDate(row.lastSeen) : '—' }}</small></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="dash-empty" *ngIf="!a.users.length">No attendance recorded this month.</p>
+  </section>
+</div>
+
+<ng-container *ngIf="!data && !team && !loyalty && !activity">
   <div class="dash-loading" *ngIf="loading">Loading your dashboard...</div>
   <div class="dashboard-welcome" *ngIf="!loading">
     <h1>Welcome to Field Konnect</h1>
     <p class="dash-error" *ngIf="error">{{ error }}</p>
   </div>
-</ng-template>
+</ng-container>
+
+<!-- A tab that fails or is still loading keeps the tab strip on screen. -->
+<div class="dash-loading" *ngIf="loading && (team || loyalty || activity)">Loading...</div>
+<p class="dash-error tab-error" *ngIf="error && (team || loyalty || activity)">{{ error }}</p>

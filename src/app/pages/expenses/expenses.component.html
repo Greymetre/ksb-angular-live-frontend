@@ -149,7 +149,8 @@
             <td>
               <div class="action-btns">
                 <button class="mini-icon" title="Show Expense" (click)="openDetails(row)"><span class="material-icons">visibility</span></button>
-                <button class="btn-danger" title="Delete Expense" (click)="deleteRow(row)" *ngIf="canDelete"><span class="material-icons">close</span></button>
+                <button class="mini-icon" title="Edit Expense" (click)="openEditModal(row)" *ngIf="canEdit && row.checkerStatus === 0"><span class="material-icons">edit</span></button>
+                <button class="btn-danger" title="Delete Expense" (click)="deleteRow(row)" *ngIf="canDelete && row.checkerStatus === 0"><span class="material-icons">close</span></button>
               </div>
             </td>
             <td>
@@ -183,7 +184,7 @@
       <div class="form-grid">
         <div class="modal-field">
           <label>Employee <span class="req">*</span></label>
-          <app-searchable-select [options]="users" labelKey="name" [selected]="form.userId" placeholder="Please Select User" (selectedChange)="form.userId=$event"></app-searchable-select>
+          <app-searchable-select [options]="users" labelKey="name" [selected]="form.userId" placeholder="Please Select User" (selectedChange)="onEmployeeChange($event)"></app-searchable-select>
         </div>
         <div class="modal-field">
           <label>Date <span class="req">*</span></label>
@@ -191,10 +192,11 @@
         </div>
         <div class="modal-field">
           <label>Expense Type <span class="req">*</span></label>
-          <select [(ngModel)]="form.expensesType" (ngModelChange)="onExpenseTypeChange()">
-            <option [ngValue]="null">Please Select Expenses Type</option>
-            <option *ngFor="let type of expenseTypes" [ngValue]="type.id">{{ type.name | firstCaps }}</option>
+          <select [(ngModel)]="form.expensesType" (ngModelChange)="onExpenseTypeChange()" [disabled]="!form.userId || formGradeMissing">
+            <option [ngValue]="null">{{ form.userId ? 'Please Select Expenses Type' : 'Select an employee first' }}</option>
+            <option *ngFor="let type of formExpenseTypes" [ngValue]="type.id">{{ type.name | firstCaps }}</option>
           </select>
+          <div class="field-hint" *ngIf="formGradeMissing">Grade is not set for this employee. Assign a grade to claim expenses.</div>
         </div>
         <div class="modal-field" *ngIf="isTravelling">
           <label>Start Km</label>
@@ -218,6 +220,20 @@
         </div>
         <div class="modal-field full-field">
           <label>Attachment</label>
+          <div class="existing-files" *ngIf="existingAttachments.length">
+            <div class="existing-file" *ngFor="let file of existingAttachments">
+              <a [href]="attachmentUrl(file.url)" target="_blank" rel="noopener" [title]="file.fileName">
+                <img *ngIf="isImageAttachment(file)" [src]="attachmentUrl(file.url)" [alt]="file.fileName"/>
+                <span class="file-doc" *ngIf="!isImageAttachment(file)">
+                  <span class="material-icons">picture_as_pdf</span>
+                  PDF
+                </span>
+              </a>
+              <button type="button" class="remove-file" title="Remove attachment" (click)="removeExistingAttachment(file)">
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+          </div>
           <input type="file" accept="image/*,.pdf,application/pdf" multiple (change)="onFilesSelected($event)"/>
           <div class="file-selection" *ngIf="selectedFiles.length">{{ selectedFiles.length }} file{{ selectedFiles.length > 1 ? 's' : '' }} selected</div>
         </div>
@@ -260,12 +276,15 @@
     </div>
 
     <div class="detail-actions" *ngIf="canApprove">
-      <button class="mini-btn" type="button" (click)="openStatusDialog(selectedExpense, 3)"><span class="material-icons">done</span>Check</button>
-      <button class="mini-btn" type="button" (click)="openStatusDialog(selectedExpense, 4)"><span class="material-icons">assignment_turned_in</span>Checked By Reporting</button>
-      <button class="mini-btn" type="button" (click)="openStatusDialog(selectedExpense, 1)"><span class="material-icons">verified</span>Approve</button>
-      <button class="mini-btn danger" type="button" (click)="openStatusDialog(selectedExpense, 2)"><span class="material-icons">block</span>Reject</button>
-      <button class="mini-btn" type="button" (click)="openStatusDialog(selectedExpense, 5)"><span class="material-icons">pause</span>Hold</button>
-      <button class="mini-btn light" type="button" (click)="openStatusDialog(selectedExpense, 0)"><span class="material-icons">undo</span>Uncheck</button>
+      <ng-container *ngFor="let action of statusActions">
+        <button type="button" class="mini-btn"
+                *ngIf="action.status !== selectedExpense.checkerStatus"
+                [class.danger]="action.tone === 'danger'"
+                [class.light]="action.tone === 'light'"
+                (click)="openStatusDialog(selectedExpense, action.status)">
+          <span class="material-icons">{{ action.icon }}</span>{{ action.label }}
+        </button>
+      </ng-container>
     </div>
 
     <div class="attachment-list">

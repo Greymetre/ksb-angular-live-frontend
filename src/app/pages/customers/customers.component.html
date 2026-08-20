@@ -121,25 +121,20 @@
       <tbody>
         <tr *ngFor="let customer of filteredCustomers; let index = index">
           <td>{{ pageStart + index + 1 }}</td>
-          <td>
+          <!-- View stays in reach; everything else lives behind the kebab menu. -->
+          <td class="action-cell">
             <div class="action-btns">
-              <button class="btn-view" title="View Customer" (click)="openShowPage(customer)" *ngIf="canShow">
+              <button class="btn-view" title="View details" aria-label="View details"
+                (click)="openShowPage(customer)" *ngIf="canShow">
                 <span class="material-icons">visibility</span>
               </button>
-              <button class="btn-edit" title="Edit Customer" (click)="openEditModal(customer)" *ngIf="canEdit">
-                <span class="material-icons">edit</span>
-              </button>
-              <button class="btn-danger" title="Delete Customer" (click)="deleteCustomer(customer)" *ngIf="canDelete">
-                <span class="material-icons">close</span>
-              </button>
-              <button class="btn-approve" title="Approve Retailer" (click)="changeApprovalStatus(customer, 'APPROVED')" *ngIf="canApproveRetailer && isRetailerCustomer(customer)" [disabled]="approvalSavingId === customer.id">
-                <span class="material-icons">check_circle</span>
-              </button>
-              <button class="btn-reject" title="Reject Retailer" (click)="changeApprovalStatus(customer, 'REJECTED')" *ngIf="canRejectRetailer && isRetailerCustomer(customer)" [disabled]="approvalSavingId === customer.id">
-                <span class="material-icons">cancel</span>
-              </button>
-              <button class="btn-pending" title="Mark Pending" (click)="changeApprovalStatus(customer, 'PENDING')" *ngIf="canMarkRetailerPending && isRetailerCustomer(customer)" [disabled]="approvalSavingId === customer.id">
-                <span class="material-icons">hourglass_empty</span>
+              <button class="btn-kebab" title="More actions" aria-label="More actions" aria-haspopup="menu"
+                [attr.aria-expanded]="isActionMenuOpen(customer)"
+                [class.open]="isActionMenuOpen(customer)"
+                *ngIf="hasRowActions(customer)"
+                [disabled]="approvalSavingId === customer.id"
+                (click)="toggleActionMenu(customer, $event)">
+                <span class="material-icons">{{ approvalSavingId === customer.id ? 'hourglass_top' : 'more_vert' }}</span>
               </button>
             </div>
           </td>
@@ -490,3 +485,49 @@
     <app-searchable-select [options]="pincodes" [selected]="numField('pincode_id')" placeholder="Select Pincode" (selectedChange)="setField('pincode_id', $event)"></app-searchable-select>
   </div>
 </ng-template>
+
+<!-- Fixed position, so the horizontally scrolling table cannot clip it. -->
+<div class="action-menu" *ngIf="actionMenu as menu" [style.top.px]="menu.top" [style.left.px]="menu.left"
+  role="menu" (click)="$event.stopPropagation()">
+  <ng-container *ngFor="let customer of filteredCustomers">
+    <ng-container *ngIf="customer.id === menu.customerId">
+      <button type="button" role="menuitem" *ngIf="canEdit" (click)="openEditModal(customer); closeActionMenu()">
+        <span class="material-icons">edit</span> Edit customer
+      </button>
+      <button type="button" role="menuitem" class="ok" *ngIf="canApproveRow(customer)" (click)="askApproval(customer, 'APPROVED')">
+        <span class="material-icons">check_circle</span> Approve retailer
+      </button>
+      <button type="button" role="menuitem" class="warn" *ngIf="canRejectRow(customer)" (click)="askApproval(customer, 'REJECTED')">
+        <span class="material-icons">cancel</span> Reject retailer
+      </button>
+      <button type="button" role="menuitem" *ngIf="canPendingRow(customer)" (click)="askApproval(customer, 'PENDING')">
+        <span class="material-icons">hourglass_empty</span> Move to pending
+      </button>
+      <button type="button" role="menuitem" class="warn" *ngIf="canDelete" (click)="askDelete(customer)">
+        <span class="material-icons">delete</span> Delete customer
+      </button>
+    </ng-container>
+  </ng-container>
+</div>
+
+<!-- One confirmation for every destructive or status-changing action. -->
+<div class="modal-overlay" *ngIf="confirmDialog as dialog" (click)="closeConfirm()">
+  <div class="confirm-box" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="confirm-icon" [class.danger]="dialog.danger">
+      <span class="material-icons">{{ dialog.danger ? 'warning' : 'help_outline' }}</span>
+    </div>
+    <h3>{{ dialog.title }}</h3>
+    <p>{{ dialog.message }}</p>
+    <label class="confirm-remark" *ngIf="dialog.needsRemark">
+      <span>Reason <b>*</b></span>
+      <textarea rows="3" [(ngModel)]="dialog.remark" placeholder="Why is this being rejected?"></textarea>
+    </label>
+    <p class="confirm-error" *ngIf="dialog.error">{{ dialog.error }}</p>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-cancel" (click)="closeConfirm()">Cancel</button>
+      <button type="button" class="confirm-go" [class.danger]="dialog.danger" (click)="runConfirmedAction()">
+        {{ dialog.confirmLabel }}
+      </button>
+    </div>
+  </div>
+</div>

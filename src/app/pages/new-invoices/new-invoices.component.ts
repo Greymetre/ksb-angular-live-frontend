@@ -239,6 +239,14 @@ export class NewInvoicesComponent implements OnInit {
     return this.authService.hasPermission('new_invoice_delete');
   }
 
+  /**
+   * Everyone else may only delete a pending invoice; a superadmin can remove one at
+   * any stage, so the button stays available to them.
+   */
+  get canDeleteAnyStatus(): boolean {
+    return this.authService.isSuperAdmin();
+  }
+
   get canApproveSs(): boolean {
     return this.authService.hasPermission('new_invoice_approve_ss');
   }
@@ -471,7 +479,12 @@ export class NewInvoicesComponent implements OnInit {
   }
 
   deleteInvoice(invoice: NewInvoiceItem): void {
-    if (!confirm(`Delete invoice "${invoice.invoiceNumber}"?`)) return;
+    // Deleting takes the attachments and the retailer's points for this invoice with
+    // it, which matters most once the invoice has moved past pending.
+    const warning = invoice.approvalStatus === 0
+      ? ''
+      : `\n\nThis invoice is ${this.statusLabel(invoice)}. Its attachments and the retailer's loyalty points for it will be removed as well.`;
+    if (!confirm(`Delete invoice "${invoice.invoiceNumber}"?${warning}`)) return;
     this.newInvoiceService.delete(invoice.id).subscribe({
       next: message => {
         this.showToast(message, 'success');
@@ -595,7 +608,10 @@ export class NewInvoicesComponent implements OnInit {
   }
 
   listingStatusClass(status: number): string {
-    return `listing-status-${status}`;
+    // Customers read SS and Sales as one In Process state, so both rows must also
+    // carry one colour instead of the two the internal view uses.
+    const effective = this.isCustomerView && status === 2 ? 1 : status;
+    return `listing-status-${effective}`;
   }
 
   statusIcon(status: number): string {

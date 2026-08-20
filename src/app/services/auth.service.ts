@@ -156,7 +156,7 @@ export class AuthService {
     }) ?? false;
   }
 
-  private isSuperAdmin(): boolean {
+  isSuperAdmin(): boolean {
     return this.getCurrentUser()?.user_type?.some(role =>
       role.toLowerCase() === 'superadmin'
     ) ?? false;

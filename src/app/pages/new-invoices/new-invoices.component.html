@@ -11,7 +11,7 @@
             <div class="page-icon"><span class="material-icons">receipt_long</span></div>
             <h2 class="page-title">Invoice Details</h2>
             <div class="header-actions">
-              <button class="history-toggle-btn" title="Approval History" (click)="openApprovalHistory()">
+              <button class="history-toggle-btn" title="Approval History" *ngIf="!isCustomerView" (click)="openApprovalHistory()">
                 <span class="material-icons">history</span>
                 <span>Approval History</span>
               </button>
@@ -328,7 +328,7 @@
       </button>
       <button type="button" class="summary-tile summary-action" [class.active]="filter.approval_status === 3"
         (click)="filterByApprovalStatus(3)">
-        <span>Approved HO</span>
+        <span>{{ isCustomerView ? 'Approved' : 'Approved HO' }}</span>
         <strong>{{ summary.approvedHo }}</strong>
       </button>
     </div>
@@ -355,17 +355,22 @@
         <span class="material-icons">schedule</span>
         Pending
       </span>
-      <span class="status-legend-item listing-status-1">
+      <!-- Customers see the two internal stages as a single In Process state. -->
+      <span class="status-legend-item listing-status-1" *ngIf="isCustomerView">
+        <span class="material-icons">hourglass_top</span>
+        In Process
+      </span>
+      <span class="status-legend-item listing-status-1" *ngIf="!isCustomerView">
         <span class="material-icons">how_to_reg</span>
         Approved by SS
       </span>
-      <span class="status-legend-item listing-status-2">
+      <span class="status-legend-item listing-status-2" *ngIf="!isCustomerView">
         <span class="material-icons">business_center</span>
         Approved by Sales
       </span>
       <span class="status-legend-item listing-status-3">
         <span class="material-icons">apartment</span>
-        Approved by HO
+        {{ isCustomerView ? 'Approved' : 'Approved by HO' }}
       </span>
       <span class="status-legend-item listing-status-4">
         <span class="material-icons">cancel</span>
@@ -395,9 +400,9 @@
             <th>Created At</th>
             <th>Invoice Number</th>
             <th>Amount</th>
-            <th>SS Approval</th>
-            <th>Sales Approval</th>
-            <th>HO Approval</th>
+            <th *ngIf="!isCustomerView">SS Approval</th>
+            <th *ngIf="!isCustomerView">Sales Approval</th>
+            <th>{{ isCustomerView ? 'Approved Amount' : 'HO Approval' }}</th>
             <th>Scheme Name</th>
             <th>Retailer ID</th>
           </tr>
@@ -415,7 +420,7 @@
                   <span class="material-icons">edit</span>
                 </button>
                 <button class="btn-danger" title="Delete Invoice" (click)="deleteInvoice(invoice)"
-                  *ngIf="canDelete && invoice.approvalStatus === 0">
+                  *ngIf="canDelete && (canDeleteAnyStatus || invoice.approvalStatus === 0)">
                   <span class="material-icons">close</span>
                 </button>
               </div>
@@ -458,8 +463,8 @@
             <td>{{ formatDateTime(invoice.createdAt) }}</td>
             <td class="invoice-number">{{ invoice.invoiceNumber }}</td>
             <td>{{ formatMoney(invoice.amount) }}</td>
-            <td>{{ approvalStageText(invoice.ssApprovedAmount, invoice.ssApprovalRemark) }}</td>
-            <td>{{ approvalStageText(invoice.salesApprovedAmount, invoice.salesApprovalRemark) }}</td>
+            <td *ngIf="!isCustomerView">{{ approvalStageText(invoice.ssApprovedAmount, invoice.ssApprovalRemark) }}</td>
+            <td *ngIf="!isCustomerView">{{ approvalStageText(invoice.salesApprovedAmount, invoice.salesApprovalRemark) }}</td>
             <td>{{ approvalStageText(invoice.hoApprovedAmount, invoice.hoApprovalRemark) }}</td>
             <td>
               <div class="name-cell">{{ invoice.schemeName || '-' }}</div>
@@ -467,7 +472,7 @@
             <td><span class="retailer-code">{{ invoice.retailerCode }}</span></td>
           </tr>
           <tr *ngIf="!loading && filteredInvoices.length === 0">
-            <td colspan="22" class="empty-row">No invoices found</td>
+            <td [attr.colspan]="isCustomerView ? 20 : 22" class="empty-row">No invoices found</td>
           </tr>
         </tbody>
       </table>

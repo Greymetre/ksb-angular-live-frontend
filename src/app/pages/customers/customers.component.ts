@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { finalize, timeout } from 'rxjs/operators';
 import { forkJoin } from 'rxjs';
@@ -95,6 +95,23 @@ export class CustomersComponent implements OnInit {
   loading = false;
   saving = false;
   approvalSavingId: number | null = null;
+
+  // Row action menu. Positioned with fixed coordinates because the table scrolls
+  // horizontally, and an absolutely positioned menu would be clipped by it.
+  actionMenu: { customerId: number; top: number; left: number; flipUp: boolean } | null = null;
+
+  // In-app confirmation, so a destructive action is never one stray click away.
+  confirmDialog: {
+    customer: CustomerItem;
+    action: 'delete' | RetailerApprovalStatus;
+    title: string;
+    message: string;
+    confirmLabel: string;
+    danger: boolean;
+    needsRemark: boolean;
+    remark: string;
+    error: string;
+  } | null = null;
   uploading = false;
   exporting = false;
   templating = false;
@@ -479,8 +496,130 @@ export class CustomersComponent implements OnInit {
     });
   }
 
+  // ---- row action menu -------------------------------------------------------
+
+  isActionMenuOpen(customer: CustomerItem): boolean {
+    return this.actionMenu?.customerId === customer.id;
+  }
+
+  toggleActionMenu(customer: CustomerItem, event: MouseEvent): void {
+    event.stopPropagation();
+    if (this.isActionMenuOpen(customer)) {
+      this.actionMenu = null;
+      this.refreshView();
+      return;
+    }
+
+    const trigger = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const estimatedHeight = 44 * this.menuActionCount(customer) + 12;
+    const flipUp = trigger.bottom + estimatedHeight > window.innerHeight - 8;
+    this.actionMenu = {
+      customerId: customer.id,
+      top: flipUp ? trigger.top - estimatedHeight - 6 : trigger.bottom + 6,
+      left: Math.max(8, trigger.right - 200),
+      flipUp
+    };
+    this.refreshView();
+  }
+
+  closeActionMenu(): void {
+    if (!this.actionMenu) return;
+    this.actionMenu = null;
+    this.refreshView();
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void { this.closeActionMenu(); }
+
+  @HostListener('window:resize')
+  @HostListener('window:scroll')
+  onViewportChange(): void { this.closeActionMenu(); }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.confirmDialog) { this.closeConfirm(); return; }
+    this.closeActionMenu();
+  }
+
+  // ---- contextual actions ------------------------------------------------------
+  // The action that would set the status a customer already has is pointless, so
+  // it is left out rather than shown and ignored.
+
+  canApproveRow(customer: CustomerItem): boolean {
+    return this.canApproveRetailer && this.isRetailerCustomer(customer) && this.approvalStatus(customer) !== 'APPROVED';
+  }
+
+  canRejectRow(customer: CustomerItem): boolean {
+    return this.canRejectRetailer && this.isRetailerCustomer(customer) && this.approvalStatus(customer) !== 'REJECTED';
+  }
+
+  canPendingRow(customer: CustomerItem): boolean {
+    return this.canMarkRetailerPending && this.isRetailerCustomer(customer) && this.approvalStatus(customer) !== 'PENDING';
+  }
+
+  menuActionCount(customer: CustomerItem): number {
+    return [this.canEdit, this.canApproveRow(customer), this.canRejectRow(customer),
+            this.canPendingRow(customer), this.canDelete].filter(Boolean).length;
+  }
+
+  hasRowActions(customer: CustomerItem): boolean {
+    return this.menuActionCount(customer) > 0;
+  }
+
+  // ---- confirmation ------------------------------------------------------------
+
+  askDelete(customer: CustomerItem): void {
+    this.closeActionMenu();
+    this.confirmDialog = {
+      customer, action: 'delete',
+      title: 'Delete this customer?',
+      message: `"${customer.name}" will be removed from the list. This cannot be undone.`,
+      confirmLabel: 'Delete', danger: true, needsRemark: false, remark: '', error: ''
+    };
+    this.refreshView();
+  }
+
+  askApproval(customer: CustomerItem, status: RetailerApprovalStatus): void {
+    this.closeActionMenu();
+    const copy = {
+      APPROVED: { title: 'Approve this retailer?', message: `"${customer.name}" will be marked as approved.`, label: 'Approve' },
+      REJECTED: { title: 'Reject this retailer?', message: `"${customer.name}" will be marked as rejected. A reason is required.`, label: 'Reject' },
+      PENDING: { title: 'Move back to pending?', message: `"${customer.name}" will go back to pending for review.`, label: 'Mark Pending' }
+    }[status];
+
+    this.confirmDialog = {
+      customer, action: status,
+      title: copy.title, message: copy.message, confirmLabel: copy.label,
+      danger: status === 'REJECTED', needsRemark: status === 'REJECTED', remark: '', error: ''
+    };
+    this.refreshView();
+  }
+
+  closeConfirm(): void {
+    this.confirmDialog = null;
+    this.refreshView();
+  }
+
+  runConfirmedAction(): void {
+    const dialog = this.confirmDialog;
+    if (!dialog) return;
+
+    if (dialog.needsRemark && !dialog.remark.trim()) {
+      dialog.error = 'Please enter a reason.';
+      this.refreshView();
+      return;
+    }
+
+    const customer = dialog.customer;
+    const action = dialog.action;
+    const remark = dialog.remark.trim() || null;
+    this.confirmDialog = null;
+
+    if (action === 'delete') this.deleteCustomer(customer);
+    else this.changeApprovalStatus(customer, action, remark);
+  }
+
   deleteCustomer(customer: CustomerItem): void {
-    if (!confirm(`Delete customer "${customer.name}"?`)) return;
     this.customerService.delete(customer.id).subscribe({
       next: result => {
         this.showToast(result.message, 'success');
@@ -491,16 +630,9 @@ export class CustomersComponent implements OnInit {
     });
   }
 
-  changeApprovalStatus(customer: CustomerItem, status: RetailerApprovalStatus): void {
+  changeApprovalStatus(customer: CustomerItem, status: RetailerApprovalStatus, remark: string | null = null): void {
     if (!this.isRetailerCustomer(customer)) return;
-
-    let remark: string | null = null;
-    if (status === 'REJECTED') {
-      remark = window.prompt('Enter reject remark')?.trim() || '';
-      if (!remark) return;
-    } else if (!window.confirm(`Change retailer status to ${status}?`)) {
-      return;
-    }
+    if (status === 'REJECTED' && !remark) return;
 
     this.approvalSavingId = customer.id;
     this.customerService.setApprovalStatus(customer.id, status, remark).pipe(finalize(() => {

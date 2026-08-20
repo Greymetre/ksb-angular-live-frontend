@@ -593,3 +593,11 @@
     grid-template-columns: 1fr;
   }
 }
+
+// Payroll grade drives the expense type list, so the form says so inline.
+.field-note {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  color: #6b7280;
+}

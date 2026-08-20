@@ -326,12 +326,12 @@
           </div>
         </div>
         <div class="modal-field">
-          <label>Payroll</label>
+          <label>Payroll Grade</label>
           <select [(ngModel)]="userForm.payroll">
-            <option value="">Select payroll</option>
-            <option value="ON">ON</option>
-            <option value="OFF">OFF</option>
+            <option value="">Select payroll grade</option>
+            <option *ngFor="let payroll of payrolls" [value]="payroll.id">{{ payroll.name }}</option>
           </select>
+          <small class="field-note">Expense types and rates are decided by this grade.</small>
         </div>
         <div class="modal-field">
           <label>Sales Type</label>

@@ -58,6 +58,8 @@ export interface UserOptions {
   departments: UserOption[];
   reportings: UserOption[];
   cities: UserOption[];
+  /** Payroll grades (Grade 1-5) - decides which expense types the user can claim. */
+  payrolls: UserOption[];
 }
 
 export interface UserFilters {
@@ -285,7 +287,8 @@ export class UserService {
       divisions: this.readOptionsArray(options, 'divisions', 'Divisions'),
       departments: this.readOptionsArray(options, 'departments', 'Departments'),
       reportings: this.readOptionsArray(options, 'reportings', 'Reportings'),
-      cities: this.readOptionsArray(options, 'cities', 'Cities')
+      cities: this.readOptionsArray(options, 'cities', 'Cities'),
+      payrolls: this.readOptionsArray(options, 'payrolls', 'Payrolls')
     };
   }
 

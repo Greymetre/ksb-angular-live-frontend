@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { finalize, timeout } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { UserOption } from '../../services/user.service';
-import { Expense, ExpenseOptions, ExpensePayload, ExpenseService } from '../../services/expense.service';
+import { Expense, ExpenseAttachment, ExpenseOptions, ExpensePayload, ExpenseService, ExpenseUserOption } from '../../services/expense.service';
 import { ExpenseType } from '../../services/expense-type.service';
 import { API_ORIGIN } from '../../config/api.config';
 import { hasOnlyPdfOrImageFiles } from '../../shared/utils/file-validation';
@@ -30,7 +30,7 @@ interface StatusDialogModel {
 })
 export class ExpensesComponent implements OnInit {
   rows: Expense[] = [];
-  users: UserOption[] = [];
+  users: ExpenseUserOption[] = [];
   expenseTypes: ExpenseType[] = [];
   branches: UserOption[] = [];
   divisions: UserOption[] = [];
@@ -107,6 +107,42 @@ export class ExpensesComponent implements OnInit {
     return this.expenseTypes.find(type => type.id === this.form.expensesType);
   }
 
+  /** The grade of the employee picked in the form, from users.payroll. */
+  get formEmployeeGrade(): number | null {
+    const employee = this.users.find(user => user.id === this.form.userId);
+    const grade = Number(employee?.payroll);
+    return Number.isFinite(grade) && grade > 0 ? grade : null;
+  }
+
+  /**
+   * Rates are graded - the same "Bike" carries a different rate per grade - so the
+   * form only offers the types tagged with the selected employee's grade. Types
+   * without a grade stay open to everyone.
+   */
+  get formExpenseTypes(): ExpenseType[] {
+    if (!this.form.userId) return [];
+    const grade = this.formEmployeeGrade;
+    if (grade === null) return [];
+    return this.expenseTypes.filter(type => !type.payrollId || type.payrollId === grade);
+  }
+
+  get formGradeMissing(): boolean {
+    return !!this.form.userId && this.formEmployeeGrade === null;
+  }
+
+  onEmployeeChange(userId: number | null): void {
+    this.form.userId = userId;
+    // A type from the previous employee's grade must not stay selected.
+    if (this.form.expensesType && !this.formExpenseTypes.some(type => type.id === this.form.expensesType)) {
+      this.form.expensesType = null;
+      this.form.claimAmount = null;
+      this.form.startKm = null;
+      this.form.stopKm = null;
+      this.form.totalKm = null;
+    }
+    this.refreshView();
+  }
+
   get isTravelling(): boolean {
     return this.selectedFormType?.allowanceTypeId === 1;
   }
@@ -122,6 +158,16 @@ export class ExpensesComponent implements OnInit {
   get canDelete(): boolean {
     return this.authService.hasPermission('expenses_delete');
   }
+
+  /** Status actions offered in the detail modal. The current status is filtered out. */
+  readonly statusActions = [
+    { status: 3, label: 'Check', icon: 'done', tone: '' },
+    { status: 4, label: 'Checked By Reporting', icon: 'assignment_turned_in', tone: '' },
+    { status: 1, label: 'Approve', icon: 'verified', tone: '' },
+    { status: 2, label: 'Reject', icon: 'block', tone: 'danger' },
+    { status: 5, label: 'Hold', icon: 'pause', tone: '' },
+    { status: 0, label: 'Uncheck', icon: 'undo', tone: 'light' }
+  ];
 
   get canApprove(): boolean {
     return this.authService.hasPermission('expenses_authority');
@@ -222,12 +268,17 @@ export class ExpensesComponent implements OnInit {
 
   openCreateModal(): void {
     this.form = this.emptyForm();
+    this.existingAttachments = [];
     this.selectedFiles = [];
     this.showModal = true;
     this.refreshView();
   }
 
+  /** Files already stored against the expense being edited. */
+  existingAttachments: ExpenseAttachment[] = [];
+
   openEditModal(row: Expense): void {
+    this.existingAttachments = [...row.attachments];
     this.form = {
       id: row.id,
       expensesType: row.expensesType,
@@ -260,6 +311,10 @@ export class ExpensesComponent implements OnInit {
       this.showToast('Employee, Date and Expense Type are required.', 'error');
       return;
     }
+    if (this.formGradeMissing) {
+      this.showToast('Grade is not set for this employee. Please assign a grade before adding an expense.', 'error');
+      return;
+    }
     if (this.isTravelling && (!this.form.startKm || !this.form.stopKm)) {
       this.showToast('Start Km and End Km are required for Travelling.', 'error');
       return;
@@ -280,6 +335,20 @@ export class ExpensesComponent implements OnInit {
     })).subscribe({
       next: result => {
         this.showModal = false;
+        this.showToast(result.message, 'success');
+        this.loadRows();
+      },
+      error: error => this.showToast(error.message, 'error')
+    });
+  }
+
+  removeExistingAttachment(file: ExpenseAttachment): void {
+    if (!this.form.id) return;
+    if (!confirm(`Remove ${file.fileName}?`)) return;
+
+    this.expenseService.removeAttachment(this.form.id, file.id).subscribe({
+      next: result => {
+        this.existingAttachments = result.expense?.attachments ?? this.existingAttachments.filter(x => x.id !== file.id);
         this.showToast(result.message, 'success');
         this.loadRows();
       },

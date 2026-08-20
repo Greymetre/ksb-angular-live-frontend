@@ -47,6 +47,9 @@ export class RolesComponent implements OnInit {
 
   private readonly permissionDescriptions: Record<string, string> = {
     dashboard_access: 'Dashboard Menu / Page',
+    dashboard_secondary: 'Dashboard > Secondary Sale Tab',
+    dashboard_loyalty: 'Dashboard > Loyalty Tab',
+    dashboard_activity: 'Dashboard > Activity Tab',
     customer_access: 'Customers Management > Customer Listing',
     country_access: 'Address Management > Country Listing',
     state_access: 'Address Management > State Listing',
