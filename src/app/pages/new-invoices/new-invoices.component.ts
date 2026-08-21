@@ -571,6 +571,10 @@ export class NewInvoicesComponent implements OnInit {
       this.showToast('Remark is required to reject an invoice.', 'error');
       return;
     }
+    if (level === 'hold' && !this.approvalDialog.remark.trim()) {
+      this.showToast('Remark is required to put an invoice on hold.', 'error');
+      return;
+    }
     if (level !== 'reject' && level !== 'hold' && (!this.approvalDialog.approvedAmount || this.approvalDialog.approvedAmount <= 0)) {
       this.showToast('Approved invoice amount must be greater than 0.', 'error');
       return;
@@ -595,6 +599,14 @@ export class NewInvoicesComponent implements OnInit {
       },
       error: error => this.showToast(error.message, 'error')
     });
+  }
+
+  /** The dialog is shared by all four actions, so the button says which one it is. */
+  approvalActionLabel(): string {
+    const level = this.approvalDialog.level;
+    if (level === 'reject') return 'Reject';
+    if (level === 'hold') return 'Hold This Invoice';
+    return 'Approve';
   }
 
   approvalTitle(): string {
@@ -628,7 +640,7 @@ export class NewInvoicesComponent implements OnInit {
       this.exporting = false;
       this.refreshView();
     })).subscribe({
-      next: blob => this.downloadBlob(blob, `new-invoices-${this.dateStamp()}.xlsx`),
+      next: blob => this.downloadBlob(blob, `invoice-transactions-${this.dateStamp()}.xlsx`),
       error: error => this.showToast(error.message, 'error')
     });
   }
@@ -866,6 +878,7 @@ export class NewInvoicesComponent implements OnInit {
       salesApprovalAmount: 0,
       hoApprovalAmount: 0,
       totalDealerNos: 0,
+      totalDealerCount: 0,
       totalRewardEarned: 0,
       totalExpectedReward: 0
     };

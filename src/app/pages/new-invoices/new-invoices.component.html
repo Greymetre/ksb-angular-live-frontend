@@ -285,8 +285,8 @@
         <strong>{{ summary.totalInvoices }}</strong>
       </button>
       <div class="summary-tile">
-        <span>Total Dealer Nos</span>
-        <strong>{{ summary.totalDealerNos }}</strong>
+        <span>Total Retailer/Dealer Nos</span>
+        <strong>{{ summary.totalDealerNos }}/{{ summary.totalDealerCount }}</strong>
       </div>
       <div class="summary-tile">
         <span>Total Amount</span>
@@ -662,13 +662,13 @@
       </div>
 
       <div class="modal-field wide-field">
-        <label>Remark <span class="req" *ngIf="approvalDialog.level === 'reject'">*</span></label>
+        <label>Remark <span class="req" *ngIf="approvalDialog.level === 'reject' || approvalDialog.level === 'hold'">*</span></label>
         <textarea [(ngModel)]="approvalDialog.remark" rows="4"></textarea>
       </div>
 
       <div class="modal-actions">
         <button class="btn-submit-modal" (click)="submitApproval()" [disabled]="saving">
-          {{ saving ? 'Saving...' : (approvalDialog.level === 'reject' ? 'Reject' : 'Approve') }}
+          {{ saving ? 'Saving...' : approvalActionLabel() }}
         </button>
       </div>
     </div>

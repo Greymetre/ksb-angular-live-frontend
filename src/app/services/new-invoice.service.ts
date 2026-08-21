@@ -115,6 +115,7 @@ export interface NewInvoiceSummary {
   salesApprovalAmount: number;
   hoApprovalAmount: number;
   totalDealerNos: number;
+  totalDealerCount: number;
   totalRewardEarned: number;
   totalExpectedReward: number;
 }
@@ -438,6 +439,7 @@ export class NewInvoiceService {
       salesApprovalAmount: this.readNumber(row['sales_approval_amount'] ?? row['salesApprovalAmount']),
       hoApprovalAmount: this.readNumber(row['ho_approval_amount'] ?? row['hoApprovalAmount']),
       totalDealerNos: this.readNumber(row['total_dealer_nos'] ?? row['totalDealerNos']),
+      totalDealerCount: this.readNumber(row['total_dealer_count'] ?? row['totalDealerCount']),
       totalRewardEarned: this.readNumber(row['total_reward_earned'] ?? row['totalRewardEarned']),
       totalExpectedReward: this.readNumber(row['total_expected_reward'] ?? row['totalExpectedReward'])
     };
