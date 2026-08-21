@@ -16,7 +16,7 @@
                 <span>Approval History</span>
               </button>
               <button class="btn-edit" title="Edit" (click)="openEditModal(selectedInvoice)"
-                *ngIf="canEdit && selectedInvoice.approvalStatus === 0">
+                *ngIf="canEditInvoice(selectedInvoice)">
                 <span class="material-icons">edit</span>
               </button>
               <button class="btn-assign" title="Back" (click)="backToList()">
@@ -121,6 +121,11 @@
                 <span class="material-icons">task_alt</span>
                 Approve By HO
               </button>
+              <button class="detail-action-btn hold" (click)="openApprovalDialog(selectedInvoice, 'hold')"
+                *ngIf="canHold && canMoveToStatus(selectedInvoice, 5)">
+                <span class="material-icons">pause_circle</span>
+                Hold
+              </button>
               <button class="detail-action-btn reject" (click)="openApprovalDialog(selectedInvoice, 'reject')"
                 *ngIf="canReject && canMoveToStatus(selectedInvoice, 4)">
                 <span class="material-icons">block</span>
@@ -200,7 +205,7 @@
               Approved Amount: {{ formatMoney(log.approvedAmount) }}
             </div>
             <small>{{ formatDateTime(log.createdAt) }}</small>
-            <p *ngIf="log.remark">{{ log.remark }}</p>
+            <p class="log-remark" *ngIf="log.remark">{{ log.remark }}</p>
           </div>
         </div>
         <ng-template #noApprovalHistory>
@@ -315,6 +320,11 @@
         <span>{{ isCustomerView ? 'Pending' : 'Pending From SS' }}</span>
         <strong>{{ pendingFromSs }}</strong>
       </button>
+      <button type="button" class="summary-tile summary-action" [class.active]="filter.approval_status === 5"
+        (click)="filterByApprovalStatus(5)">
+        <span>Hold</span>
+        <strong>{{ holdCount }}</strong>
+      </button>
       <button type="button" class="summary-tile summary-action" *ngIf="isCustomerView"
         [class.active]="filter.approval_status === 'in_process'" (click)="filterByApprovalStatus('in_process')">
         <span>In Process</span>
@@ -363,6 +373,10 @@
       <span class="status-legend-item listing-status-0">
         <span class="material-icons">schedule</span>
         Pending
+      </span>
+      <span class="status-legend-item listing-status-5">
+        <span class="material-icons">pause_circle</span>
+        Hold
       </span>
       <!-- Customers see the two internal stages as a single In Process state. -->
       <span class="status-legend-item listing-status-1" *ngIf="isCustomerView">
@@ -425,7 +439,7 @@
                   <span class="material-icons">visibility</span>
                 </button>
                 <button class="btn-edit" title="Edit Invoice" (click)="openEditModal(invoice)"
-                  *ngIf="canEdit && invoice.approvalStatus === 0">
+                  *ngIf="canEditInvoice(invoice)">
                   <span class="material-icons">edit</span>
                 </button>
                 <button class="btn-danger" title="Delete Invoice" (click)="deleteInvoice(invoice)"
@@ -603,7 +617,7 @@
 
 <div class="modal-overlay" *ngIf="approvalDialog.visible" (click)="closeApprovalDialog()">
   <div class="modal-box approval-modal" (click)="$event.stopPropagation()">
-    <div class="modal-icon"><span class="material-icons">{{ approvalDialog.level === 'reject' ? 'block' : 'task_alt'
+    <div class="modal-icon"><span class="material-icons">{{ approvalDialog.level === 'reject' ? 'block' : approvalDialog.level === 'hold' ? 'pause_circle' : 'task_alt'
         }}</span></div>
     <div class="modal-header-row">
       <h3>{{ approvalTitle() }}</h3>
@@ -641,7 +655,7 @@
         </div>
       </div>
 
-      <div class="modal-field wide-field" *ngIf="approvalDialog.level !== 'reject'">
+      <div class="modal-field wide-field" *ngIf="approvalDialog.level !== 'reject' && approvalDialog.level !== 'hold'">
         <label>Approved Invoice Amount <span class="req">*</span></label>
         <input type="number" inputmode="decimal" [(ngModel)]="approvalDialog.approvedAmount" min="0.01" step="0.01"
           [ngClass]="approvalAmountClass(approvalDialog.invoice, approvalDialog.approvedAmount)" />

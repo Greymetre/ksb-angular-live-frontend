@@ -107,6 +107,7 @@ export interface NewInvoiceSummary {
   approvedSales: number;
   approvedHo: number;
   pending: number;
+  hold: number;
   rejected: number;
   totalPoints: number;
   totalAmount: number;
@@ -121,6 +122,7 @@ export interface NewInvoiceSummary {
 /** Counts per approval stage across the filters, ignoring the selected stage. */
 export interface NewInvoiceStageCounts {
   pending: number;
+  hold: number;
   approvedSs: number;
   approvedSales: number;
   approvedHo: number;
@@ -271,6 +273,13 @@ export class NewInvoiceService {
     );
   }
 
+  hold(id: number, remark: string): Observable<string> {
+    return this.http.post<ApiResponse>(`${this.baseUrl}/${id}/hold`, { remark }, { headers: this.authHeaders() }).pipe(
+      map(response => this.responseMessage(response) || 'Invoice put on hold'),
+      catchError(error => this.handleError(error))
+    );
+  }
+
   reject(id: number, remark: string): Observable<string> {
     return this.http.post<ApiResponse>(`${this.baseUrl}/${id}/reject`, { remark }, { headers: this.authHeaders() }).pipe(
       map(response => this.responseMessage(response) || 'Invoice rejected successfully'),
@@ -392,6 +401,7 @@ export class NewInvoiceService {
   private stageCountsFromSummary(summary: NewInvoiceSummary): NewInvoiceStageCounts {
     return {
       pending: summary.pending,
+      hold: summary.hold,
       approvedSs: summary.approvedSs,
       approvedSales: summary.approvedSales,
       approvedHo: summary.approvedHo,
@@ -403,6 +413,7 @@ export class NewInvoiceService {
     const row = this.asRecord(value);
     return {
       pending: this.readNumber(row['pending']),
+      hold: this.readNumber(row['hold']),
       approvedSs: this.readNumber(row['approved_ss'] ?? row['approvedSs']),
       approvedSales: this.readNumber(row['approved_sales'] ?? row['approvedSales']),
       approvedHo: this.readNumber(row['approved_ho'] ?? row['approvedHo']),
@@ -419,6 +430,7 @@ export class NewInvoiceService {
       approvedSales: this.readNumber(row['approved_sales'] ?? row['approvedSales']),
       approvedHo: this.readNumber(row['approved_ho'] ?? row['approvedHo']),
       pending: this.readNumber(row['pending']),
+      hold: this.readNumber(row['hold']),
       rejected: this.readNumber(row['rejected']),
       totalPoints: this.readNumber(row['total_points'] ?? row['totalPoints']),
       totalAmount: this.readNumber(row['total_amount'] ?? row['totalAmount']),

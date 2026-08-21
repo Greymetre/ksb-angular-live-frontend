@@ -34,7 +34,7 @@ interface InvoiceFormModel {
 interface ApprovalDialogModel {
   visible: boolean;
   invoice: NewInvoiceItem | null;
-  level: 'ss' | 'sales' | 'ho' | 'reject' | null;
+  level: 'ss' | 'sales' | 'ho' | 'hold' | 'reject' | null;
   approvedAmount: number | null;
   remark: string;
 }
@@ -82,11 +82,13 @@ export class NewInvoicesComponent implements OnInit {
   private readonly backendOrigin = this.resolveBackendOrigin();
   private filterSearchTimeoutId?: number;
 
-  // Internal users see every approval stage. Customers (dealer/distributor) must only
-  // ever see Pending, In Process, Approved, Rejected — SS and Sales are internal.
+  // Internal users see every approval stage. Customers (dealer/distributor) see
+  // Pending, Hold, In Process, Approved, Rejected — only SS and Sales stay collapsed,
+  // being two internal steps of one review.
   private readonly internalStatusOptions: SelectOption[] = [
     { id: '', label: 'All Status' },
     { id: 0, label: 'Pending' },
+    { id: 5, label: 'Hold' },
     { id: 1, label: 'Approved By SS' },
     { id: 2, label: 'Approved By Sales' },
     { id: 3, label: 'Approved By HO' },
@@ -96,6 +98,7 @@ export class NewInvoicesComponent implements OnInit {
   private readonly customerStatusOptions: SelectOption[] = [
     { id: '', label: 'All Status' },
     { id: 0, label: 'Pending' },
+    { id: 5, label: 'Hold' },
     { id: 'in_process', label: 'In Process' },
     { id: 3, label: 'Approved' },
     { id: 4, label: 'Rejected' }
@@ -114,6 +117,7 @@ export class NewInvoicesComponent implements OnInit {
     if (!this.isCustomerView) return invoice.approvalStatusLabel;
     switch (invoice.approvalStatus) {
       case 0: return 'Pending';
+      case 5: return 'Hold';
       case 1:
       case 2: return 'In Process';
       case 3: return 'Approved';
@@ -240,6 +244,10 @@ export class NewInvoicesComponent implements OnInit {
     return this.stageCounts.pending;
   }
 
+  get holdCount(): number {
+    return this.stageCounts.hold;
+  }
+
   get pendingFromSales(): number {
     return this.stageCounts.approvedSs;
   }
@@ -290,6 +298,15 @@ export class NewInvoicesComponent implements OnInit {
 
   get canApproveHo(): boolean {
     return this.authService.hasPermission('new_invoice_approve_ho');
+  }
+
+  get canHold(): boolean {
+    return this.authService.hasPermission('new_invoice_hold');
+  }
+
+  /** A pending or held invoice can still be corrected; anything approved cannot. */
+  canEditInvoice(invoice: { approvalStatus: number }): boolean {
+    return this.canEdit && (invoice.approvalStatus === 0 || invoice.approvalStatus === 5);
   }
 
   get canReject(): boolean {
@@ -412,8 +429,8 @@ export class NewInvoicesComponent implements OnInit {
   }
 
   openEditModal(invoice: NewInvoiceItem): void {
-    if (invoice.approvalStatus !== 0) {
-      this.showToast('Only pending invoices can be edited.', 'error');
+    if (!this.canEditInvoice(invoice)) {
+      this.showToast('Only a pending or held invoice can be edited.', 'error');
       return;
     }
     this.form = {
@@ -529,12 +546,12 @@ export class NewInvoicesComponent implements OnInit {
     });
   }
 
-  openApprovalDialog(invoice: NewInvoiceItem, level: 'ss' | 'sales' | 'ho' | 'reject'): void {
+  openApprovalDialog(invoice: NewInvoiceItem, level: 'ss' | 'sales' | 'ho' | 'hold' | 'reject'): void {
     this.approvalDialog = {
       visible: true,
       invoice,
       level,
-      approvedAmount: level === 'reject' ? null : this.lastApprovedAmount(invoice, level),
+      approvedAmount: level === 'reject' || level === 'hold' ? null : this.lastApprovedAmount(invoice, level),
       remark: ''
     };
     this.refreshView();
@@ -554,7 +571,7 @@ export class NewInvoicesComponent implements OnInit {
       this.showToast('Remark is required to reject an invoice.', 'error');
       return;
     }
-    if (level !== 'reject' && (!this.approvalDialog.approvedAmount || this.approvalDialog.approvedAmount <= 0)) {
+    if (level !== 'reject' && level !== 'hold' && (!this.approvalDialog.approvedAmount || this.approvalDialog.approvedAmount <= 0)) {
       this.showToast('Approved invoice amount must be greater than 0.', 'error');
       return;
     }
@@ -562,7 +579,9 @@ export class NewInvoicesComponent implements OnInit {
     this.saving = true;
     const request = level === 'reject'
       ? this.newInvoiceService.reject(invoice.id, this.approvalDialog.remark)
-      : this.newInvoiceService.approve(invoice.id, level, this.approvalDialog.remark, Number(this.approvalDialog.approvedAmount));
+      : level === 'hold'
+        ? this.newInvoiceService.hold(invoice.id, this.approvalDialog.remark)
+        : this.newInvoiceService.approve(invoice.id, level, this.approvalDialog.remark, Number(this.approvalDialog.approvedAmount));
 
     request.pipe(finalize(() => {
       this.saving = false;
@@ -581,6 +600,7 @@ export class NewInvoicesComponent implements OnInit {
   approvalTitle(): string {
     const level = this.approvalDialog.level;
     if (level === 'reject') return 'Reject Invoice';
+    if (level === 'hold') return 'Hold Invoice';
     if (level === 'ss') return 'Approve By SS';
     if (level === 'sales') return 'Approve By Sales';
     if (level === 'ho') return 'Approve By HO';
@@ -655,6 +675,7 @@ export class NewInvoicesComponent implements OnInit {
       case 2: return 'business_center';
       case 3: return 'apartment';
       case 4: return 'cancel';
+      case 5: return 'pause_circle';
       default: return 'help';
     }
   }
@@ -669,11 +690,26 @@ export class NewInvoicesComponent implements OnInit {
 
   canMoveToStatus(invoice: NewInvoiceItem, status: number): boolean {
     if (invoice.approvalStatus === 4 || invoice.approvalStatus === 3) return false;
+
+    // Hold stays offered until the invoice is approved; one already on hold has
+    // nothing to hold.
+    if (status === 5) return invoice.approvalStatus !== 5;
+
+    // Holding does not undo the approvals already given, so a held invoice resumes
+    // at the stage its approvals say it reached rather than starting again.
+    if (invoice.approvalStatus === 5) return status === 4 || status === this.resumeStatus(invoice);
+
     if (status === 1) return invoice.approvalStatus === 0;
     if (status === 2) return invoice.approvalStatus === 1;
     if (status === 3) return invoice.approvalStatus === 2;
     if (status === 4) return true;
     return false;
+  }
+
+  private resumeStatus(invoice: NewInvoiceItem): number {
+    if (invoice.salesApprovedAmount) return 3;
+    if (invoice.ssApprovedAmount) return 2;
+    return 1;
   }
 
   titleCase(value?: string | null): string {
@@ -811,7 +847,7 @@ export class NewInvoicesComponent implements OnInit {
   }
 
   private emptyStageCounts(): NewInvoiceStageCounts {
-    return { pending: 0, approvedSs: 0, approvedSales: 0, approvedHo: 0, rejected: 0 };
+    return { pending: 0, hold: 0, approvedSs: 0, approvedSales: 0, approvedHo: 0, rejected: 0 };
   }
 
   private emptySummary(): NewInvoiceSummary {
@@ -822,6 +858,7 @@ export class NewInvoicesComponent implements OnInit {
       approvedSales: 0,
       approvedHo: 0,
       pending: 0,
+      hold: 0,
       rejected: 0,
       totalPoints: 0,
       totalAmount: 0,

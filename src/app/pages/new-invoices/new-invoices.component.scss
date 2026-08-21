@@ -367,6 +367,10 @@
     background: #343a40;
   }
 
+  &.hold {
+    background: #6c5ce7;
+  }
+
   &.approve-sales {
     background: #17a2b8;
   }
@@ -711,6 +715,10 @@
 .status-2 { background: var(--primary-blue); }
 .status-3 { background: var(--success-green); }
 .status-4 { background: var(--danger-red); }
+.status-5 { background: #6c5ce7; }
+
+// Edit history lists one changed field per line.
+.approval-item .log-remark { white-space: pre-line; }
 
 .listing-status {
   display: inline-flex;
@@ -763,6 +771,7 @@
 .listing-status-2 { background: #7b3fc6; }
 .listing-status-3 { background: #218838; }
 .listing-status-4 { background: #dc3545; }
+.listing-status-5 { background: #6c5ce7; }
 
 .btn-stage {
   background: #17a2b8;
