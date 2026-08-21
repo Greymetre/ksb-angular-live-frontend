@@ -39,6 +39,9 @@ export interface User {
   latitude?: string | null;
   longitude?: string | null;
   payroll?: string | null;
+  /** Readable payroll grade and assigned city names - only the profile endpoint sends these. */
+  payrollName?: string | null;
+  cityNames?: string | null;
   warehouseId?: number | null;
   salesType?: string | null;
   showAttandanceReport?: string | null;
@@ -124,6 +127,16 @@ export class UserService {
 
   getUser(userId: number): Observable<User> {
     return this.http.get<UserApiResponse>(`${this.baseUrl}/users/${userId}`, {
+      headers: this.authHeaders()
+    }).pipe(
+      map(response => this.requireUser(response)),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  /** Signed-in user's own record. Unlike getUser() this needs no user_access. */
+  getMyProfile(): Observable<User> {
+    return this.http.get<UserApiResponse>(`${this.baseUrl}/profile/details`, {
       headers: this.authHeaders()
     }).pipe(
       map(response => this.requireUser(response)),
@@ -325,6 +338,8 @@ export class UserService {
       latitude: this.readNullableString(row['latitude'] ?? row['Latitude']),
       longitude: this.readNullableString(row['longitude'] ?? row['Longitude']),
       payroll: this.readNullableString(row['payroll'] ?? row['Payroll']),
+      payrollName: this.readNullableString(row['payrollName'] ?? row['PayrollName'] ?? row['payroll_name']),
+      cityNames: this.readNullableString(row['cityNames'] ?? row['CityNames'] ?? row['city_names']),
       warehouseId: this.readNullableNumber(row['warehouseId'] ?? row['WarehouseId'] ?? row['warehouse_id']),
       salesType: this.readNullableString(row['salesType'] ?? row['SalesType'] ?? row['sales_type']),
       showAttandanceReport: this.readNullableString(row['showAttandanceReport'] ?? row['ShowAttandanceReport'] ?? row['show_attandance_report']),

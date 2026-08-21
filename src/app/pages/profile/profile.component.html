@@ -1,0 +1,42 @@
+<div class="profile">
+  <header class="profile-top">
+    <button type="button" class="profile-back" (click)="back()" aria-label="Back to dashboard">
+      <span class="material-icons">arrow_back</span>
+    </button>
+    <h2>My Profile</h2>
+  </header>
+
+  <section class="profile-hero">
+    <div class="profile-avatar">{{ initials }}</div>
+    <div class="profile-identity">
+      <h1>{{ name }}</h1>
+      <div class="profile-chips">
+        <span class="chip role" *ngFor="let role of roles">{{ role }}</span>
+        <span class="chip code" *ngIf="employeeCode">{{ employeeCode }}</span>
+        <span class="chip status" [class.inactive]="!active">{{ active ? 'Active' : 'Inactive' }}</span>
+      </div>
+    </div>
+    <button type="button" class="profile-logout" (click)="logout()">
+      <span class="material-icons">logout</span>
+      Logout
+    </button>
+  </section>
+
+  <p class="profile-note" *ngIf="error">{{ error }}</p>
+  <div class="profile-loading" *ngIf="loading">Loading profile...</div>
+
+  <div class="profile-grid" *ngIf="!loading">
+    <section class="profile-card" *ngFor="let section of sections">
+      <h3>
+        <span class="material-icons">{{ section.icon }}</span>
+        {{ section.title }}
+      </h3>
+      <dl>
+        <div class="profile-row" *ngFor="let field of section.fields">
+          <dt>{{ field.label }}</dt>
+          <dd>{{ field.value }}</dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+</div>

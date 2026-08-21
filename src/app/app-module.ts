@@ -32,6 +32,7 @@ import { RedemptionsComponent } from './pages/redemptions/redemptions.component'
 import { MasterCrudComponent } from './pages/master-crud/master-crud.component';
 import { AddressMasterComponent } from './pages/address-master/address-master.component';
 import { ForbiddenComponent } from './pages/forbidden/forbidden';
+import { ProfileComponent } from './pages/profile/profile.component';
 import { HrComponent } from './pages/hr/hr.component';
 import { CityAssignmentsComponent } from './pages/city-assignments/city-assignments.component';
 import { UserTargetsComponent } from './pages/user-targets/user-targets.component';
@@ -69,6 +70,7 @@ import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.compo
     MasterCrudComponent,
     AddressMasterComponent,
     ForbiddenComponent,
+    ProfileComponent,
     HrComponent,
     CityAssignmentsComponent,
     UserTargetsComponent,

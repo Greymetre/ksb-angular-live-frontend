@@ -16,6 +16,7 @@ import { MasterCrudComponent } from './pages/master-crud/master-crud.component';
 import { AddressMasterComponent } from './pages/address-master/address-master.component';
 import { authGuard } from './guards/auth-guard';
 import { ForbiddenComponent } from './pages/forbidden/forbidden';
+import { ProfileComponent } from './pages/profile/profile.component';
 import { HrComponent } from './pages/hr/hr.component';
 import { CityAssignmentsComponent } from './pages/city-assignments/city-assignments.component';
 import { UserTargetsComponent } from './pages/user-targets/user-targets.component';
@@ -42,6 +43,8 @@ const routes: Routes = [
         component: ForbiddenComponent
       },
       { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard], data: { permission: 'dashboard_access' } },
+      // Own profile - every signed-in role reaches it from the header menu, so no permission gate.
+      { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
       { path: 'retailers', redirectTo: '/customers' },
       { path: 'retailers/create', redirectTo: '/customers' },
       { path: 'distributors', redirectTo: '/customers' },

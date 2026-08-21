@@ -54,6 +54,7 @@ export class NewInvoicesComponent implements OnInit {
   schemeFilterOptions: SelectOption[] = [];
   zoneFilterOptions: SelectOption[] = [];
   branchFilterOptions: SelectOption[] = [];
+  dealerFilterOptions: SelectOption[] = [];
   filter: NewInvoiceFilter = {};
   summary: NewInvoiceSummary = this.emptySummary();
   stageCounts: NewInvoiceStageCounts = this.emptyStageCounts();
@@ -137,6 +138,7 @@ export class NewInvoicesComponent implements OnInit {
     this.loadRetailers();
     this.loadSchemeFilters();
     this.loadLocationFilters();
+    this.loadDealerFilters();
     this.route.paramMap.subscribe(params => {
       const id = Number(params.get('id') || 0);
       if (id > 0) this.loadInvoice(id);
@@ -171,6 +173,23 @@ export class NewInvoicesComponent implements OnInit {
       },
       error: error => this.showToast(error.message, 'error')
     });
+  }
+
+  loadDealerFilters(): void {
+    this.newInvoiceService.filterDealers().subscribe({
+      next: dealers => {
+        this.dealerFilterOptions = dealers.map(dealer => ({ id: dealer.id, label: dealer.name }));
+        this.refreshView();
+      },
+      error: error => this.showToast(error.message, 'error')
+    });
+  }
+
+  onDealerFilterChange(value: number | string | null): void {
+    const id = Number(value || 0);
+    this.filter.dealer_id = id > 0 ? id : null;
+    this.resetPage();
+    this.loadInvoices();
   }
 
   onZoneFilterChange(value: number | string | null): void {

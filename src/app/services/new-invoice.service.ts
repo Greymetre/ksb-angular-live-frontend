@@ -80,6 +80,11 @@ export interface InvoiceSchemeOption {
   endDate: string;
 }
 
+export interface DealerOption {
+  id: number;
+  name: string;
+}
+
 export interface NewInvoiceFilter {
   scheme_id?: number | null;
   retailer_search?: string;
@@ -87,6 +92,7 @@ export interface NewInvoiceFilter {
   approval_status?: number | 'in_process' | null;
   zone_id?: number | null;
   branch_id?: number | null;
+  dealer_id?: number | null;
   from_date?: string;
   to_date?: string;
   search?: string;
@@ -191,6 +197,16 @@ export class NewInvoiceService {
           startDate: this.readString(row['start_date'] ?? row['startDate']),
           endDate: this.readString(row['end_date'] ?? row['endDate'])
         };
+      })),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  filterDealers(): Observable<DealerOption[]> {
+    return this.http.get<ApiResponse>(`${this.baseUrl}/dealers`, { headers: this.authHeaders() }).pipe(
+      map(response => this.pickArray(response, ['dealers', 'data.dealers', 'data']).map(value => {
+        const row = this.asRecord(value);
+        return { id: this.readNumber(row['id']), name: this.readString(row['name']) };
       })),
       catchError(error => this.handleError(error))
     );

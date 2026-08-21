@@ -40,6 +40,10 @@
                   <label>Customer Name</label>
                   <input type="text" [value]="selectedInvoice.customerName || '-'" readonly />
                 </div>
+                <div class="readonly-field emphasis">
+                  <label>Firm Name</label>
+                  <input type="text" [value]="selectedInvoice.shopName || '-'" readonly />
+                </div>
                 <div class="readonly-field">
                   <label>Mobile Number</label>
                   <input type="text" [value]="selectedInvoice.mobileNumber || '-'" readonly />
@@ -54,10 +58,6 @@
                   <input type="text" [value]="selectedInvoice.branchName || '-'" readonly />
                 </div>
                 <div class="readonly-field">
-                  <label>Assigned Distributor</label>
-                  <input type="text" [value]="selectedInvoice.assignedDistributorName || '-'" readonly />
-                </div>
-                <div class="readonly-field">
                   <label>Assigned Employee</label>
                   <input type="text" [value]="selectedInvoice.assignedEmployeeName || '-'" readonly />
                 </div>
@@ -65,7 +65,7 @@
 
               <div>
                 <div class="section-title">Invoice Information</div>
-                <div class="readonly-field">
+                <div class="readonly-field emphasis">
                   <label>Invoice Number</label>
                   <input type="text" [value]="selectedInvoice.invoiceNumber" readonly />
                 </div>
@@ -73,7 +73,7 @@
                   <label>Invoice Date</label>
                   <input type="text" [value]="formatDate(selectedInvoice.invoiceDate)" readonly />
                 </div>
-                <div class="readonly-field">
+                <div class="readonly-field emphasis">
                   <label>Pre-GST Amount</label>
                   <input type="text" [value]="formatMoney(selectedInvoice.amount)" readonly />
                 </div>
@@ -90,6 +90,10 @@
                 <div class="readonly-field" *ngIf="selectedInvoice.schemeHintMessage">
                   <label>Scheme Hint</label>
                   <input type="text" [value]="selectedInvoice.schemeHintMessage" readonly />
+                </div>
+                <div class="readonly-field">
+                  <label>Assigned Distributor</label>
+                  <input type="text" [value]="selectedInvoice.assignedDistributorName || '-'" readonly />
                 </div>
               </div>
             </div>
@@ -248,6 +252,11 @@
           <label>Branch</label>
           <app-searchable-select [options]="branchFilterOptions" [selected]="filter.branch_id ?? null"
             placeholder="All Branches" (selectedChange)="onBranchFilterChange($event)"></app-searchable-select>
+        </div>
+        <div class="filter-field" *ngIf="dealerFilterOptions.length > 1">
+          <label>Dealer</label>
+          <app-searchable-select [options]="dealerFilterOptions" [selected]="filter.dealer_id ?? null"
+            placeholder="All Dealers" (selectedChange)="onDealerFilterChange($event)"></app-searchable-select>
         </div>
         <div class="filter-field">
           <label>From Date</label>

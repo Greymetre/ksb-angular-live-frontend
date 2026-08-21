@@ -8,12 +8,37 @@
     </div>
   </div>
   <div class="header-right">
-    <span class="user-name">{{ userName }}</span>
-    <div class="user-avatar" (click)="logout()">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-        <circle cx="11" cy="8" r="4" fill="#555"/>
-        <path d="M2 20 C2 15 20 15 20 20" stroke="#555" stroke-width="2" fill="none"/>
-      </svg>
+    <div class="user-info">
+      <span class="user-name">{{ userName }}</span>
+      <span class="user-role" *ngIf="userRole">{{ userRole }}</span>
+    </div>
+    <div class="user-menu">
+      <button
+        type="button"
+        class="user-avatar"
+        (click)="toggleMenu($event)"
+        [attr.aria-expanded]="menuOpen"
+        aria-haspopup="true"
+        aria-label="Account menu">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="8" r="4" fill="#555"/>
+          <path d="M2 20 C2 15 20 15 20 20" stroke="#555" stroke-width="2" fill="none"/>
+        </svg>
+      </button>
+      <div class="user-dropdown" *ngIf="menuOpen">
+        <div class="dropdown-head">
+          <strong>{{ userName }}</strong>
+          <small *ngIf="userRole">{{ userRole }}</small>
+        </div>
+        <button type="button" class="dropdown-item" (click)="goToProfile()">
+          <span class="material-icons">person</span>
+          Profile
+        </button>
+        <button type="button" class="dropdown-item danger" (click)="logout()">
+          <span class="material-icons">logout</span>
+          Logout
+        </button>
+      </div>
     </div>
   </div>
 </header>

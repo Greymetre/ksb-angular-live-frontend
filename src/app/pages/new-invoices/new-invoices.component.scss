@@ -129,6 +129,12 @@
     background: #f8f9fa;
     color: var(--text-dark);
   }
+
+  // The three fields an approver checks first - invoice number, firm and amount.
+  &.emphasis input {
+    font-size: 16px;
+    font-weight: 700;
+  }
 }
 
 .inline-attachment {
