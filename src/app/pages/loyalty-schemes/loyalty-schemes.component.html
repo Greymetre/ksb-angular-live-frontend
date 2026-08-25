@@ -140,7 +140,12 @@
           </div>
           <div class="modal-field">
             <label>Scheme Type</label>
-            <input type="text" [(ngModel)]="form.schemeType" disabled/>
+            <select [(ngModel)]="form.schemeType">
+              <option *ngFor="let type of schemeTypes" [value]="type.value" [disabled]="!type.available">
+                {{ type.label }}{{ type.available ? '' : ' (Coming Soon)' }}
+              </option>
+            </select>
+            <small class="field-note">Product and Quantity based schemes are coming soon.</small>
           </div>
           <div class="modal-field">
             <label>Based On <span class="req">*</span></label>

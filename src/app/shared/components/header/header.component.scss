@@ -71,7 +71,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
     &:hover { background: #f0f0f0; }
+
+    .user-photo {
+      width: 34px;
+      height: 34px;
+      margin: -6px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
   }
   .user-dropdown {
     position: absolute;

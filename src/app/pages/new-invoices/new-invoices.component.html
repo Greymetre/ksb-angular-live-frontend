@@ -31,6 +31,40 @@
               <span class="status-badge" [ngClass]="statusClass(selectedInvoice.approvalStatus)">{{
                 statusLabel(selectedInvoice) }}</span>
               <small *ngIf="selectedInvoice.approvalRemark">{{ selectedInvoice.approvalRemark }}</small>
+
+              <div class="product-search" [class.open]="productSearchOpen">
+                <button type="button" class="product-search-toggle" title="Search product"
+                  (click)="toggleProductSearch()">
+                  <span class="material-icons">{{ productSearchOpen ? 'close' : 'search' }}</span>
+                </button>
+                <div class="product-search-field" *ngIf="productSearchOpen">
+                  <span class="material-icons search-icon">search</span>
+                  <input type="text" class="product-search-input" autocomplete="off"
+                    placeholder="Search product by name, part no or description"
+                    [(ngModel)]="productSearchTerm" (ngModelChange)="onProductSearchChange()"
+                    (keydown.escape)="closeProductSearch()" />
+                  <button type="button" class="product-search-clear" title="Clear" *ngIf="productSearchTerm"
+                    (click)="clearProductSearch()">
+                    <span class="material-icons">close</span>
+                  </button>
+
+                  <div class="product-search-dropdown" *ngIf="productSearchTerm.trim()">
+                    <div class="product-search-note" *ngIf="productSearchLoading">Searching products...</div>
+                    <div class="product-search-note" *ngIf="!productSearchLoading && !productSearchResults.length">
+                      No matching product found
+                    </div>
+                    <button type="button" class="product-search-item" *ngFor="let product of productSearchResults"
+                      [class.selected]="selectedProduct?.id === product.id" (click)="selectProduct(product)">
+                      <span class="product-row">
+                        <span class="product-name">{{ product.productName }}</span>
+                        <span class="product-code" *ngIf="productCodeLabel(product)">{{ productCodeLabel(product) }}</span>
+                      </span>
+                      <span class="product-meta" *ngIf="productSubtitle(product)">{{ productSubtitle(product) }}</span>
+                      <span class="product-description" *ngIf="product.description">{{ product.description }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="detail-grid">

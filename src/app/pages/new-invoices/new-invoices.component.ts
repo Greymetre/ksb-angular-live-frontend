@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnInit } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, timeout } from 'rxjs/operators';
@@ -8,6 +8,7 @@ import { API_ORIGIN } from '../../config/api.config';
 import { isPdfOrImageFile } from '../../shared/utils/file-validation';
 import { formatKolkataDate, formatKolkataLongDateTime, kolkataDateInput, kolkataTodayInput } from '../../shared/utils/date-time';
 import { MasterCrudService } from '../../services/master-crud.service';
+import { ProductItem, ProductService } from '../../services/product.service';
 
 interface SelectOption {
   id: number | string;
@@ -77,10 +78,16 @@ export class NewInvoicesComponent implements OnInit {
   attachmentZoom = 1;
   attachmentFullscreen = false;
   attachmentViewerResourceUrl: SafeResourceUrl | null = null;
+  productSearchOpen = false;
+  productSearchTerm = '';
+  productSearchResults: ProductItem[] = [];
+  productSearchLoading = false;
+  selectedProduct: ProductItem | null = null;
   errorMessage = '';
   toast: ToastModel = { visible: false, message: '', type: 'success' };
   private readonly backendOrigin = this.resolveBackendOrigin();
   private filterSearchTimeoutId?: number;
+  private productSearchTimeoutId?: number;
 
   // Internal users see every approval stage. Customers (dealer/distributor) see
   // Pending, Hold, In Process, Approved, Rejected — only SS and Sales stay collapsed,
@@ -135,7 +142,8 @@ export class NewInvoicesComponent implements OnInit {
     private router: Router,
     private sanitizer: DomSanitizer,
     private cdr: ChangeDetectorRef,
-    private masterCrudService: MasterCrudService
+    private masterCrudService: MasterCrudService,
+    private productService: ProductService
   ) {}
 
   ngOnInit(): void {
@@ -162,15 +170,17 @@ export class NewInvoicesComponent implements OnInit {
     });
   }
 
+  // Filters read the ungated dropdown routes, so a user without the zone/branch
+  // master permission still gets the filter values.
   loadLocationFilters(): void {
-    this.masterCrudService.list({ path: 'divisions', listKey: 'divisions', itemKey: 'division' }).subscribe({
+    this.masterCrudService.list({ path: 'getdivisions', listKey: 'divisions', itemKey: 'division' }).subscribe({
       next: rows => {
         this.zoneFilterOptions = rows.filter(row => row.active !== '0').map(row => ({ id: row.id, label: row.divisionName || row.name || `Zone ${row.id}` }));
         this.refreshView();
       },
       error: error => this.showToast(error.message, 'error')
     });
-    this.masterCrudService.list({ path: 'branches', listKey: 'branches', itemKey: 'branch' }).subscribe({
+    this.masterCrudService.list({ path: 'getbranches', listKey: 'branches', itemKey: 'branch' }).subscribe({
       next: rows => {
         this.branchFilterOptions = rows.filter(row => row.active !== '0').map(row => ({ id: row.id, label: row.branchName || row.name || `Branch ${row.id}` }));
         this.refreshView();
@@ -267,6 +277,7 @@ export class NewInvoicesComponent implements OnInit {
   get canCreate(): boolean {
     return this.authService.hasPermission('new_invoice_create');
   }
+
 
   get canAccess(): boolean {
     return this.authService.hasPermission('new_invoice_access');
@@ -396,6 +407,7 @@ export class NewInvoicesComponent implements OnInit {
   backToList(): void {
     this.approvalHistoryVisible = false;
     this.attachmentFullscreen = false;
+    this.resetProductSearch();
     this.router.navigate(['/new-invoices']);
   }
 
@@ -798,6 +810,112 @@ export class NewInvoicesComponent implements OnInit {
   toggleAttachmentFullscreen(): void {
     this.attachmentFullscreen = !this.attachmentFullscreen;
     this.refreshView();
+  }
+
+  // Product lookup on the invoice detail: the icon expands into a search box and
+  // typing matches the catalogue by product name, part no or description.
+  toggleProductSearch(): void {
+    this.productSearchOpen = !this.productSearchOpen;
+    if (!this.productSearchOpen) this.resetProductSearch();
+    else this.focusProductSearchInput();
+    this.refreshView();
+  }
+
+  closeProductSearch(): void {
+    if (!this.productSearchOpen) return;
+    this.productSearchOpen = false;
+    this.resetProductSearch();
+    this.refreshView();
+  }
+
+  onProductSearchChange(): void {
+    if (this.productSearchTimeoutId) window.clearTimeout(this.productSearchTimeoutId);
+    const term = this.productSearchTerm.trim();
+    this.selectedProduct = null;
+    if (!term) {
+      this.productSearchResults = [];
+      this.productSearchLoading = false;
+      this.refreshView();
+      return;
+    }
+    this.productSearchLoading = true;
+    this.refreshView();
+    this.productSearchTimeoutId = window.setTimeout(() => this.searchProducts(term), 350);
+  }
+
+  selectProduct(product: ProductItem): void {
+    this.selectedProduct = product;
+    this.productSearchTerm = product.productName;
+    this.productSearchResults = [];
+    this.refreshView();
+  }
+
+  clearProductSearch(): void {
+    this.productSearchTerm = '';
+    this.productSearchResults = [];
+    this.selectedProduct = null;
+    this.productSearchLoading = false;
+    this.focusProductSearchInput();
+    this.refreshView();
+  }
+
+  // Legacy catalogue rows carry a placeholder part_no ("."), with the real material
+  // code in product_code / sap_code - show the first value that is actually a code.
+  productCodeLabel(product: ProductItem): string {
+    return [product.partNo, product.productCode, product.sapCode].find(value => this.isRealCode(value)) ?? '';
+  }
+
+  productSubtitle(product: ProductItem): string {
+    return [product.modelNo, product.familyName, product.segmentName]
+      .filter(value => this.isRealCode(value))
+      .join(' • ');
+  }
+
+  private isRealCode(value?: string | null): boolean {
+    return !!value && /[a-z0-9]/i.test(value);
+  }
+
+  // Clicking anywhere outside the lookup closes it, matching the other dropdowns.
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.productSearchOpen) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('.product-search')) return;
+    this.closeProductSearch();
+  }
+
+  private searchProducts(term: string): void {
+    this.productService.lookupProducts(term).subscribe({
+      next: products => {
+        // A stale response must not overwrite results for a newer term.
+        if (this.productSearchTerm.trim() !== term) return;
+        this.productSearchResults = products;
+        this.productSearchLoading = false;
+        this.refreshView();
+      },
+      error: error => {
+        this.productSearchResults = [];
+        this.productSearchLoading = false;
+        this.refreshView();
+        this.showToast(error.message, 'error');
+      }
+    });
+  }
+
+  private resetProductSearch(): void {
+    if (this.productSearchTimeoutId) window.clearTimeout(this.productSearchTimeoutId);
+    this.productSearchTimeoutId = undefined;
+    this.productSearchTerm = '';
+    this.productSearchResults = [];
+    this.productSearchLoading = false;
+    this.selectedProduct = null;
+  }
+
+  private focusProductSearchInput(): void {
+    window.setTimeout(() => {
+      const input = document.querySelector<HTMLInputElement>('.product-search-input');
+      input?.focus();
+    });
   }
 
   isPdfAttachment(value?: string | null): boolean {

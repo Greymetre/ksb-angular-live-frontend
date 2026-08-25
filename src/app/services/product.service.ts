@@ -33,6 +33,10 @@ export interface ProductItem {
   familyName?: string | null;
   partNo: string;
   productName: string;
+  productCode?: string | null;
+  sapCode?: string | null;
+  modelNo?: string | null;
+  description?: string | null;
   mrp?: number | null;
   attachment?: string | null;
   createdByName?: string | null;
@@ -63,6 +67,12 @@ export class ProductService {
 
   listProducts(segmentId?: number | null, familyId?: number | null, search?: string, page?: number, pageSize?: number): Observable<PagedArray<ProductItem>> {
     return this.getPagedArray<ProductItem>('products', 'products', { segment_id: segmentId, family_id: familyId, search }, page, pageSize);
+  }
+
+  // Lightweight catalogue lookup for search boxes: active products only and no
+  // product_access permission, unlike the master listing above.
+  lookupProducts(search: string, pageSize = 15): Observable<PagedArray<ProductItem>> {
+    return this.getPagedArray<ProductItem>('products/lookup', 'products', { search }, 1, pageSize);
   }
 
   saveSegment(payload: Partial<ProductSegment>, id?: number): Observable<string> {

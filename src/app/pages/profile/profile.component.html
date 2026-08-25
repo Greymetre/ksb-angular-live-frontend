@@ -7,7 +7,17 @@
   </header>
 
   <section class="profile-hero">
-    <div class="profile-avatar">{{ initials }}</div>
+    <div class="profile-avatar" [class.busy]="photoUploading">
+      <img *ngIf="photoUrl; else avatarInitials" [src]="photoUrl" alt="Profile picture" />
+      <ng-template #avatarInitials><span>{{ initials }}</span></ng-template>
+
+      <button type="button" class="profile-avatar-edit" [disabled]="photoUploading"
+        [title]="photoUrl ? 'Change profile picture' : 'Add profile picture'" (click)="pickPhoto()">
+        <span class="material-icons">{{ photoUploading ? 'hourglass_top' : 'photo_camera' }}</span>
+      </button>
+      <input type="file" class="profile-photo-input" #photoInput accept="image/jpeg,image/png,image/webp"
+        (change)="onPhotoSelected($event)" />
+    </div>
     <div class="profile-identity">
       <h1>{{ name }}</h1>
       <div class="profile-chips">
@@ -22,6 +32,8 @@
     </button>
   </section>
 
+  <p class="profile-note success" *ngIf="photoMessage">{{ photoMessage }}</p>
+  <p class="profile-note" *ngIf="photoError">{{ photoError }}</p>
   <p class="profile-note" *ngIf="error">{{ error }}</p>
   <div class="profile-loading" *ngIf="loading">Loading profile...</div>
 

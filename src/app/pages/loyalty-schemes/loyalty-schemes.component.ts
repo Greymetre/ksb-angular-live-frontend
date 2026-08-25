@@ -61,6 +61,11 @@ export class LoyaltySchemesComponent implements OnInit {
   schemeTags = ['Regular', 'Booster'];
   areaScopes = ['All', 'Branch', 'Zone', 'State', 'Customer'];
   basedOnOptions = ['Value', 'Percentage'];
+  schemeTypes: Array<{ value: string; label: string; available: boolean }> = [
+    { value: 'Invoice', label: 'Invoice', available: true },
+    { value: 'Product', label: 'Product', available: false },
+    { value: 'Quantity', label: 'Quantity', available: false }
+  ];
   statuses = ['Draft', 'Pending Approval', 'Approved', 'Rejected', 'Live', 'Expired'];
 
   showEntries = 10;

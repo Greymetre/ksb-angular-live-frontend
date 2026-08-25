@@ -1,7 +1,8 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { User, UserService } from '../../services/user.service';
+import { API_ORIGIN } from '../../config/api.config';
 
 interface ProfileField {
   label: string;
@@ -21,8 +22,17 @@ interface ProfileSection {
   styleUrls: ['./profile.component.scss']
 })
 export class ProfileComponent implements OnInit {
+  @ViewChild('photoInput') photoInput?: ElementRef<HTMLInputElement>;
+
   loading = true;
   error = '';
+  photoUrl = '';
+  photoUploading = false;
+  photoError = '';
+  photoMessage = '';
+
+  private static readonly maxPhotoBytes = 5 * 1024 * 1024;
+  private static readonly allowedPhotoTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
   name = '';
   initials = '';
@@ -57,6 +67,51 @@ export class ProfileComponent implements OnInit {
     });
   }
 
+  pickPhoto(): void {
+    this.photoError = '';
+    this.photoMessage = '';
+    this.photoInput?.nativeElement.click();
+  }
+
+  onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    // Clear the input straight away so picking the same file twice still fires change.
+    input.value = '';
+    if (!file) return;
+
+    if (!ProfileComponent.allowedPhotoTypes.includes(file.type)) {
+      this.photoError = 'Only JPG, PNG or WEBP images are allowed.';
+      this.cdr.detectChanges();
+      return;
+    }
+    if (file.size > ProfileComponent.maxPhotoBytes) {
+      this.photoError = 'Profile picture must be 5 MB or smaller.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.photoUploading = true;
+    this.photoError = '';
+    this.photoMessage = '';
+    this.cdr.detectChanges();
+
+    this.userService.updateMyPhoto(file).subscribe({
+      next: user => {
+        this.applyUser(user);
+        this.authService.setStoredProfileImage(user.profileImage ?? '');
+        this.photoUploading = false;
+        this.photoMessage = 'Profile picture updated.';
+        this.cdr.detectChanges();
+      },
+      error: error => {
+        this.photoUploading = false;
+        this.photoError = error?.message || 'Unable to update the profile picture right now.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   back(): void {
     this.router.navigate(['/dashboard']);
   }
@@ -72,6 +127,7 @@ export class ProfileComponent implements OnInit {
 
     this.name = user.name || user.email || user.mobile || 'User';
     this.initials = this.buildInitials(this.name);
+    this.photoUrl = this.mediaUrl(user.profile_image);
     this.roles = (user.user_type ?? []).map(role => this.formatRole(role)).filter(role => !!role);
     this.sections = [
       {
@@ -88,6 +144,7 @@ export class ProfileComponent implements OnInit {
   private applyUser(user: User): void {
     this.name = user.name || `${user.firstName} ${user.lastName}`.trim() || this.name;
     this.initials = this.buildInitials(this.name);
+    this.photoUrl = this.mediaUrl(user.profileImage);
     this.roles = user.roles.map(role => this.formatRole(role.name)).filter(role => !!role);
     this.employeeCode = this.text(user.employeeCodes, '');
     this.active = (user.active || 'Y').toUpperCase() !== 'N';
@@ -182,6 +239,15 @@ export class ProfileComponent implements OnInit {
     if (Number.isNaN(parsed.getTime())) return value;
 
     return parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  // Stored paths are relative to the API host (/uploads/... or a legacy /storage/...).
+  // A cache-busting stamp is not needed: every upload writes a new file name.
+  private mediaUrl(value?: string | null): string {
+    const path = (value ?? '').trim();
+    if (!path) return '';
+    if (/^(https?:)?\/\//i.test(path) || path.startsWith('data:')) return path;
+    return `${API_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`;
   }
 
   private text(value?: string | null, fallback: string = '-'): string {

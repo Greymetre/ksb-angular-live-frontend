@@ -25,6 +25,7 @@ export interface User {
   employeeCodes?: string | null;
   mobile?: string | null;
   email?: string | null;
+  profileImage?: string | null;
   branchId?: string | null;
   branchNames?: string | null;
   designationId?: number | null;
@@ -137,6 +138,18 @@ export class UserService {
   /** Signed-in user's own record. Unlike getUser() this needs no user_access. */
   getMyProfile(): Observable<User> {
     return this.http.get<UserApiResponse>(`${this.baseUrl}/profile/details`, {
+      headers: this.authHeaders()
+    }).pipe(
+      map(response => this.requireUser(response)),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  /** Replaces the signed-in user's profile picture and returns the refreshed profile. */
+  updateMyPhoto(file: File): Observable<User> {
+    const form = new FormData();
+    form.append('profile_image', file);
+    return this.http.post<UserApiResponse>(`${this.baseUrl}/profile/photo`, form, {
       headers: this.authHeaders()
     }).pipe(
       map(response => this.requireUser(response)),
@@ -324,6 +337,7 @@ export class UserService {
       employeeCodes: this.readNullableString(row['employeeCodes'] ?? row['EmployeeCodes'] ?? row['employee_codes']),
       mobile: this.readNullableString(row['mobile'] ?? row['Mobile']),
       email: this.readNullableString(row['email'] ?? row['Email']),
+      profileImage: this.readNullableString(row['profileImage'] ?? row['ProfileImage'] ?? row['profile_image']),
       branchId: this.readNullableString(row['branchId'] ?? row['BranchId'] ?? row['branch_id']),
       branchNames: this.readNullableString(row['branchNames'] ?? row['BranchNames'] ?? row['branch_names']),
       designationId: this.readNullableNumber(row['designationId'] ?? row['DesignationId'] ?? row['designation_id']),

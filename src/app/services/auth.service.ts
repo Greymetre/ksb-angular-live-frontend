@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { catchError, map, shareReplay } from 'rxjs/operators';
 import { API_BASE_URL } from '../config/api.config';
 
@@ -15,6 +15,7 @@ interface LoginUserInfo {
   roles?: number[];
   permissions?: string[];
   user_type?: string[];
+  profile_image?: string | null;
 }
 
 interface LoginResponse {
@@ -32,6 +33,10 @@ export class AuthService {
   private readonly permissionSchemaKey = 'netproject_permission_schema';
   private readonly permissionSchemaVersion = 'role-only-v1';
   private permissionRefresh$?: Observable<LoginUserInfo>;
+  private readonly profileImageSubject = new BehaviorSubject<string>(this.readStoredProfileImage());
+
+  /** Emits the signed-in user's profile image path so the header updates live. */
+  readonly profileImage$ = this.profileImageSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
@@ -120,6 +125,17 @@ export class AuthService {
     );
 
     return this.permissionRefresh$;
+  }
+
+  /** Keeps the cached login payload in step after a profile picture upload. */
+  setStoredProfileImage(path: string): void {
+    const user = this.getCurrentUser();
+    if (user) localStorage.setItem(this.userKey, JSON.stringify({ ...user, profile_image: path }));
+    this.profileImageSubject.next(path);
+  }
+
+  private readStoredProfileImage(): string {
+    return (this.getCurrentUser()?.profile_image ?? '').trim();
   }
 
   hasPermission(permission?: string): boolean {
