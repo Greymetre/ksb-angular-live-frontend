@@ -12,16 +12,16 @@
     <label>Show <select [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input"><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option></select> entries</label>
     <div class="toolbar-actions">
       <input #fileInput type="file" class="file-input" accept=".xlsx,.xls" (change)="upload($event)" />
-      <button class="btn-icon-round" [title]="uploading ? 'Importing...' : 'Upload'" (click)="triggerUpload()" [disabled]="uploading">
+      <button class="btn-icon-round" [title]="uploading ? 'Importing...' : 'Upload'" (click)="triggerUpload()" [disabled]="uploading" *ngIf="canImport">
         <span class="material-icons">{{ uploading ? 'hourglass_top' : 'cloud_upload' }}</span>
       </button>
-      <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download'" (click)="exportRows()" [disabled]="exporting">
+      <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download'" (click)="exportRows()" [disabled]="exporting" *ngIf="canExport">
         <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
       </button>
-      <button class="btn-icon-round" [title]="templating ? 'Preparing...' : 'Template'" (click)="downloadTemplate()" [disabled]="templating">
+      <button class="btn-icon-round" [title]="templating ? 'Preparing...' : 'Template'" (click)="downloadTemplate()" [disabled]="templating" *ngIf="canTemplate">
         <span class="material-icons">{{ templating ? 'hourglass_top' : 'description' }}</span>
       </button>
-      <button class="btn-icon-round add-btn" title="Assign City" (click)="openCreate()">
+      <button class="btn-icon-round add-btn" title="Assign City" (click)="openCreate()" *ngIf="canCreate">
         <span class="material-icons">add</span>
       </button>
       <div class="search-group">
@@ -52,7 +52,7 @@
       <tbody>
         <tr *ngFor="let row of visibleRows; let i = index">
           <td>{{ pageStart + i + 1 }}</td>
-          <td><button class="btn-danger" title="Delete" (click)="deleteRow(row)"><span class="material-icons">close</span></button></td>
+          <td><button class="btn-danger" title="Delete" (click)="deleteRow(row)" *ngIf="canDelete"><span class="material-icons">close</span></button></td>
           <td class="name-cell">{{ row.userName | firstCaps }}</td>
           <td>{{ row.userDesignation || '-' }}</td>
           <td class="name-cell">{{ (row.reportingName || '-') | firstCaps }}</td>

@@ -90,20 +90,20 @@
   <div class="table-toolbar">
     <label>Show <select [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input"><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option></select> entries</label>
     <div class="toolbar-actions">
-      <button class="btn-icon-round" title="Approve" (click)="approveSelected()" *ngIf="isTour || isLeave || isAttendance">
+      <button class="btn-icon-round" title="Approve" (click)="approveSelected()" *ngIf="(isTour || isLeave || isAttendance) && canApprove">
         <span class="material-icons">task_alt</span>
       </button>
-      <button class="btn-icon-round danger-round" title="Reject" (click)="rejectSelected()" *ngIf="isTour || isLeave || isAttendance">
+      <button class="btn-icon-round danger-round" title="Reject" (click)="rejectSelected()" *ngIf="(isTour || isLeave || isAttendance) && canReject">
         <span class="material-icons">block</span>
       </button>
-      <label class="btn-icon-round file-round" title="Import Tours" *ngIf="isTour">
+      <label class="btn-icon-round file-round" title="Import Tours" *ngIf="canImport">
         <span class="material-icons">upload_file</span>
         <input type="file" accept=".xlsx,.xls" (change)="onImportChange($event)" />
       </label>
-      <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download'" (click)="exportRows()" [disabled]="exporting">
+      <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download'" (click)="exportRows()" [disabled]="exporting" *ngIf="canExport">
         <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
       </button>
-      <button class="btn-icon-round add-btn" title="Add" (click)="openCreate()" *ngIf="canWrite && !isSummary">
+      <button class="btn-icon-round add-btn" title="Add" (click)="openCreate()" *ngIf="canCreate">
         <span class="material-icons">add</span>
       </button>
     </div>
@@ -119,7 +119,7 @@
       <tbody>
         <tr *ngFor="let row of visibleRows; let i = index">
           <td>{{ pageStart + i + 1 }}</td>
-          <td><div class="action-btns"><button class="btn-edit" (click)="openEdit(row)" title="Edit"><span class="material-icons">edit</span></button><button class="btn-danger" (click)="deleteRow(row)" title="Delete"><span class="material-icons">close</span></button></div></td>
+          <td><div class="action-btns"><button class="btn-edit" (click)="openEdit(row)" title="Edit" *ngIf="canEdit"><span class="material-icons">edit</span></button><button class="btn-danger" (click)="deleteRow(row)" title="Delete" *ngIf="canDelete"><span class="material-icons">close</span></button></div></td>
           <td><span class="mode-pill">{{ row['active'] }}</span></td>
           <td>{{ (row['holiday_for'] || row['holidayFor'] || 'branch') === 'division' ? 'Zone' : 'Branch' }}</td>
           <td>{{ ((row['holiday_for'] || row['holidayFor']) === 'division' ? (row['division_name'] || row['divisionName']) : (row['branch_name'] || row['branchName'])) | firstCaps }}</td>
@@ -139,7 +139,7 @@
         <tr *ngFor="let row of visibleRows; let i = index">
           <td><input type="checkbox" (change)="toggleSelection(row, $event)" /></td>
           <td>{{ pageStart + i + 1 }}</td>
-          <td><button class="btn-danger" (click)="deleteRow(row)" title="Delete"><span class="material-icons">close</span></button></td>
+          <td><button class="btn-danger" (click)="deleteRow(row)" title="Delete" *ngIf="canDelete"><span class="material-icons">close</span></button></td>
           <td class="name-cell">{{ row['user_name'] || row['userName'] | firstCaps }}<small>{{ row['employee_code'] || row['employeeCode'] }}</small></td>
           <td>{{ formatDate(row['from_date'] || row['fromDate']) }}</td>
           <td>{{ formatDate(row['to_date'] || row['toDate']) }}</td>
@@ -162,7 +162,7 @@
         <tr *ngFor="let row of visibleRows; let i = index">
           <td><input type="checkbox" (change)="toggleSelection(row, $event)" /></td>
           <td>{{ pageStart + i + 1 }}</td>
-          <td><div class="action-btns"><button class="btn-edit" (click)="openEdit(row)" title="Edit"><span class="material-icons">edit</span></button><button class="btn-danger" (click)="deleteRow(row)" title="Delete"><span class="material-icons">close</span></button></div></td>
+          <td><div class="action-btns"><button class="btn-edit" (click)="openEdit(row)" title="Edit" *ngIf="canEdit"><span class="material-icons">edit</span></button><button class="btn-danger" (click)="deleteRow(row)" title="Delete" *ngIf="canDelete"><span class="material-icons">close</span></button></div></td>
           <td class="name-cell">{{ row['user_name'] || row['userName'] | firstCaps }}<small>{{ row['employee_code'] || row['employeeCode'] }}</small></td>
           <td>{{ formatDate(row['date']) }}</td>
           <td>{{ row['district_name'] || row['districtName'] || row['district'] }}</td>

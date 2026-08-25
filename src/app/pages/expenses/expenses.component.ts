@@ -148,15 +148,15 @@ export class ExpensesComponent implements OnInit {
   }
 
   get canCreate(): boolean {
-    return this.authService.hasPermission('expenses_create');
+    return this.authService.hasPermission('expense.create');
   }
 
   get canEdit(): boolean {
-    return this.authService.hasPermission('expenses_edit');
+    return this.authService.hasPermission('expense.edit');
   }
 
   get canDelete(): boolean {
-    return this.authService.hasPermission('expenses_delete');
+    return this.authService.hasPermission('expense.delete');
   }
 
   /** Status actions offered in the detail modal. The current status is filtered out. */
@@ -170,7 +170,7 @@ export class ExpensesComponent implements OnInit {
   ];
 
   get canApprove(): boolean {
-    return this.authService.hasPermission('expenses_authority');
+    return this.authService.hasPermission('expense.approve');
   }
 
   loadRows(): void {

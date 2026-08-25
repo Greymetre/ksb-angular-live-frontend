@@ -10,7 +10,7 @@
         <span *ngIf="d.dealer.mobile">{{ d.dealer.mobile }}</span>
       </p>
     </div>
-    <button type="button" class="dash-cta" *ngIf="can('new_invoice_create')" (click)="createInvoice()">
+    <button type="button" class="dash-cta" *ngIf="can('invoice_transaction.create')" (click)="createInvoice()">
       <span class="material-icons">add</span> New Invoice
     </button>
   </header>
@@ -565,7 +565,7 @@
     <div class="card-head">
       <h2>Schemes</h2>
       <span class="tag">{{ l.schemes.live }} LIVE · {{ l.schemes.total }} TOTAL</span>
-      <a class="card-link" *ngIf="can('scheme_access_list')" (click)="go('/loyalty-schemes')">Manage &rarr;</a>
+      <a class="card-link" *ngIf="can('scheme.view')" (click)="go('/loyalty-schemes')">Manage &rarr;</a>
     </div>
     <div class="table-wrap" *ngIf="l.schemes.rows.length">
       <table class="lead">

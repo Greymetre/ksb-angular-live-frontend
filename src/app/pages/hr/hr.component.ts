@@ -102,14 +102,50 @@ export class HrComponent implements OnInit {
   get leaveTypes(): string[] { return ['First Half Leave', 'Second Half Leave', 'Full Day Leave']; }
   get balanceTypes(): string[] { return ['Casual Leave']; }
 
-  get canWrite(): boolean {
-    if (this.isHoliday) return this.authService.hasPermission('holiday_access');
-    if (this.isLeave) return this.authService.hasPermission('leave_access');
-    if (this.isTour) return this.authService.hasPermission('tours');
-    return this.authService.hasAnyPermission(['attendance_report', 'attendance_summary_report']);
+  /** This screen is five modules in one, so each action reads the permission of the
+   *  module it is currently showing. An action a module does not have stays hidden. */
+  private can(action: string): boolean {
+    const module = this.isHoliday ? 'holiday'
+      : this.isLeave ? 'leave'
+      : this.isTour ? 'tour'
+      : this.isSummary ? 'attendance_summary'
+      : 'attendance';
+    return this.authService.hasPermission(`${module}.${action}`);
   }
 
-  get canDeleteAttendance(): boolean { return this.authService.hasPermission('attendance_delete'); }
+  get canWrite(): boolean { return this.canCreate; }
+
+  get canCreate(): boolean {
+    if (this.isSummary) return false;
+    // Attendance rows are created by punching a user in.
+    return this.isAttendance ? this.can('punch_in') : this.can('create');
+  }
+
+  get canEdit(): boolean {
+    // Leaves and attendance are approved or deleted, never edited.
+    return (this.isHoliday || this.isTour) && this.can('edit');
+  }
+
+  get canDelete(): boolean {
+    return !this.isSummary && this.can('delete');
+  }
+
+  get canExport(): boolean { return this.can('export'); }
+
+  get canImport(): boolean { return this.isTour && this.can('import'); }
+
+  get canTemplate(): boolean { return this.isTour && this.can('template'); }
+
+  /** Tours are approved or rejected as a batch; leaves and attendance have their own. */
+  get canApprove(): boolean {
+    return this.isTour ? this.can('status') : this.can('approve');
+  }
+
+  get canReject(): boolean {
+    return this.isTour ? this.can('status') : this.can('reject');
+  }
+
+  get canDeleteAttendance(): boolean { return this.authService.hasPermission('attendance.delete'); }
 
   loadRows(resetPage = true): void {
     this.loading = true;

@@ -15,7 +15,7 @@ export class BeatsComponent implements OnInit {
   ngOnInit(){this.load();this.service.options().subscribe({next:x=>{this.options=x;this.citySelectOptions=this.toSelectOptions(x.cities);this.userSelectOptions=this.toSelectOptions(x.users,true);this.customerSelectOptions=this.toSelectOptions(x.customers,true);this.cdr.detectChanges();},error:e=>this.notify(e.message,'error')});}
   get filtered(){return this.rows;}
   get visible(){return this.rows;}
-  get canCreate(){return this.auth.hasPermission('beat_create');} get canEdit(){return this.auth.hasPermission('beat_edit');} get canDelete(){return this.auth.hasPermission('beat_delete');}
+  get canCreate(){return this.auth.hasPermission('beat.create');} get canEdit(){return this.auth.hasPermission('beat.edit');} get canDelete(){return this.auth.hasPermission('beat.delete');}
   get assignedUserSelectOptions(){return this.userSelectOptions.filter(option=>this.form.userIds.some(id=>String(id)===String(option.id)));}
   load(){this.loading=true;this.service.list(this.search,this.page,this.showEntries).pipe(finalize(()=>{this.loading=false;this.cdr.detectChanges();})).subscribe({next:x=>{this.rows=x;this.total=x.total;},error:e=>this.notify(e.message,'error')});}
   pageChanged(page:number){this.page=page;this.load();}

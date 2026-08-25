@@ -23,6 +23,7 @@ import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { CategoriesComponent } from './pages/categories/categories.component';
 import { ProductMasterComponent } from './pages/product-master/product-master.component';
 import { RolesComponent } from './pages/roles/roles.component';
+import { RoleEditorComponent } from './pages/role-editor/role-editor.component';
 import { UsersComponent } from './pages/users/users.component';
 import { CustomersComponent } from './pages/customers/customers.component';
 import { CustomerShowComponent } from './pages/customers/customer-show/customer-show.component';
@@ -61,6 +62,7 @@ import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.compo
     CategoriesComponent,
     ProductMasterComponent,
     RolesComponent,
+    RoleEditorComponent,
     UsersComponent,
     CustomersComponent,
     CustomerShowComponent,

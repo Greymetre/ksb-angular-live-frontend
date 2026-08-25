@@ -6,6 +6,7 @@ import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { CategoriesComponent } from './pages/categories/categories.component';
 import { ProductMasterComponent } from './pages/product-master/product-master.component';
 import { RolesComponent } from './pages/roles/roles.component';
+import { RoleEditorComponent } from './pages/role-editor/role-editor.component';
 import { UsersComponent } from './pages/users/users.component';
 import { CustomersComponent } from './pages/customers/customers.component';
 import { CustomerShowComponent } from './pages/customers/customer-show/customer-show.component';
@@ -42,52 +43,54 @@ const routes: Routes = [
         path: 'forbidden',
         component: ForbiddenComponent
       },
-      { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard], data: { permission: 'dashboard_access' } },
+      { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard], data: { permission: 'dashboard.view' } },
       // Own profile - every signed-in role reaches it from the header menu, so no permission gate.
       { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
       { path: 'retailers', redirectTo: '/customers' },
       { path: 'retailers/create', redirectTo: '/customers' },
       { path: 'distributors', redirectTo: '/customers' },
       { path: 'categories', redirectTo: '/segments' },
-      { path: 'segments', component: ProductMasterComponent, canActivate: [authGuard], data: { permission: 'category_access', productMode: 'segment' } },
-      { path: 'families', component: ProductMasterComponent, canActivate: [authGuard], data: { permission: 'subcategory_access', productMode: 'family' } },
+      { path: 'segments', component: ProductMasterComponent, canActivate: [authGuard], data: { permission: 'segment.view', productMode: 'segment' } },
+      { path: 'families', component: ProductMasterComponent, canActivate: [authGuard], data: { permission: 'family.view', productMode: 'family' } },
       { path: 'subcategories', redirectTo: '/families' },
-      { path: 'products', component: ProductMasterComponent, canActivate: [authGuard], data: { permission: 'product_access', productMode: 'product' } },
-      { path: 'roles', component: RolesComponent, canActivate: [authGuard], data: { permission: 'role_access' } },
-      { path: 'users', component: UsersComponent, canActivate: [authGuard], data: { permission: 'user_access' } },
-      { path: 'customers', component: CustomersComponent, canActivate: [authGuard], data: { permission: 'customer_access' } },
-      { path: 'reports/customer-master', component: CustomersComponent, canActivate: [authGuard], data: { permission: 'customers_report' } },
-      { path: 'customers/:id', component: CustomerShowComponent, canActivate: [authGuard], data: { permission: 'customer_access' } },
-      { path: 'new-invoices', component: NewInvoicesComponent, canActivate: [authGuard], data: { permission: 'new_invoice_access' } },
-      { path: 'new-invoices/:id', component: NewInvoicesComponent, canActivate: [authGuard], data: { permission: 'new_invoice_access' } },
+      { path: 'products', component: ProductMasterComponent, canActivate: [authGuard], data: { permission: 'product.view', productMode: 'product' } },
+      { path: 'roles', component: RolesComponent, canActivate: [authGuard], data: { permission: 'role.view' } },
+      { path: 'roles/new', component: RoleEditorComponent, canActivate: [authGuard], data: { permission: 'role.create' } },
+      { path: 'roles/:id/edit', component: RoleEditorComponent, canActivate: [authGuard], data: { permission: 'role.edit' } },
+      { path: 'users', component: UsersComponent, canActivate: [authGuard], data: { permission: 'user.view' } },
+      { path: 'customers', component: CustomersComponent, canActivate: [authGuard], data: { permission: 'customer.view' } },
+      { path: 'reports/customer-master', component: CustomersComponent, canActivate: [authGuard], data: { permission: 'customer.export' } },
+      { path: 'customers/:id', component: CustomerShowComponent, canActivate: [authGuard], data: { permission: 'customer.view' } },
+      { path: 'new-invoices', component: NewInvoicesComponent, canActivate: [authGuard], data: { permission: 'invoice_transaction.view' } },
+      { path: 'new-invoices/:id', component: NewInvoicesComponent, canActivate: [authGuard], data: { permission: 'invoice_transaction.detail' } },
       // Scheme management stays behind scheme_access_list. Dealers read their own
       // schemes through /dealer/schemes/:id instead of this admin screen.
-      { path: 'loyalty-schemes', component: LoyaltySchemesComponent, canActivate: [authGuard], data: { permission: 'scheme_access_list' } },
+      { path: 'loyalty-schemes', component: LoyaltySchemesComponent, canActivate: [authGuard], data: { permission: 'scheme.view' } },
       // Dealer-only read view of a scheme, reached from the dashboard slider.
-      { path: 'dealer/schemes/:id', component: DealerSchemeComponent, canActivate: [authGuard], data: { permission: 'dashboard_access' } },
-      { path: 'redemptions', component: RedemptionsComponent, canActivate: [authGuard], data: { permission: 'redemption_access' } },
-      { path: 'orders', component: OrdersComponent, canActivate: [authGuard], data: { permission: 'order_access' } },
-      { path: 'orders/:id/dispatch/:mode', component: OrderDispatchComponent, canActivate: [authGuard], data: { permission: 'order_dispatch' } },
-      { path: 'order-dispatch/:mode', component: OrderDispatchComponent, canActivate: [authGuard], data: { permission: 'sale_access' } },
-      { path: 'beats', component: BeatsComponent, canActivate: [authGuard], data: { permission: 'beat_access' } },
-      { path: 'beat-details', component: BeatsComponent, canActivate: [authGuard], data: { permission: 'beatdetail_access' } },
-      { path: 'checkin-checkout', component: CheckinReportsComponent, canActivate: [authGuard], data: { permission: 'checkin_access' } },
-      { path: 'checkin-checkout-report', component: CheckinReportsComponent, canActivate: [authGuard], data: { permission: 'visit_report' } },
-      { path: 'reports/asr-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'ASR_report_Download', reportMode: 'asr' } },
-      { path: 'reports/rating-report', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'asm_rating_report', reportMode: 'rating' } },
-      { path: 'reports/activity-reports', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'activity_report_access', reportMode: 'activity' } },
-      { path: 'reports/retailer-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'retailer_productivity_report', reportMode: 'retailer' } },
-      { path: 'reports/dealer-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'retailer_productivity_report', reportMode: 'dealer' } },
-      { path: 'reports/market-intelligence', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'market_intelligence_access', reportMode: 'market' } },
-      { path: 'field-konnect-app-setting', component: FieldKonnectAppSettingComponent, canActivate: [authGuard], data: { permission: 'loyalty_app_setting_access' } },
-      { path: 'user-app-details', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'user_app_details_access', mode: 'apps' } },
-      { path: 'user-live-activity', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'user_location', mode: 'live' } },
+      { path: 'dealer/schemes/:id', component: DealerSchemeComponent, canActivate: [authGuard], data: { permission: 'dashboard.view' } },
+      { path: 'redemptions', component: RedemptionsComponent, canActivate: [authGuard], data: { permission: 'redemption.view' } },
+      { path: 'orders', component: OrdersComponent, canActivate: [authGuard], data: { permission: 'order.view' } },
+      { path: 'orders/:id/dispatch/:mode', component: OrderDispatchComponent, canActivate: [authGuard], data: { permission: 'order.dispatch' } },
+      { path: 'order-dispatch/:mode', component: OrderDispatchComponent, canActivate: [authGuard], data: { permission: 'order_dispatch.view' } },
+      { path: 'beats', component: BeatsComponent, canActivate: [authGuard], data: { permission: 'beat.view' } },
+      { path: 'beat-details', component: BeatsComponent, canActivate: [authGuard], data: { permission: 'beat_detail.view' } },
+      { path: 'checkin-checkout', component: CheckinReportsComponent, canActivate: [authGuard], data: { permission: 'checkin.view' } },
+      { path: 'checkin-checkout-report', component: CheckinReportsComponent, canActivate: [authGuard], data: { permission: 'visit_report.view' } },
+      { path: 'reports/asr-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'asr_performance_report.export', reportMode: 'asr' } },
+      { path: 'reports/rating-report', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'rating_report.view', reportMode: 'rating' } },
+      { path: 'reports/activity-reports', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'activity_report.view', reportMode: 'activity' } },
+      { path: 'reports/retailer-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'retailer_performance_report.export', reportMode: 'retailer' } },
+      { path: 'reports/dealer-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'retailer_performance_report.export', reportMode: 'dealer' } },
+      { path: 'reports/market-intelligence', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'market_intelligence_report.view', reportMode: 'market' } },
+      { path: 'field-konnect-app-setting', component: FieldKonnectAppSettingComponent, canActivate: [authGuard], data: { permission: 'app_setting.view' } },
+      { path: 'user-app-details', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'user_app.view', mode: 'apps' } },
+      { path: 'user-live-activity', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'user_activity.view', mode: 'live' } },
       {
         path: 'holidays',
         component: HrComponent,
         canActivate: [authGuard],
         data: {
-          permission: 'holiday_access',
+          permission: 'holiday.view',
           hrConfig: { mode: 'holidays', title: 'Holidays', icon: 'holiday_village', path: 'holidays', key: 'holidays', exportPath: 'holidays/export', fileName: 'holidays.xlsx' }
         }
       },
@@ -96,7 +99,7 @@ const routes: Routes = [
         component: HrComponent,
         canActivate: [authGuard],
         data: {
-          permission: 'leave_access',
+          permission: 'leave.view',
           hrConfig: { mode: 'leaves', title: 'Leaves', icon: 'energy_savings_leaf', path: 'leaves', key: 'leaves', exportPath: 'leaves/export', fileName: 'leaves.xlsx' }
         }
       },
@@ -105,7 +108,7 @@ const routes: Routes = [
         component: HrComponent,
         canActivate: [authGuard],
         data: {
-          permission: 'tours',
+          permission: 'tour.view',
           hrConfig: { mode: 'tours', title: 'Tours', icon: 'tour', path: 'tours', key: 'tours', exportPath: 'tours/export', fileName: 'tours.xlsx' }
         }
       },
@@ -114,7 +117,7 @@ const routes: Routes = [
         component: HrComponent,
         canActivate: [authGuard],
         data: {
-          permission: 'attendance_report',
+          permission: 'attendance.view',
           hrConfig: { mode: 'attendance-details', title: 'Attendance Details', icon: 'report', path: 'attendances', key: 'attendances', exportPath: 'attendances/export', fileName: 'attendancereports.xlsx' }
         }
       },
@@ -123,7 +126,7 @@ const routes: Routes = [
         component: HrComponent,
         canActivate: [authGuard],
         data: {
-          permission: 'attendance_summary_report',
+          permission: 'attendance_summary.view',
           hrConfig: { mode: 'attendance-summary', title: 'Attendance Summary', icon: 'summarize', path: 'attendance-summary', key: 'summary', exportPath: 'attendance-summary/export', fileName: 'attendance-summary.xlsx' }
         }
       },
@@ -132,7 +135,7 @@ const routes: Routes = [
         component: AddressMasterComponent,
         canActivate: [authGuard],
         data: {
-          permission: 'country_access',
+          permission: 'country.view',
           addressConfig: {
             title: 'CountryList',
             singular: 'Country',
@@ -152,7 +155,7 @@ const routes: Routes = [
         component: AddressMasterComponent,
         canActivate: [authGuard],
         data: {
-          permission: 'state_access',
+          permission: 'state.view',
           addressConfig: {
             title: 'StateList',
             singular: 'State',
@@ -180,7 +183,7 @@ const routes: Routes = [
         component: AddressMasterComponent,
         canActivate: [authGuard],
         data: {
-          permission: 'district_access',
+          permission: 'district.view',
           addressConfig: {
             title: 'DistrictList',
             singular: 'District',
@@ -207,7 +210,7 @@ const routes: Routes = [
         component: AddressMasterComponent,
         canActivate: [authGuard],
         data: {
-          permission: 'city_access',
+          permission: 'city.view',
           addressConfig: {
             title: 'CityList',
             singular: 'City',
@@ -234,7 +237,7 @@ const routes: Routes = [
         component: AddressMasterComponent,
         canActivate: [authGuard],
         data: {
-          permission: 'pincode_access',
+          permission: 'pincode.view',
           addressConfig: {
             title: 'PincodeList',
             singular: 'Pincode',
@@ -256,10 +259,10 @@ const routes: Routes = [
           }
         }
       },
-      { path: 'city-assignments', component: CityAssignmentsComponent, canActivate: [authGuard], data: { permission: 'city_assigned' } },
-      { path: 'user-targets', component: UserTargetsComponent, canActivate: [authGuard], data: { permission: 'target_access' } },
-      { path: 'expenses-types', component: ExpensesTypeComponent, canActivate: [authGuard], data: { permission: 'expenses_type' } },
-      { path: 'expenses', component: ExpensesComponent, canActivate: [authGuard], data: { permission: 'expense_access' } },
+      { path: 'city-assignments', component: CityAssignmentsComponent, canActivate: [authGuard], data: { permission: 'city_assignment.view' } },
+      { path: 'user-targets', component: UserTargetsComponent, canActivate: [authGuard], data: { permission: 'user_target.view' } },
+      { path: 'expenses-types', component: ExpensesTypeComponent, canActivate: [authGuard], data: { permission: 'expense_type.view' } },
+      { path: 'expenses', component: ExpensesComponent, canActivate: [authGuard], data: { permission: 'expense.view' } },
       {
         path: 'branches',
         component: MasterCrudComponent,
@@ -269,8 +272,8 @@ const routes: Routes = [
             title: 'BranchList',
             singular: 'Branch',
             icon: 'holiday_village',
-            permission: 'branch',
-            exportPermission: 'branch_report_download',
+            permission: 'branch.view',
+            exportPermission: 'branch.export',
             path: 'branches',
             listKey: 'branches',
             itemKey: 'branch',
@@ -290,8 +293,8 @@ const routes: Routes = [
             title: 'Zone List',
             singular: 'Zone',
             icon: 'safety_divider',
-            permission: 'division',
-            exportPermission: 'division_report_download',
+            permission: 'zone.view',
+            exportPermission: 'zone.export',
             path: 'divisions',
             listKey: 'divisions',
             itemKey: 'division',
@@ -310,7 +313,7 @@ const routes: Routes = [
             title: 'DesignationList',
             singular: 'Designation',
             icon: 'shopping_bag',
-            permission: 'designation',
+            permission: 'designation.view',
             path: 'designations',
             listKey: 'designations',
             itemKey: 'designation',
@@ -329,8 +332,8 @@ const routes: Routes = [
             title: 'DepartmentList',
             singular: 'Department',
             icon: 'local_fire_department',
-            permission: 'departments',
-            exportPermission: 'department_report_download',
+            permission: 'department.view',
+            exportPermission: 'department.export',
             path: 'departments',
             listKey: 'departments',
             itemKey: 'department',

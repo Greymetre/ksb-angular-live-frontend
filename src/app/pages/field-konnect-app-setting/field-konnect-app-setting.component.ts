@@ -4,6 +4,7 @@ import {
   FieldKonnectAppSettingPayload,
   FieldKonnectAppSettingService
 } from '../../services/field-konnect-app-setting.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   standalone: false,
@@ -25,8 +26,14 @@ export class FieldKonnectAppSettingComponent implements OnInit {
 
   constructor(
     private settingService: FieldKonnectAppSettingService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {}
+
+  /** Reading the setting and saving it are separate permissions. */
+  get canEdit(): boolean {
+    return this.authService.hasPermission('app_setting.edit');
+  }
 
   ngOnInit(): void {
     this.load();

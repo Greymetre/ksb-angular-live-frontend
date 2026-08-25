@@ -1,0 +1,151 @@
+<div class="role-editor-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">
+    {{ toast.message }}
+  </div>
+
+  <div class="page-heading">
+    <div class="page-icon"><span class="material-icons">admin_panel_settings</span></div>
+    <div class="heading-text">
+      <h2 class="page-title">{{ title }}</h2>
+      <p class="page-subtitle">Tick what this role may do. A column heading ticks that action for every module.</p>
+    </div>
+    <div class="heading-actions">
+      <button type="button" class="btn-secondary" (click)="cancel()" [disabled]="saving">Cancel</button>
+      <button type="button" class="btn-primary" (click)="save()" [disabled]="saving || isFixedRole" *ngIf="!isFixedRole">
+        {{ saving ? 'Saving...' : 'Save Role' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="alert fixed-alert" *ngIf="isFixedRole">
+    <span class="material-icons">lock</span>
+    <span>The superadmin role always has every permission, including any added later, so it is
+      shown here but cannot be changed. To try a permission set, create another role.</span>
+  </div>
+
+  <div class="editor-card">
+    <div class="role-fields">
+      <div class="field">
+        <label>Role Name <span class="req">*</span></label>
+        <input type="text" [(ngModel)]="roleName" placeholder="e.g. Branch Manager" [disabled]="saving || isFixedRole"/>
+      </div>
+      <div class="field">
+        <label>Search Module</label>
+        <input type="search" [(ngModel)]="search" placeholder="Filter modules and actions..."/>
+      </div>
+      <div class="field selection-summary">
+        <label>Selected</label>
+        <div class="summary-row">
+          <strong>{{ selectedCount }}</strong> of {{ totalCount }} permissions
+          <button type="button" class="btn-link" (click)="clearAll()" *ngIf="selectedCount && !isFixedRole">Clear all</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-block" *ngIf="loading">Loading permissions...</div>
+
+  <ng-container *ngIf="!loading">
+    <div class="bulk-bar" *ngIf="!isFixedRole">
+      <label class="bulk-chip strong">
+        <input type="checkbox"
+          [checked]="allSelected(everyPermissionId)"
+          [indeterminate]="someSelected(everyPermissionId)"
+          (change)="setMany(everyPermissionId, $any($event.target).checked)"/>
+        <span>Select everything</span>
+      </label>
+      <span class="bulk-divider"></span>
+      <label class="bulk-chip" *ngFor="let column of columns">
+        <input type="checkbox"
+          [checked]="allSelected(column.permissionIds)"
+          [indeterminate]="someSelected(column.permissionIds)"
+          (change)="setMany(column.permissionIds, $any($event.target).checked)"/>
+        <span>All {{ column.label }}</span>
+      </label>
+    </div>
+
+    <div class="matrix-card">
+      <div class="matrix-scroll">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th class="module-col">Module</th>
+              <th class="action-col" *ngFor="let column of columns">
+                <label class="column-head">
+                  <input type="checkbox"
+                    [checked]="allSelected(column.permissionIds)"
+                    [indeterminate]="someSelected(column.permissionIds)"
+                    [disabled]="isFixedRole"
+                    (change)="setMany(column.permissionIds, $any($event.target).checked)"/>
+                  <span>{{ column.label }}</span>
+                </label>
+              </th>
+              <th class="extra-col" *ngIf="hasExtras">Other Actions</th>
+            </tr>
+          </thead>
+
+          <tbody *ngFor="let group of visibleGroups">
+            <tr class="group-row">
+              <td [attr.colspan]="columns.length + (hasExtras ? 2 : 1)">
+                <label class="group-head">
+                  <input type="checkbox"
+                    [checked]="allSelected(group.permissionIds)"
+                    [indeterminate]="someSelected(group.permissionIds)"
+                    [disabled]="isFixedRole"
+                    (change)="setMany(group.permissionIds, $any($event.target).checked)"/>
+                  <span>{{ group.label }}</span>
+                </label>
+              </td>
+            </tr>
+
+            <tr *ngFor="let module of group.modules">
+              <td class="module-col">
+                <label class="module-head">
+                  <input type="checkbox"
+                    [checked]="allSelected(module.permissionIds)"
+                    [indeterminate]="someSelected(module.permissionIds)"
+                    [disabled]="isFixedRole"
+                    (change)="setMany(module.permissionIds, $any($event.target).checked)"/>
+                  <span>{{ module.label }}</span>
+                </label>
+              </td>
+              <td class="action-col" *ngFor="let cell of module.cells">
+                <label class="cell" *ngIf="cell.permission; else emptyCell"
+                  [title]="cell.permission.label + ' (' + cell.permission.name + ')'">
+                  <input type="checkbox"
+                    [checked]="isChecked(cell.permission.id)"
+                    [disabled]="isFixedRole"
+                    (change)="toggle(cell.permission.id, $any($event.target).checked)"/>
+                </label>
+                <ng-template #emptyCell><span class="cell-empty">-</span></ng-template>
+              </td>
+              <td class="extra-col" *ngIf="hasExtras">
+                <div class="extra-list" *ngIf="module.extras.length; else noExtras">
+                  <label class="extra-chip" *ngFor="let extra of module.extras" [title]="extra.name">
+                    <input type="checkbox"
+                      [checked]="isChecked(extra.id)"
+                      [disabled]="isFixedRole"
+                      (change)="toggle(extra.id, $any($event.target).checked)"/>
+                    <span>{{ extra.label }}</span>
+                  </label>
+                </div>
+                <ng-template #noExtras><span class="cell-empty">-</span></ng-template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" *ngIf="visibleGroups.length === 0">No module matches "{{ search }}".</div>
+    </div>
+
+    <div class="footer-actions">
+      <button type="button" class="btn-secondary" (click)="cancel()" [disabled]="saving">{{ isFixedRole ? 'Back' : 'Cancel' }}</button>
+      <button type="button" class="btn-primary" (click)="save()" [disabled]="saving" *ngIf="!isFixedRole">
+        {{ saving ? 'Saving...' : 'Save Role' }}
+      </button>
+    </div>
+  </ng-container>
+</div>

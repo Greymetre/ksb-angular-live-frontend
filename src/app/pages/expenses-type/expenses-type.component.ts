@@ -56,11 +56,19 @@ export class ExpensesTypeComponent implements OnInit {
   }
 
   get canCreate(): boolean {
-    return this.authService.hasPermission('expenses_type_create');
+    return this.authService.hasPermission('expense_type.create');
   }
 
   get canEdit(): boolean {
-    return this.authService.hasPermission('expenses_type_update');
+    return this.authService.hasPermission('expense_type.edit');
+  }
+
+  get canActive(): boolean {
+    return this.authService.hasPermission('expense_type.active');
+  }
+
+  get canDelete(): boolean {
+    return this.authService.hasPermission('expense_type.delete');
   }
 
   loadRows(): void {

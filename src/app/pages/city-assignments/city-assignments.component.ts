@@ -3,6 +3,7 @@ import { finalize, timeout } from 'rxjs/operators';
 import { CityAssignment, CityAssignmentOption, CityAssignmentOptions, CityAssignmentService } from '../../services/city-assignment.service';
 import { SearchableSelectOption } from '../../shared/components/searchable-select/searchable-select.component';
 import { formatKolkataDateTime } from '../../shared/utils/date-time';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   standalone: false,
@@ -32,7 +33,17 @@ export class CityAssignmentsComponent implements OnInit {
   private toastTimeoutId?: number;
   private searchTimeoutId?: number;
 
-  constructor(private service: CityAssignmentService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private service: CityAssignmentService,
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
+  ) {}
+
+  get canCreate(): boolean { return this.authService.hasPermission('city_assignment.create'); }
+  get canDelete(): boolean { return this.authService.hasPermission('city_assignment.delete'); }
+  get canExport(): boolean { return this.authService.hasPermission('city_assignment.export'); }
+  get canImport(): boolean { return this.authService.hasPermission('city_assignment.import'); }
+  get canTemplate(): boolean { return this.authService.hasPermission('city_assignment.template'); }
 
   ngOnInit(): void {
     this.loadOptions();

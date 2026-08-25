@@ -508,3 +508,53 @@
     grid-template-columns: 1fr;
   }
 }
+
+.role-name { font-weight: 500; }
+
+.user-chip {
+  display: inline-block;
+  min-width: 28px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
+
+  &.in-use { background: #e0e7ff; color: #3730a3; font-weight: 600; }
+}
+
+.permission-cell {
+  max-width: 360px;
+
+  strong { display: inline-block; margin-right: 8px; }
+
+  .permission-hint {
+    display: block;
+    font-size: 11px;
+    color: #6b7280;
+    white-space: normal;
+  }
+}
+
+.empty-row { text-align: center; color: #6b7280; padding: 20px; }
+
+.fixed-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* The edit and delete buttons sat flush against each other. */
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

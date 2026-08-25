@@ -79,7 +79,7 @@ export class ProductMasterComponent implements OnInit {
   }
 
   get permissionPrefix(): string {
-    return this.mode === 'segment' ? 'category' : this.mode === 'family' ? 'subcategory' : 'product';
+    return this.mode === 'segment' ? 'segment' : this.mode === 'family' ? 'family' : 'product';
   }
 
   get pagedRows(): Array<ProductSegment | ProductFamily | ProductItem> {
@@ -175,13 +175,13 @@ export class ProductMasterComponent implements OnInit {
     else this.refreshView();
   }
 
-  get canCreate(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}_create`); }
-  get canEdit(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}_edit`); }
-  get canActive(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}_active`); }
-  get canDelete(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}_delete`); }
-  get canUpload(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}_upload`); }
-  get canDownload(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}_download`); }
-  get canTemplate(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}_template`); }
+  get canCreate(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}.create`); }
+  get canEdit(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}.edit`); }
+  get canActive(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}.active`); }
+  get canDelete(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}.delete`); }
+  get canUpload(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}.import`); }
+  get canDownload(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}.export`); }
+  get canTemplate(): boolean { return this.authService.hasPermission(`${this.permissionPrefix}.template`); }
 
   loadRows(): void {
     // Catalogue starts on the segment picker, so nothing is fetched until a

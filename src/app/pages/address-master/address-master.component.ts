@@ -116,31 +116,31 @@ export class AddressMasterComponent implements OnInit, OnDestroy {
   }
 
   get canCreate(): boolean {
-    return this.authService.hasPermission(`${this.config.permissionPrefix}_create`);
+    return this.authService.hasPermission(`${this.config.permissionPrefix}.create`);
   }
 
   get canEdit(): boolean {
-    return this.authService.hasPermission(`${this.config.permissionPrefix}_edit`);
+    return this.authService.hasPermission(`${this.config.permissionPrefix}.edit`);
   }
 
   get canActive(): boolean {
-    return this.authService.hasPermission(`${this.config.permissionPrefix}_active`);
+    return this.authService.hasPermission(`${this.config.permissionPrefix}.active`);
   }
 
   get canDelete(): boolean {
-    return this.authService.hasPermission(`${this.config.permissionPrefix}_delete`);
+    return this.authService.hasPermission(`${this.config.permissionPrefix}.delete`);
   }
 
   get canUpload(): boolean {
-    return this.authService.hasPermission(`${this.config.permissionPrefix}_upload`);
+    return this.authService.hasPermission(`${this.config.permissionPrefix}.import`);
   }
 
   get canDownload(): boolean {
-    return this.authService.hasPermission(`${this.config.permissionPrefix}_download`);
+    return this.authService.hasPermission(`${this.config.permissionPrefix}.export`);
   }
 
   get canTemplate(): boolean {
-    return this.authService.hasPermission(`${this.config.permissionPrefix}_template`);
+    return this.authService.hasPermission(`${this.config.permissionPrefix}.template`);
   }
 
   loadItems(): void {

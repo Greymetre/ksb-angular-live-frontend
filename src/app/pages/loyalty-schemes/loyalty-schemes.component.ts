@@ -123,15 +123,15 @@ export class LoyaltySchemesComponent implements OnInit {
   }
 
   get canCreate(): boolean {
-    return this.authService.hasPermission('scheme_create');
+    return this.authService.hasPermission('scheme.create');
   }
 
   get canEdit(): boolean {
-    return this.authService.hasPermission('scheme_edit');
+    return this.authService.hasPermission('scheme.edit');
   }
 
   get canDelete(): boolean {
-    return this.authService.hasPermission('scheme_delete');
+    return this.authService.hasPermission('scheme.delete');
   }
 
   get isSuperAdmin(): boolean {
@@ -151,16 +151,16 @@ export class LoyaltySchemesComponent implements OnInit {
       && (this.isSuperAdmin || (this.canDraft && !this.isPublishedScheme(scheme)));
   }
   get canShow(): boolean {
-    return this.authService.hasPermission('scheme_show');
+    return this.authService.hasPermission('scheme.detail');
   }
 
   get canApprove(): boolean {
-    return this.authService.hasPermission('scheme_approve');
+    return this.authService.hasPermission('scheme.approve');
   }
-  get canDraft(): boolean { return this.authService.hasPermission('scheme_draft'); }
-  get canSubmit(): boolean { return this.authService.hasPermission('scheme_submit'); }
-  get canReject(): boolean { return this.authService.hasPermission('scheme_reject'); }
-  get canPublish(): boolean { return this.authService.hasPermission('scheme_publish'); }
+  get canDraft(): boolean { return this.authService.hasPermission('scheme.draft'); }
+  get canSubmit(): boolean { return this.authService.hasPermission('scheme.submit'); }
+  get canReject(): boolean { return this.authService.hasPermission('scheme.reject'); }
+  get canPublish(): boolean { return this.authService.hasPermission('scheme.publish'); }
 
   private isPublishedScheme(scheme: LoyaltyScheme): boolean {
     return ['Published', 'Live'].includes(scheme.workflowStatus)

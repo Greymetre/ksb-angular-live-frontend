@@ -43,7 +43,7 @@
 
     <div class="card-footer">
       <span class="updated" *ngIf="updatedAt">Last updated: {{ updatedAt | date:'medium' }}</span>
-      <button type="button" (click)="save()" [disabled]="loading || saving">
+      <button type="button" (click)="save()" *ngIf="canEdit" [disabled]="loading || saving">
         <span class="material-icons">save</span>
         {{ saving ? 'Saving...' : 'Save Setting' }}
       </button>

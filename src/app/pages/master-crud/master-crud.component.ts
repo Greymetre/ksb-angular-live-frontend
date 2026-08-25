@@ -93,20 +93,35 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
     return (this.currentPage - 1) * this.safeShowEntries;
   }
 
+  /** The configured permission is the module's view, so every other action reads the
+   *  matching permission of the same module. Create, edit, delete and the active toggle
+   *  used to all ride on the view permission, which handed anyone who could open the
+   *  list the ability to change it. */
+  private can(action: string): boolean {
+    const module = (this.config.permission || '').split('.')[0];
+    return module ? this.authService.hasPermission(`${module}.${action}`) : false;
+  }
+
   get canCreate(): boolean {
-    return this.authService.hasPermission(this.config.permission);
+    return this.can('create');
   }
 
   get canEdit(): boolean {
-    return this.authService.hasPermission(this.config.permission);
+    return this.can('edit');
   }
 
   get canDelete(): boolean {
-    return this.authService.hasPermission(this.config.permission);
+    return this.can('delete');
+  }
+
+  get canActive(): boolean {
+    return this.can('active');
   }
 
   get canExport(): boolean {
-    return this.authService.hasAnyPermission([this.config.exportPermission || '', this.config.permission]);
+    return this.config.exportPermission
+      ? this.authService.hasPermission(this.config.exportPermission)
+      : this.can('export');
   }
 
   loadItems(): void {

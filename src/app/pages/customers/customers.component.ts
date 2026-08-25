@@ -203,47 +203,47 @@ export class CustomersComponent implements OnInit {
   }
 
   get canCreate(): boolean {
-    return this.authService.hasPermission('customer_create');
+    return this.authService.hasPermission('customer.create');
   }
 
   get canEdit(): boolean {
-    return this.authService.hasPermission('customer_edit');
+    return this.authService.hasPermission('customer.edit');
   }
 
   get canActive(): boolean {
-    return this.authService.hasPermission('customer_active');
+    return this.authService.hasPermission('customer.active');
   }
 
   get canApproveRetailer(): boolean {
-    return this.authService.hasPermission('retailer_approve');
+    return this.authService.hasPermission('customer.approve');
   }
 
   get canRejectRetailer(): boolean {
-    return this.authService.hasPermission('retailer_reject');
+    return this.authService.hasPermission('customer.reject');
   }
 
   get canMarkRetailerPending(): boolean {
-    return this.authService.hasPermission('retailer_pending');
+    return this.authService.hasPermission('customer.pending');
   }
 
   get canDelete(): boolean {
-    return this.authService.hasPermission('customer_delete');
+    return this.authService.hasPermission('customer.delete');
   }
 
   get canShow(): boolean {
-    return this.authService.hasPermission('customer_show');
+    return this.authService.hasPermission('customer.detail');
   }
 
   get canUpload(): boolean {
-    return this.authService.hasPermission('customer_upload');
+    return this.authService.hasPermission('customer.import');
   }
 
   get canDownload(): boolean {
-    return this.authService.hasAnyPermission(['customer_download', 'customers_report']);
+    return this.authService.hasAnyPermission(['customer.export', 'customer.export']);
   }
 
   get canTemplate(): boolean {
-    return this.authService.hasPermission('customer_template');
+    return this.authService.hasPermission('customer.template');
   }
 
   loadCustomers(): void {
@@ -328,23 +328,14 @@ export class CustomersComponent implements OnInit {
   }
 
   loadBeats(): void {
-    this.beatService.list('', 1, 200).subscribe({
-      next: result => {
-        const remainingPages = Array.from(
-          { length: Math.max(0, Math.ceil(result.total / result.pageSize) - 1) },
-          (_, index) => this.beatService.list('', index + 2, 200)
-        );
-        const setOptions = (beats: BeatRow[]) => {
-          this.beatOptions = beats
-            .map(beat => ({ id: beat.id, label: beat.beatName }))
-            .sort((first, second) => first.label.localeCompare(second.label));
-          this.refreshView();
-        };
-        if (remainingPages.length === 0) return setOptions(result);
-        forkJoin(remainingPages).subscribe({
-          next: pages => setOptions([...result, ...pages.flatMap(page => [...page])]),
-          error: error => this.showToast(error.message, 'error')
-        });
+    // The filter needs beat names only, and the people who read the customer list do not
+    // hold beat-master permission, so this reads the ungated names route.
+    this.beatService.names().subscribe({
+      next: beats => {
+        this.beatOptions = beats
+          .map(beat => ({ id: beat.id, label: beat.name }))
+          .sort((first, second) => first.label.localeCompare(second.label));
+        this.refreshView();
       },
       error: error => this.showToast(error.message, 'error')
     });

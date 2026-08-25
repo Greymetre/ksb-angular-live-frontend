@@ -10,6 +10,14 @@ export interface Permission {
   id: number;
   name: string;
   guard_name: string;
+  /** Catalog metadata: what to call it, and where it sits in the role matrix. */
+  label: string;
+  group_key: string;
+  group_label: string;
+  module_key: string;
+  module_label: string;
+  action_key: string;
+  sort_order: number;
 }
 
 export interface Role {
@@ -18,6 +26,8 @@ export interface Role {
   guard_name: string;
   created_at?: string | null;
   updated_at?: string | null;
+  /** Users currently assigned this role. A role in use cannot be deleted. */
+  user_count: number;
   permissions: Permission[];
 }
 
@@ -67,6 +77,15 @@ export class RoleService {
       params
     }).pipe(
       map(response => this.readPermissions(response)),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  getRole(roleId: number): Observable<Role> {
+    return this.http.get<RoleApiResponse>(`${this.baseUrl}/roles/${roleId}`, {
+      headers: this.authHeaders()
+    }).pipe(
+      map(response => this.requireRole(response)),
       catchError(error => this.handleError(error))
     );
   }
@@ -153,17 +172,26 @@ export class RoleService {
       guard_name: this.readString(row['guard_name'] ?? row['guardName'] ?? row['GuardName']) || 'users',
       created_at: this.readNullableString(row['created_at'] ?? row['createdAt'] ?? row['CreatedAt']),
       updated_at: this.readNullableString(row['updated_at'] ?? row['updatedAt'] ?? row['UpdatedAt']),
+      user_count: this.readNumber(row['user_count'] ?? row['userCount'] ?? row['UserCount']),
       permissions
     };
   }
 
   private normalizePermission(value: unknown): Permission {
     const row = this.asRecord(value);
+    const name = this.readString(row['name'] ?? row['Name']);
 
     return {
       id: this.readNumber(row['id'] ?? row['Id']),
-      name: this.readString(row['name'] ?? row['Name']),
-      guard_name: this.readString(row['guard_name'] ?? row['guardName'] ?? row['GuardName']) || 'users'
+      name,
+      guard_name: this.readString(row['guard_name'] ?? row['guardName'] ?? row['GuardName']) || 'users',
+      label: this.readString(row['label'] ?? row['Label']) || name,
+      group_key: this.readString(row['group_key'] ?? row['groupKey'] ?? row['GroupKey']),
+      group_label: this.readString(row['group_label'] ?? row['groupLabel'] ?? row['GroupLabel']),
+      module_key: this.readString(row['module_key'] ?? row['moduleKey'] ?? row['ModuleKey']),
+      module_label: this.readString(row['module_label'] ?? row['moduleLabel'] ?? row['ModuleLabel']),
+      action_key: this.readString(row['action_key'] ?? row['actionKey'] ?? row['ActionKey']),
+      sort_order: this.readNumber(row['sort_order'] ?? row['sortOrder'] ?? row['SortOrder'])
     };
   }
 

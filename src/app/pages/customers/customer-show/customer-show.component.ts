@@ -88,7 +88,7 @@ export class CustomerShowComponent implements OnInit {
     'bank_kyc_status', 'bank_kyc_remark', 'bank_kyc_action_by', 'bank_kyc_action_by_name', 'bank_kyc_action_at'
   ]);
 
-  readonly tabs: TabItem[] = [
+  private readonly allTabs: TabItem[] = [
     { id: 'details', label: 'Details', icon: 'preview' },
     { id: 'orders', label: 'Orders', icon: 'add_shopping_cart' },
     { id: 'sales', label: 'Sales', icon: 'shopping_bag' },
@@ -98,6 +98,22 @@ export class CustomerShowComponent implements OnInit {
     { id: 'transaction', label: 'Transaction', icon: 'payment' },
     { id: 'redemption', label: 'Redemption', icon: 'account_balance_wallet' }
   ];
+
+  /** Transaction and Redemption read another module's listing, so they are offered only
+   *  to someone allowed to see that module. The rest is customer data. */
+  get tabs(): TabItem[] {
+    return this.allTabs.filter(tab =>
+      (tab.id !== 'transaction' || this.canSeeTransactions)
+      && (tab.id !== 'redemption' || this.canSeeRedemptions));
+  }
+
+  get canSeeTransactions(): boolean {
+    return this.authService.hasPermission('invoice_transaction.view');
+  }
+
+  get canSeeRedemptions(): boolean {
+    return this.authService.hasPermission('redemption.view');
+  }
 
   constructor(
     private route: ActivatedRoute,
@@ -229,7 +245,7 @@ export class CustomerShowComponent implements OnInit {
   }
 
   get canApproveKyc(): boolean {
-    return this.authService.hasPermission('customer_kyc_access');
+    return this.authService.hasPermission('customer.kyc_review');
   }
 
   get customRows(): InfoRow[] {
@@ -259,8 +275,8 @@ export class CustomerShowComponent implements OnInit {
     ).subscribe({
       next: customer => {
         this.customer = customer;
-        this.loadTransactions();
-        this.loadRedemptions();
+        if (this.canSeeTransactions) this.loadTransactions();
+        if (this.canSeeRedemptions) this.loadRedemptions();
         this.refreshView();
       },
       error: error => {

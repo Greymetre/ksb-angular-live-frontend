@@ -21,8 +21,8 @@ export class UserMonitoringComponent implements OnInit {
   constructor(private http:HttpClient,private route:ActivatedRoute,private auth:AuthService,private sanitizer:DomSanitizer,private cdr:ChangeDetectorRef){}
   ngOnInit(){this.mode=this.route.snapshot.data['mode']||'apps';this.options();if(this.mode==='apps')this.load();}
   headers(){const token=this.auth.getToken();return token?new HttpHeaders({Authorization:`Bearer ${token}`}):new HttpHeaders();}
-  get canForceLogout(){return this.auth.hasPermission('user_app_force_logout');}
-  get canResetUuid(){return this.auth.hasPermission('user_app_uuid_reset');}
+  get canForceLogout(){return this.auth.hasPermission('user_app.force_logout');}
+  get canResetUuid(){return this.auth.hasPermission('user_app.reset_device');}
   canLogoutRow(row:any){return row?.login_status==='1'&&this.canForceLogout;}
   canResetUuidRow(row:any){return !!row?.unique_id&&this.canResetUuid;}
   options(){

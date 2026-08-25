@@ -61,7 +61,7 @@
           </td>
           <td>
             <label class="toggle-switch">
-              <input type="checkbox" [checked]="item.active === 'Y'" (change)="toggleActive(item, $event)" [disabled]="!canEdit"/>
+              <input type="checkbox" [checked]="item.active === 'Y'" (change)="toggleActive(item, $event)" [disabled]="!canActive"/>
               <span class="slider"></span>
             </label>
           </td>

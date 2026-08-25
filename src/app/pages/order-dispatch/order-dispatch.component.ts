@@ -28,7 +28,7 @@ export class OrderDispatchComponent implements OnInit {
   invoiceAttachment: File | null = null;
   private routeLoadVersion = 0;
   constructor(private route: ActivatedRoute, private router: Router, private service: OrderService, private invoiceService: NewInvoiceService, private auth: AuthService, private cdr: ChangeDetectorRef) {}
-  get canShow(): boolean { return this.auth.hasPermission('sale_show'); }
+  get canShow(): boolean { return this.auth.hasPermission('order_dispatch.detail'); }
   ngOnInit(): void {
     this.syncRouteAndLoad();
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe(() => this.syncRouteAndLoad());

@@ -33,6 +33,8 @@ export class AuthService {
   private readonly permissionSchemaKey = 'netproject_permission_schema';
   private readonly permissionSchemaVersion = 'role-only-v1';
   private permissionRefresh$?: Observable<LoginUserInfo>;
+  private permissionRefreshAt = 0;
+  private static readonly permissionRefreshTtlMs = 60_000;
   private readonly profileImageSubject = new BehaviorSubject<string>(this.readStoredProfileImage());
 
   /** Emits the signed-in user's profile image path so the header updates live. */
@@ -96,8 +98,22 @@ export class AuthService {
     }
   }
 
+  /** Drops the cached profile so the next guarded navigation re-reads the permissions.
+   *  Called after a role is saved, so an admin editing their own role sees the effect
+   *  without signing out. */
+  invalidatePermissions(): void {
+    this.permissionRefresh$ = undefined;
+    this.permissionRefreshAt = 0;
+  }
+
   refreshCurrentUser(): Observable<LoginUserInfo> {
-    if (this.permissionRefresh$) return this.permissionRefresh$;
+    // The profile used to be cached for the whole session, so a permission granted or
+    // taken away only reached the user after a full reload. It is now re-read once the
+    // cache is older than permissionRefreshTtlMs; concurrent navigations still share
+    // one request.
+    if (this.permissionRefresh$ && Date.now() - this.permissionRefreshAt < AuthService.permissionRefreshTtlMs) {
+      return this.permissionRefresh$;
+    }
 
     const token = this.getToken();
     const current = this.getCurrentUser();
@@ -106,6 +122,7 @@ export class AuthService {
     }
 
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    this.permissionRefreshAt = Date.now();
     this.permissionRefresh$ = this.http.get<LoginResponse>(`${API_BASE_URL}/getProfile`, { headers }).pipe(
       map(response => {
         if (response.status !== 'success' || !response.userinfo) {
@@ -120,6 +137,10 @@ export class AuthService {
         };
         localStorage.setItem(this.userKey, JSON.stringify(refreshed));
         return refreshed;
+      }),
+      catchError(error => {
+        this.invalidatePermissions();
+        return throwError(() => error);
       }),
       shareReplay(1)
     );

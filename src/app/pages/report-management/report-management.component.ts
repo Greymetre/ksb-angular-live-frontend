@@ -39,6 +39,19 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   activityView: 'sales'|'distributor'|'gifts' = 'sales';
   previewLoading = false;
   constructor(private route: ActivatedRoute, private service: ReportManagementService, public auth: AuthService, private cdr: ChangeDetectorRef) {}
+
+  /** Market intelligence is the report behind the standard layout, and its download is a
+   *  permission of its own. Any other report using this layout keeps its own view gate. */
+  /** Retailer and dealer performance are separate reports with separate exports. */
+  get canDownloadProductivity(): boolean {
+    return this.auth.hasPermission(this.mode === 'dealer'
+      ? 'dealer_performance_report.export'
+      : 'retailer_performance_report.export');
+  }
+
+  get canDownloadStandardReport(): boolean {
+    return this.mode !== 'market' || this.auth.hasPermission('market_intelligence_report.export');
+  }
   ngOnInit(): void { this.route.data.subscribe(data => { this.mode = data['reportMode'] || 'asr'; this.showRatingFilters = false; this.mode === 'asr' ? this.loadAsrOptions() : this.mode === 'rating' ? this.loadRatingOptions() : (this.mode === 'retailer' || this.mode === 'dealer') ? this.loadProductivityOptions() : this.mode === 'activity' ? this.loadActivityOptions() : this.load(); }); }
   ngOnDestroy(): void { if (this.ratingSearchTimer) clearTimeout(this.ratingSearchTimer); }
   @HostListener('document:keydown.escape') closeRatingDetailsOnEscape(): void { this.closeRatingDetails(); }

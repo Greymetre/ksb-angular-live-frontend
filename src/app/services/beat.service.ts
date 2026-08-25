@@ -16,6 +16,9 @@ export interface BeatPayload { beatName:string; description:string; active:strin
 export class BeatService {
   constructor(private http:HttpClient, private auth:AuthService) {}
   list(search='',page=1,pageSize=10):Observable<PagedArray<BeatRow>> { let params=new HttpParams().set('page',page).set('page_size',pageSize); if(search) params=params.set('search',search); return this.http.get<any>(`${API_BASE_URL}/beats`,{headers:this.headers(),params}).pipe(map(r=>asPagedArray(this.array(r?.beats).map((x:any)=>this.row(x)),r,page,pageSize)),catchError(e=>this.error(e))); }
+  /** Beat names for a filter dropdown. Carries no beat permission, so a screen that only
+   *  filters by beat - the Customers list - works without beat-master access. */
+  names(search=''):Observable<BeatOption[]> { let params=new HttpParams(); if(search) params=params.set('search',search); return this.http.get<any>(`${API_BASE_URL}/beats/names`,{headers:this.headers(),params}).pipe(map(r=>this.optionsOf(r?.beats)),catchError(e=>this.error(e))); }
   options():Observable<BeatOptions> { return this.http.get<any>(`${API_BASE_URL}/beats/options`,{headers:this.headers()}).pipe(map(r=>({users:this.optionsOf(r?.users),customers:this.optionsOf(r?.customers),cities:this.optionsOf(r?.cities)})),catchError(e=>this.error(e))); }
   get(id:number):Observable<BeatDetail> { return this.http.get<any>(`${API_BASE_URL}/beats/${id}`,{headers:this.headers()}).pipe(map(r=>({beat:this.row(r.beat),userIds:this.nums(r.user_ids??r.userIds),customerIds:this.nums(r.customer_ids??r.customerIds),schedules:this.array(r.schedules).map((x:any)=>({id:+(x.id??0),userId:+(x.user_id??x.userId??0),beatDate:String(x.beat_date??x.beatDate??'').slice(0,10),active:x.active}))})),catchError(e=>this.error(e))); }
   create(p:BeatPayload){ return this.action(this.http.post<any>(`${API_BASE_URL}/beats`,this.payload(p),{headers:this.headers()})); }

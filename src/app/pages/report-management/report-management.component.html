@@ -27,7 +27,7 @@
     </label>
     <label><span class="field-label">Start Date <span class="required">*</span></span><input type="date" [(ngModel)]="startDate" name="startDate" required></label>
     <label><span class="field-label">End Date <span class="required">*</span></span><input type="date" [(ngModel)]="endDate" name="endDate" required></label>
-    <div class="download-wrap"><button class="primary" type="submit" [disabled]="loading"><span class="material-icons">download</span>{{ loading ? 'Preparing...' : 'Download Report' }}</button></div>
+    <div class="download-wrap"><button class="primary" type="submit" *ngIf="auth.hasPermission('asr_performance_report.export')" [disabled]="loading"><span class="material-icons">download</span>{{ loading ? 'Preparing...' : 'Download Report' }}</button></div>
   </form>
   <div class="error" *ngIf="error">{{error}}</div>
 </section>
@@ -59,7 +59,7 @@
     <div class="download-wrap rating-filter-actions">
       <button class="secondary-action" type="button" (click)="clearRatingFilters()" [disabled]="ratingDashboardLoading">Clear</button>
       <button class="primary apply-rating" type="submit" [disabled]="ratingDashboardLoading"><span class="material-icons">check</span>{{ratingDashboardLoading ? 'Applying...' : 'Apply Filters'}}</button>
-      <button class="primary" type="button" (click)="downloadRating()" [disabled]="loading"><span class="material-icons">download</span>{{loading ? 'Preparing...' : 'Download Excel Report'}}</button>
+      <button class="primary" type="button" *ngIf="auth.hasPermission('rating_report.export')" (click)="downloadRating()" [disabled]="loading"><span class="material-icons">download</span>{{loading ? 'Preparing...' : 'Download Excel Report'}}</button>
     </div>
   </form>
   <div class="error" *ngIf="error">{{error}}</div>
@@ -208,9 +208,9 @@
       <select [(ngModel)]="meet" name="activityMeet" (ngModelChange)="activityFilterChanged()" required><option *ngFor="let item of activityOptions.meets" [value]="item.id">{{item.name}}</option></select>
     </label>
     <div class="activity-downloads">
-      <button type="button" class="primary" *ngIf="auth.hasPermission('activity_report_sales_engineer_download')" (click)="downloadActivity('sales-engineer')" [disabled]="loading"><span class="material-icons">download</span>Sales Engineer Wise</button>
-      <button type="button" class="primary" *ngIf="auth.hasPermission('activity_report_distributor_download')" (click)="downloadActivity('distributor')" [disabled]="loading"><span class="material-icons">download</span>Distributor Wise</button>
-      <button type="button" class="primary" *ngIf="auth.hasPermission('activity_report_gift_summary_download')" (click)="downloadActivity('gift-summary')" [disabled]="loading"><span class="material-icons">download</span>Gift Summary</button>
+      <button type="button" class="primary" *ngIf="auth.hasPermission('activity_report.export_sales_engineer')" (click)="downloadActivity('sales-engineer')" [disabled]="loading"><span class="material-icons">download</span>Sales Engineer Wise</button>
+      <button type="button" class="primary" *ngIf="auth.hasPermission('activity_report.export_distributor')" (click)="downloadActivity('distributor')" [disabled]="loading"><span class="material-icons">download</span>Distributor Wise</button>
+      <button type="button" class="primary" *ngIf="auth.hasPermission('activity_report.export_gift_summary')" (click)="downloadActivity('gift-summary')" [disabled]="loading"><span class="material-icons">download</span>Gift Summary</button>
     </div>
   </form>
   <div class="error" *ngIf="error">{{error}}</div>
@@ -258,14 +258,14 @@
     <label *ngIf="mode === 'dealer'">Branch
       <select [(ngModel)]="branchId" name="productivityBranchId"><option [ngValue]="null">All Branches</option><option *ngFor="let item of asrOptions.branches" [ngValue]="item.id">{{item.name}}</option></select>
     </label>
-    <div class="download-wrap"><button class="primary" type="submit" [disabled]="loading"><span class="material-icons">download</span>{{loading ? 'Preparing...' : 'Download Excel Report'}}</button></div>
+    <div class="download-wrap"><button class="primary" type="submit" *ngIf="canDownloadProductivity" [disabled]="loading"><span class="material-icons">download</span>{{loading ? 'Preparing...' : 'Download Excel Report'}}</button></div>
   </form>
   <div class="error" *ngIf="error">{{error}}</div>
 </section>
 
 <ng-template #standardReport>
   <ng-container *ngIf="!isProductivity && mode !== 'rating' && mode !== 'activity'">
-  <section class="page"><header><div><h1>{{title}}</h1><p>Reporting hierarchy based live report from migrated SQL Server data.</p></div><button class="primary" (click)="download()" [disabled]="!visibleRows.length"><span class="material-icons">download</span>Download</button></header>
+  <section class="page"><header><div><h1>{{title}}</h1><p>Reporting hierarchy based live report from migrated SQL Server data.</p></div><button class="primary" *ngIf="canDownloadStandardReport" (click)="download()" [disabled]="!visibleRows.length"><span class="material-icons">download</span>Download</button></header>
   <div class="summary" *ngIf="summary"><div *ngFor="let item of summary | keyvalue"><small>{{label(item.key)}}</small><strong>{{display(item.value)}}</strong></div></div>
   <div class="filters"><label>Zone<input [(ngModel)]="zone" placeholder="All zones"></label><label>Branch<input [(ngModel)]="branch" placeholder="All branches"></label><label>Search<input [(ngModel)]="search" placeholder="Search report"></label><button (click)="load()">Apply</button><button (click)="zone='';branch='';search='';load()">Clear</button></div>
   <div class="error" *ngIf="error">{{error}}</div><div class="table-wrap"><table><thead><tr><th>#</th><th *ngFor="let column of columns">{{label(column)}}</th></tr></thead><tbody><tr *ngFor="let row of visibleRows;let i=index"><td>{{i+1}}</td><td *ngFor="let column of columns">{{display(row[column])}}</td></tr><tr *ngIf="loading"><td [attr.colspan]="columns.length+1" class="empty">Loading report...</td></tr><tr *ngIf="!loading&&!visibleRows.length"><td [attr.colspan]="columns.length+1" class="empty">No report records found.</td></tr></tbody></table></div></section>

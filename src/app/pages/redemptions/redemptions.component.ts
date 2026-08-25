@@ -68,7 +68,7 @@ export class RedemptionsComponent implements OnInit {
   }
 
   get canExport(): boolean {
-    return this.authService.hasPermission('redemption_download');
+    return this.authService.hasPermission('redemption.export');
   }
 
   get availableSchemes(): RedemptionSchemeOption[] {

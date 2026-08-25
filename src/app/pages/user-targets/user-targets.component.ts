@@ -78,27 +78,27 @@ export class UserTargetsComponent implements OnInit {
   }
 
   get canCreate(): boolean {
-    return this.authService.hasPermission('target_users_access_create');
+    return this.authService.hasPermission('user_target.create');
   }
 
   get canEdit(): boolean {
-    return this.authService.hasPermission('target_users_access_edit');
+    return this.authService.hasPermission('user_target.edit');
   }
 
   get canDelete(): boolean {
-    return this.authService.hasPermission('target_users_access_delete');
+    return this.authService.hasPermission('user_target.delete');
   }
 
   get canUpload(): boolean {
-    return this.authService.hasPermission('sales_target_users_upload');
+    return this.authService.hasPermission('user_target.import');
   }
 
   get canExport(): boolean {
-    return this.authService.hasPermission('sales_target_users_download');
+    return this.authService.hasPermission('user_target.export');
   }
 
   get canTemplate(): boolean {
-    return this.authService.hasPermission('sales_target_users_template');
+    return this.authService.hasPermission('user_target.template');
   }
 
   loadTargets(): void {

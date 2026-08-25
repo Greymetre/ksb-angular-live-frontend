@@ -30,9 +30,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   /// One tab per dashboard. A tab is only offered when the role holds its
   /// permission, and each tab loads the first time it is opened.
   private static readonly AllTabs: TabDefinition[] = [
-    { key: 'secondary', label: 'Secondary Sale', icon: 'insights', permission: 'dashboard_secondary' },
-    { key: 'loyalty', label: 'Loyalty', icon: 'loyalty', permission: 'dashboard_loyalty' },
-    { key: 'activity', label: 'Activity', icon: 'directions_walk', permission: 'dashboard_activity' }
+    { key: 'secondary', label: 'Secondary Sale', icon: 'insights', permission: 'dashboard.secondary_sales' },
+    { key: 'loyalty', label: 'Loyalty', icon: 'loyalty', permission: 'dashboard.loyalty' },
+    { key: 'activity', label: 'Activity', icon: 'directions_walk', permission: 'dashboard.activity' }
   ];
   tabs: TabDefinition[] = [];
   activeTab: DashboardTab = 'secondary';

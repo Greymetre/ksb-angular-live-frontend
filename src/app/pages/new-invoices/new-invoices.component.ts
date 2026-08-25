@@ -275,20 +275,20 @@ export class NewInvoicesComponent implements OnInit {
   }
 
   get canCreate(): boolean {
-    return this.authService.hasPermission('new_invoice_create');
+    return this.authService.hasPermission('invoice_transaction.create');
   }
 
 
   get canAccess(): boolean {
-    return this.authService.hasPermission('new_invoice_access');
+    return this.authService.hasPermission('invoice_transaction.view');
   }
 
   get canEdit(): boolean {
-    return this.authService.hasPermission('new_invoice_edit');
+    return this.authService.hasPermission('invoice_transaction.edit');
   }
 
   get canDelete(): boolean {
-    return this.authService.hasPermission('new_invoice_delete');
+    return this.authService.hasPermission('invoice_transaction.delete');
   }
 
   /**
@@ -300,19 +300,19 @@ export class NewInvoicesComponent implements OnInit {
   }
 
   get canApproveSs(): boolean {
-    return this.authService.hasPermission('new_invoice_approve_ss');
+    return this.authService.hasPermission('invoice_transaction.approve_ss');
   }
 
   get canApproveSales(): boolean {
-    return this.authService.hasPermission('new_invoice_approve_sales');
+    return this.authService.hasPermission('invoice_transaction.approve_sales');
   }
 
   get canApproveHo(): boolean {
-    return this.authService.hasPermission('new_invoice_approve_ho');
+    return this.authService.hasPermission('invoice_transaction.approve_ho');
   }
 
   get canHold(): boolean {
-    return this.authService.hasPermission('new_invoice_hold');
+    return this.authService.hasPermission('invoice_transaction.hold');
   }
 
   /** A pending or held invoice can still be corrected; anything approved cannot. */
@@ -321,11 +321,11 @@ export class NewInvoicesComponent implements OnInit {
   }
 
   get canReject(): boolean {
-    return this.authService.hasPermission('new_invoice_reject');
+    return this.authService.hasPermission('invoice_transaction.reject');
   }
 
   get canExport(): boolean {
-    return this.authService.hasPermission('new_invoice_export');
+    return this.authService.hasPermission('invoice_transaction.export');
   }
 
   loadInvoices(resetPage = true): void {

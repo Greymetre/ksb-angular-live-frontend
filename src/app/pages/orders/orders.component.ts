@@ -102,27 +102,27 @@ export class OrdersComponent implements OnInit {
   }
 
   get canCreate(): boolean {
-    return this.authService.hasPermission('order_create');
+    return this.authService.hasPermission('order.create');
   }
 
   get canEdit(): boolean {
-    return this.authService.hasPermission('order_edit');
+    return this.authService.hasPermission('order.edit');
   }
 
   get canShow(): boolean {
-    return this.authService.hasPermission('order_show');
+    return this.authService.hasPermission('order.detail');
   }
 
   get canDelete(): boolean {
-    return this.authService.hasPermission('order_delete');
+    return this.authService.hasPermission('order.delete');
   }
 
   get canPending(): boolean {
-    return this.authService.hasPermission('pendding_orders') || this.authService.hasPermission('order_edit');
+    return this.authService.hasPermission('order.edit');
   }
 
   get canExport(): boolean {
-    return this.authService.hasPermission('order_download');
+    return this.authService.hasPermission('order.export');
   }
 
   cancelledQty(detail: OrderDetail): number {
@@ -460,11 +460,11 @@ export class OrdersComponent implements OnInit {
   }
 
   canDispatch(order: Order | null): boolean {
-    return this.authService.hasPermission('order_dispatch') && !!order && order.statusId !== 1 && order.statusId !== 4;
+    return this.authService.hasPermission('order.dispatch') && !!order && order.statusId !== 1 && order.statusId !== 4;
   }
 
   canCancel(order: Order | null): boolean {
-    return this.authService.hasPermission('order_edit') && !!order && order.statusId !== 1 && order.statusId !== 4;
+    return this.authService.hasPermission('order.edit') && !!order && order.statusId !== 1 && order.statusId !== 4;
   }
 
   openDispatch(mode: 'full' | 'partial'): void {

@@ -138,31 +138,31 @@ export class UsersComponent implements OnInit {
   }
 
   get canCreate(): boolean {
-    return this.authService.hasPermission('user_create');
+    return this.authService.hasPermission('user.create');
   }
 
   get canEdit(): boolean {
-    return this.authService.hasPermission('user_edit');
+    return this.authService.hasPermission('user.edit');
   }
 
   get canDelete(): boolean {
-    return this.authService.hasPermission('user_delete');
+    return this.authService.hasPermission('user.delete');
   }
 
   get canChangeStatus(): boolean {
-    return this.authService.hasPermission('user_active');
+    return this.authService.hasPermission('user.active');
   }
 
   get canExport(): boolean {
-    return this.authService.hasPermission('user_download');
+    return this.authService.hasPermission('user.export');
   }
 
   get canTemplate(): boolean {
-    return this.authService.hasPermission('user_template');
+    return this.authService.hasPermission('user.template');
   }
 
   get canUpload(): boolean {
-    return this.authService.hasPermission('user_upload');
+    return this.authService.hasPermission('user.import');
   }
 
   get citySelectOptions(): SearchableSelectOption[] {
