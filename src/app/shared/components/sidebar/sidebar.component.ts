@@ -43,13 +43,14 @@ export class SidebarComponent {
     //     { label: 'Visit Report', icon: 'diamond', permission: 'lead_visit_access' }
     //   ]
     // },
-    // {
-    //   label: 'Customer Management',
-    //   icon: 'store',
-    //   children: [
-    //   ]
-    // },
-    { label: 'Customers Management', icon: 'transcribe', route: '/customers', permission: 'customer.view' },
+    {
+      label: 'Customers Management',
+      icon: 'transcribe',
+      children: [
+        { label: 'Master', icon: 'diversity_3', route: '/customers', permission: 'customer.view' },
+        { label: 'KYC', icon: 'badge', route: '/customer-kyc', permission: 'customer_kyc.view' }
+      ]
+    },
     {
       label: 'Address Management',
       icon: 'contact_mail',

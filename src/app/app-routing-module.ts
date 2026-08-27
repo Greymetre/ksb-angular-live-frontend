@@ -10,6 +10,7 @@ import { RoleEditorComponent } from './pages/role-editor/role-editor.component';
 import { UsersComponent } from './pages/users/users.component';
 import { CustomersComponent } from './pages/customers/customers.component';
 import { CustomerShowComponent } from './pages/customers/customer-show/customer-show.component';
+import { CustomerKycComponent } from './pages/customer-kyc/customer-kyc.component';
 import { LoyaltySchemesComponent } from './pages/loyalty-schemes/loyalty-schemes.component';
 import { NewInvoicesComponent } from './pages/new-invoices/new-invoices.component';
 import { RedemptionsComponent } from './pages/redemptions/redemptions.component';
@@ -60,6 +61,9 @@ const routes: Routes = [
       { path: 'users', component: UsersComponent, canActivate: [authGuard], data: { permission: 'user.view' } },
       { path: 'customers', component: CustomersComponent, canActivate: [authGuard], data: { permission: 'customer.view' } },
       { path: 'reports/customer-master', component: CustomersComponent, canActivate: [authGuard], data: { permission: 'customer.export' } },
+      // KYC is a sibling menu of the customer list, not a customer route: /customers/:id
+      // would swallow it as an id.
+      { path: 'customer-kyc', component: CustomerKycComponent, canActivate: [authGuard], data: { permission: 'customer_kyc.view' } },
       { path: 'customers/:id', component: CustomerShowComponent, canActivate: [authGuard], data: { permission: 'customer.view' } },
       { path: 'new-invoices', component: NewInvoicesComponent, canActivate: [authGuard], data: { permission: 'invoice_transaction.view' } },
       { path: 'new-invoices/:id', component: NewInvoicesComponent, canActivate: [authGuard], data: { permission: 'invoice_transaction.detail' } },

@@ -132,6 +132,13 @@ export class CustomerShowComponent implements OnInit {
       this.errorMessage = 'Customer not found.';
       return;
     }
+    // The KYC listing links straight to the tab it is about, so the reviewer lands on
+    // the documents rather than on the details tab with a click still to make.
+    const requestedTab = (this.route.snapshot.queryParamMap.get('tab') || '').toLowerCase();
+    if (requestedTab && this.allTabs.some(tab => tab.id === requestedTab)) {
+      this.activeTab = requestedTab;
+    }
+
     this.loadCustomer(id);
     this.loadLookupOptions();
   }

@@ -1,0 +1,259 @@
+<div class="kyc-page">
+  <div class="page-heading">
+    <div class="page-icon"><span class="material-icons">badge</span></div>
+    <h2 class="page-title">Customer KYC</h2>
+    <button type="button" class="filter-toggle-btn" [class.active]="showFilters" title="Filters" (click)="showFilters = !showFilters">
+      <span class="material-icons">filter_alt</span>
+    </button>
+  </div>
+
+  <div class="filter-card" *ngIf="showFilters">
+    <div class="filter-grid">
+      <div class="filter-field">
+        <label>Search</label>
+        <input type="text" [(ngModel)]="filter.search" (ngModelChange)="scheduleSearch()" placeholder="Name, firm, mobile or code" />
+      </div>
+      <div class="filter-field">
+        <label>Customer Type</label>
+        <app-searchable-select [options]="customerTypeOptions" [selected]="filter.customer_type"
+          placeholder="All Customer Types"
+          (selectedChange)="filter.customer_type = $event ? +$event : null; resetPage()"></app-searchable-select>
+      </div>
+      <div class="filter-field">
+        <label>Dealer</label>
+        <app-searchable-select [options]="dealerOptions" [selected]="filter.dealer_id"
+          placeholder="All Dealers"
+          (selectedChange)="filter.dealer_id = $event ? +$event : null; resetPage()"></app-searchable-select>
+      </div>
+      <div class="filter-field">
+        <label>KYC Status</label>
+        <app-searchable-select [options]="kycStatusOptions" [selected]="filter.kyc_status"
+          placeholder="All Statuses"
+          (selectedChange)="filter.kyc_status = $event ? $event.toString() : null; resetPage()"></app-searchable-select>
+      </div>
+      <div class="filter-field filter-actions">
+        <button type="button" class="btn-clear" (click)="clearFilters()">
+          <span class="material-icons">restart_alt</span> Clear
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- The tiles are a filter of their own, and they count whatever the filters above have
+       narrowed the list to - pick a dealer and every number is that dealer's. -->
+  <div class="summary-row">
+    <button type="button" class="summary-tile total" [class.selected]="!filter.kyc_status" (click)="applyStatusTile(null)">
+      <span class="tile-icon material-icons">groups</span>
+      <span class="tile-body">
+        <span class="tile-value">{{ summary.totalCustomers | number }}</span>
+        <span class="tile-label">{{ selectedDealerName ? 'Retailers of ' + selectedDealerName : 'Customers' }}</span>
+      </span>
+    </button>
+    <button type="button" class="summary-tile approved" [class.selected]="filter.kyc_status === 'approved'" (click)="applyStatusTile('approved')">
+      <span class="tile-icon material-icons">verified</span>
+      <span class="tile-body">
+        <span class="tile-value">{{ summary.approved | number }}</span>
+        <span class="tile-label">Fully Approved</span>
+      </span>
+    </button>
+    <button type="button" class="summary-tile pending" [class.selected]="filter.kyc_status === 'complete_pending'" (click)="applyStatusTile('complete_pending')">
+      <span class="tile-icon material-icons">pending_actions</span>
+      <span class="tile-body">
+        <span class="tile-value">{{ summary.completePending | number }}</span>
+        <span class="tile-label">Awaiting Review</span>
+      </span>
+    </button>
+    <button type="button" class="summary-tile partial" [class.selected]="filter.kyc_status === 'partial'" (click)="applyStatusTile('partial')">
+      <span class="tile-icon material-icons">hourglass_bottom</span>
+      <span class="tile-body">
+        <span class="tile-value">{{ summary.partial | number }}</span>
+        <span class="tile-label">Partly Submitted</span>
+      </span>
+    </button>
+    <button type="button" class="summary-tile none" [class.selected]="filter.kyc_status === 'none'" (click)="applyStatusTile('none')">
+      <span class="tile-icon material-icons">do_not_disturb_on</span>
+      <span class="tile-body">
+        <span class="tile-value">{{ summary.notStarted | number }}</span>
+        <span class="tile-label">Not Started</span>
+      </span>
+    </button>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <label>Show
+        <select [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input">
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option>
+          <option [ngValue]="100">100</option>
+        </select> entries</label>
+    </div>
+    <div class="toolbar-right">
+      <span class="legend">
+        <span class="legend-item"><span class="material-icons">description</span> Document</span>
+        <span class="legend-item"><span class="material-icons">pin</span> Details</span>
+        <span class="legend-item"><span class="legend-dot approved"></span> Approved</span>
+        <span class="legend-item"><span class="legend-dot rejected"></span> Rejected</span>
+        <span class="legend-item"><span class="legend-dot pending"></span> Pending</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading KYC status...</div>
+    <div class="table-scroll">
+      <table class="data-table kyc-table">
+        <thead>
+          <tr>
+            <th class="col-no">No</th>
+            <th class="col-customer">Customer</th>
+            <th class="col-dealer">Dealer</th>
+            <th>Type</th>
+            <th>Mobile</th>
+            <th class="col-doc" *ngFor="let column of documentColumns">{{ column.label }}</th>
+            <th class="col-progress">Approved</th>
+            <th class="col-stage">Status</th>
+            <th>Last Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let customer of customers; let index = index">
+            <td class="col-no">{{ pageStart + index + 1 }}</td>
+            <td class="col-customer">
+              <button type="button" class="link-cell name-cell" (click)="openKyc(customer)" title="Open KYC for this customer">
+                {{ customer.ownerName || '-' }}
+              </button>
+              <small>{{ customer.firmName }}</small>
+            </td>
+            <td class="col-dealer">{{ customer.dealerName || '-' }}</td>
+            <td><span class="type-chip">{{ customer.customerTypeName || '-' }}</span></td>
+            <td>{{ customer.mobile || '-' }}</td>
+
+            <td class="col-doc" *ngFor="let column of documentColumns">
+              <ng-container *ngIf="documentFor(customer, column.key) as document">
+                <button type="button" class="doc-box" [ngClass]="documentState(document)"
+                  [title]="documentHint(document, column.detailLabel)"
+                  (click)="openDocument(customer, document)">
+                  <div class="doc-checks">
+                    <span class="check" [class.on]="document.uploaded"
+                      [title]="document.uploaded ? 'Document uploaded' : 'Document not uploaded'">
+                      <span class="material-icons">description</span>
+                    </span>
+                    <span class="check" [class.on]="document.detailsFilled"
+                      [title]="detailTitle(document, column.detailLabel)">
+                      <span class="material-icons">pin</span>
+                    </span>
+                  </div>
+                  <span class="doc-status">{{ documentStateLabel(document) }}</span>
+                </button>
+              </ng-container>
+            </td>
+
+            <td class="col-progress">
+              <div class="progress-value">{{ customer.approvedCount }}/{{ customer.documentCount }}</div>
+              <div class="progress-track"><span class="progress-fill" [style.width.%]="progressPercent(customer)"></span></div>
+            </td>
+            <td class="col-stage">
+              <span class="status-pill" [ngClass]="customer.stage">{{ stageLabel(customer.stage) }}</span>
+              <small class="rejected-note" *ngIf="customer.rejectedCount > 0">{{ customer.rejectedCount }} rejected</small>
+            </td>
+            <td>{{ formatDate(customer.lastActionAt) }}</td>
+          </tr>
+          <tr *ngIf="!loading && customers.length === 0">
+            <td [attr.colspan]="documentColumns.length + 8" class="empty-row">No customers found</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <app-pagination [total]="total" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">{{ toast.message }}</div>
+
+<!-- One document, opened from the grid: what was uploaded first, then what was typed in,
+     then the review itself. -->
+<div class="modal-overlay" *ngIf="viewer.visible" (click)="closeDocument()">
+  <div class="doc-modal" (click)="$event.stopPropagation()" *ngIf="viewer.document as document">
+    <div class="doc-modal-head">
+      <div class="doc-modal-title">
+        <h3>{{ document.label }}</h3>
+        <small>{{ viewer.customer?.ownerName }} <span *ngIf="viewer.customer?.firmName">/ {{ viewer.customer?.firmName }}</span></small>
+      </div>
+      <span class="status-pill" [ngClass]="documentState(document)">{{ documentStateLabel(document) }}</span>
+      <button type="button" class="modal-close" (click)="closeDocument()" [disabled]="savingReview">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="doc-modal-body">
+      <div class="doc-attachment">
+        <ng-container *ngIf="document.uploaded; else noAttachment">
+          <iframe *ngIf="isPdf(document); else imageAttachment" [src]="safeAttachmentUrl(document)" title="Attachment"></iframe>
+          <ng-template #imageAttachment>
+            <a *ngIf="!attachmentBroken" [href]="attachmentUrl(document)" target="_blank" rel="noopener" title="Open in a new tab">
+              <img [src]="attachmentUrl(document)" [alt]="document.label" (error)="onAttachmentError()"/>
+            </a>
+            <div class="attachment-empty" *ngIf="attachmentBroken">
+              <span class="material-icons">broken_image</span>
+              <p>The uploaded file could not be opened</p>
+              <a [href]="attachmentUrl(document)" target="_blank" rel="noopener">Try opening it in a new tab</a>
+            </div>
+          </ng-template>
+        </ng-container>
+        <ng-template #noAttachment>
+          <div class="attachment-empty">
+            <span class="material-icons">upload_file</span>
+            <p>No document uploaded yet</p>
+          </div>
+        </ng-template>
+      </div>
+
+      <div class="doc-detail-list">
+        <div class="doc-detail-row" *ngFor="let detail of document.details">
+          <span>{{ detail.label }}</span>
+          <strong [class.missing]="!detail.value">{{ detail.value || 'Not entered' }}</strong>
+        </div>
+      </div>
+
+      <div class="doc-review" *ngIf="document.actionByName || document.actionAt || document.remark">
+        <div class="review-line" *ngIf="document.actionByName || document.actionAt">
+          <span class="material-icons">history</span>
+          {{ statusLabel(document.status) }} by {{ document.actionByName || '-' }}
+          <span *ngIf="document.actionAt">on {{ formatDate(document.actionAt) }}</span>
+        </div>
+        <p class="review-remark" *ngIf="document.remark">{{ document.remark }}</p>
+      </div>
+
+      <div class="doc-remark" *ngIf="viewer.action">
+        <label>Remark <span class="required" *ngIf="viewer.action === 'reject'">*</span></label>
+        <textarea rows="3" [(ngModel)]="viewer.remark"
+          [placeholder]="viewer.action === 'reject' ? 'Tell the dealer what to correct' : 'Optional note'"></textarea>
+      </div>
+    </div>
+
+    <div class="doc-modal-actions" *ngIf="canReviewKyc">
+      <ng-container *ngIf="!viewer.action">
+        <button type="button" class="btn-reject" *ngIf="document.uploaded && document.status !== 'rejected'" (click)="startReview('reject')">
+          <span class="material-icons">block</span> Reject
+        </button>
+        <button type="button" class="btn-approve" *ngIf="document.uploaded && document.status !== 'approved'" (click)="startReview('approve')">
+          <span class="material-icons">task_alt</span> Approve
+        </button>
+        <span class="review-hint" *ngIf="!document.uploaded">Nothing to review until the document is uploaded.</span>
+      </ng-container>
+      <ng-container *ngIf="viewer.action">
+        <button type="button" class="btn-secondary" (click)="cancelReview()" [disabled]="savingReview">Cancel</button>
+        <button type="button" [class.btn-reject]="viewer.action === 'reject'" [class.btn-approve]="viewer.action === 'approve'"
+          (click)="submitReview()" [disabled]="savingReview">
+          {{ savingReview ? 'Saving...' : (viewer.action === 'reject' ? 'Confirm Reject' : 'Confirm Approve') }}
+        </button>
+      </ng-container>
+    </div>
+  </div>
+</div>
