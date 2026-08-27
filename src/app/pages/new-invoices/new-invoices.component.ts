@@ -3,7 +3,8 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, timeout } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { InvoiceSchemeOption, NewInvoiceFilter, NewInvoiceItem, NewInvoicePayload, NewInvoiceService, NewInvoiceStageCounts, NewInvoiceSummary, RetailerOption } from '../../services/new-invoice.service';
+import { InvoiceSchemeOption, NewInvoiceFilter, NewInvoiceItem, NewInvoicePayload, NewInvoiceService, NewInvoiceStageCounts, NewInvoiceSummary, RetailerDealerOption, RetailerOption } from '../../services/new-invoice.service';
+import { SearchableSelectOption } from '../../shared/components/searchable-select/searchable-select.component';
 import { API_ORIGIN } from '../../config/api.config';
 import { isPdfOrImageFile } from '../../shared/utils/file-validation';
 import { formatKolkataDate, formatKolkataLongDateTime, kolkataDateInput, kolkataTodayInput } from '../../shared/utils/date-time';
@@ -24,6 +25,7 @@ interface ToastModel {
 interface InvoiceFormModel {
   id: number | null;
   secondaryCustomerId: number | null;
+  dealerCustomerId: number | null;
   schemeId: number | null;
   invoiceNumber: string;
   invoiceDate: string;
@@ -60,6 +62,8 @@ export class NewInvoicesComponent implements OnInit {
   summary: NewInvoiceSummary = this.emptySummary();
   stageCounts: NewInvoiceStageCounts = this.emptyStageCounts();
   form: InvoiceFormModel = this.emptyForm();
+  retailerDealers: RetailerDealerOption[] = [];
+  dealersLoading = false;
   selectedAttachmentFile: File | null = null;
   approvalDialog: ApprovalDialogModel = this.emptyApprovalDialog();
   selectedInvoice: NewInvoiceItem | null = null;
@@ -353,9 +357,16 @@ export class NewInvoicesComponent implements OnInit {
     });
   }
 
-  loadRetailers(): void {
+  /** The retailer picker asks the server as the user types. Loading every retailer the
+   *  actor can reach is two megabytes and thousands of rows - the browser survives it, but
+   *  the list is unusable and the same call brings a phone to a halt. */
+  onRetailerSearch(term: string): void {
+    this.loadRetailers(term);
+  }
+
+  loadRetailers(search = ''): void {
     this.retailersLoading = true;
-    this.newInvoiceService.retailers().pipe(
+    this.newInvoiceService.retailers(search).pipe(
       finalize(() => {
         this.retailersLoading = false;
         this.refreshView();
@@ -448,6 +459,7 @@ export class NewInvoicesComponent implements OnInit {
     this.form = {
       id: invoice.id,
       secondaryCustomerId: invoice.secondaryCustomerId,
+      dealerCustomerId: invoice.assignedDistributorId || null,
       schemeId: invoice.schemeId || null,
       invoiceNumber: invoice.invoiceNumber,
       invoiceDate: this.toDateInput(invoice.invoiceDate),
@@ -464,7 +476,16 @@ export class NewInvoicesComponent implements OnInit {
       cityName: invoice.cityName,
       address: null
     };
+    // The picker only holds a page of retailers now, and the one on this invoice may not be
+    // in it. Without this the dropdown would open on an edit showing nothing selected.
+    if (!this.retailerOptions.some(option => option.id === invoice.secondaryCustomerId)) {
+      this.retailerOptions = [
+        { id: this.selectedRetailer.id, label: this.retailerLabel(this.selectedRetailer) },
+        ...this.retailerOptions
+      ];
+    }
     this.showModal = true;
+    this.loadRetailerDealers(invoice.secondaryCustomerId, invoice.assignedDistributorId || null);
     this.loadSchemeOptions(false);
     this.refreshView();
   }
@@ -480,8 +501,47 @@ export class NewInvoicesComponent implements OnInit {
     this.form.secondaryCustomerId = retailerId > 0 ? retailerId : null;
     this.selectedRetailer = this.retailers.find(retailer => retailer.id === retailerId) || null;
     this.form.schemeId = null;
+    this.loadRetailerDealers(retailerId);
     this.loadSchemeOptions(true);
     this.refreshView();
+  }
+
+  /** Which dealer the invoice is for. Most retailers have one, and then the form just says
+   *  who it is; the couple of hundred with a domestic and an agri dealer have to be asked. */
+  private loadRetailerDealers(retailerId: number, keepSelected: number | null = null): void {
+    this.retailerDealers = [];
+    this.form.dealerCustomerId = null;
+    if (!(retailerId > 0)) return this.refreshView();
+
+    this.dealersLoading = true;
+    this.newInvoiceService.retailerDealers(retailerId).subscribe({
+      next: dealers => {
+        this.retailerDealers = dealers;
+        const keep = dealers.find(dealer => dealer.id === keepSelected);
+        this.form.dealerCustomerId = keep ? keep.id : dealers.length === 1 ? dealers[0].id : null;
+        this.dealersLoading = false;
+        this.refreshView();
+      },
+      error: () => {
+        this.retailerDealers = [];
+        this.dealersLoading = false;
+        this.refreshView();
+      }
+    });
+  }
+
+  onDealerChange(id: number | string | null): void {
+    const dealerId = Number(id || 0);
+    this.form.dealerCustomerId = dealerId > 0 ? dealerId : null;
+    this.refreshView();
+  }
+
+  get dealerSelectOptions(): SearchableSelectOption[] {
+    return this.retailerDealers.map(dealer => ({ id: dealer.id, label: dealer.firmName || dealer.name }));
+  }
+
+  get singleDealer(): RetailerDealerOption | null {
+    return this.retailerDealers.length === 1 ? this.retailerDealers[0] : null;
   }
 
   onInvoiceDateChange(): void {
@@ -950,6 +1010,7 @@ export class NewInvoicesComponent implements OnInit {
     }
     return {
       secondary_customer_id: this.form.secondaryCustomerId,
+      dealer_id: this.form.dealerCustomerId,
       scheme_id: this.form.schemeId,
       invoice_number: this.form.invoiceNumber.trim(),
       invoice_date: this.form.invoiceDate,
@@ -967,6 +1028,7 @@ export class NewInvoicesComponent implements OnInit {
     return {
       id: null,
       secondaryCustomerId: null,
+      dealerCustomerId: null,
       schemeId: null,
       invoiceNumber: '',
       invoiceDate: kolkataTodayInput(),

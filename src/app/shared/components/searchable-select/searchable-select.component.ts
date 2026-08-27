@@ -24,8 +24,14 @@ export class SearchableSelectComponent {
   @Input() loading = false;
   @Input() loadingText = 'Loading...';
   @Input() pageSize = 0;
+  /** Hands the typing to the caller instead of filtering in the browser. For a list the
+   *  server has to narrow anyway - fourteen thousand retailers is two megabytes - the
+   *  options given here are already the answer, so filtering them again would hide rows. */
+  @Input() serverSearch = false;
 
   @Output() selectedChange = new EventEmitter<any>();
+  /** Emitted as the user types, debounced, only when serverSearch is on. */
+  @Output() searchChange = new EventEmitter<string>();
 
   opened = false;
   search = '';
@@ -46,6 +52,7 @@ export class SearchableSelectComponent {
   }
 
   get filteredOptions(): SearchableSelectOption[] {
+    if (this.serverSearch) return this.options;
     const q = this.search.trim().toLowerCase();
     if (!q) return this.options;
     return this.options.filter(option => {
@@ -68,7 +75,13 @@ export class SearchableSelectComponent {
   onSearchChange(value: string): void {
     this.search = value;
     this.page = 1;
+    if (!this.serverSearch) return;
+    // One request when the typing settles, not one per keystroke.
+    if (this.searchTimeoutId) window.clearTimeout(this.searchTimeoutId);
+    this.searchTimeoutId = window.setTimeout(() => this.searchChange.emit(value.trim()), 350);
   }
+
+  private searchTimeoutId: number | null = null;
 
   changePage(nextPage: number, event: Event): void {
     event.stopPropagation();
@@ -90,6 +103,7 @@ export class SearchableSelectComponent {
     if (this.opened) {
       this.search = '';
       this.page = 1;
+      if (this.serverSearch) this.searchChange.emit('');
     }
   }
 

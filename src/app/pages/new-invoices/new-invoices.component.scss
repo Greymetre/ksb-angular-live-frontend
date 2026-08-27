@@ -1272,3 +1272,19 @@
     min-width: 0;
   }
 }
+
+/* The dealer a retailer sits under, when there is only one and nothing to choose. */
+.dealer-fixed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: #f8fafc;
+
+  .material-icons { color: var(--primary-blue); font-size: 22px; }
+  strong { display: block; font-size: 13px; color: var(--text-dark); }
+  small { display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+}

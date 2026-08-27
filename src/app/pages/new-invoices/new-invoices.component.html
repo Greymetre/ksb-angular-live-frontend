@@ -577,8 +577,9 @@
         <div class="modal-field wide-field">
           <label>Retailer <span class="req">*</span></label>
           <app-searchable-select [options]="retailerOptions" [selected]="form.secondaryCustomerId"
-            [placeholder]="retailersLoading ? 'Loading retailers...' : 'Select Retailer'"
+            [placeholder]="retailersLoading ? 'Loading retailers...' : 'Search and select retailer'"
             [loading]="retailersLoading" loadingText="Loading retailers..."
+            [serverSearch]="true" (searchChange)="onRetailerSearch($event)"
             (selectedChange)="onRetailerChange($event)"></app-searchable-select>
         </div>
         <div class="retailer-preview wide-field" *ngIf="selectedRetailer">
@@ -602,6 +603,31 @@
             <span>Address</span>
             <strong>{{ selectedRetailer.address || '-' }}</strong>
           </div>
+        </div>
+      </div>
+
+      <!-- Most retailers sit under one dealer, and then the form only has to say who it is.
+           The couple of hundred with a domestic and an agri dealer have to be asked. -->
+      <div class="form-grid" *ngIf="form.secondaryCustomerId">
+        <div class="modal-field wide-field">
+          <label>Dealer <span class="req" *ngIf="retailerDealers.length > 1">*</span></label>
+
+          <div class="dealer-fixed" *ngIf="singleDealer as dealer">
+            <span class="material-icons">storefront</span>
+            <div>
+              <strong>{{ dealer.firmName }}</strong>
+              <small *ngIf="dealer.name && dealer.name !== dealer.firmName">{{ dealer.name }}</small>
+              <small *ngIf="dealer.code">Code: {{ dealer.code }}</small>
+            </div>
+          </div>
+
+          <app-searchable-select *ngIf="retailerDealers.length > 1"
+            [options]="dealerSelectOptions" [selected]="form.dealerCustomerId"
+            placeholder="This retailer has more than one dealer - select one"
+            (selectedChange)="onDealerChange($event)"></app-searchable-select>
+
+          <small *ngIf="dealersLoading">Loading dealers...</small>
+          <small *ngIf="!dealersLoading && retailerDealers.length === 0">No dealer is mapped to this retailer.</small>
         </div>
       </div>
 

@@ -16,6 +16,7 @@ export interface NewInvoiceItem {
   address?: string | null;
   zoneName?: string | null;
   branchName?: string | null;
+  assignedDistributorId?: number | null;
   assignedDistributorName?: string | null;
   assignedEmployeeName?: string | null;
   invoiceNumber: string;
@@ -64,6 +65,8 @@ export interface NewInvoiceApprovalLog {
 
 export interface NewInvoicePayload {
   secondary_customer_id: number;
+  /** Which of the retailer's dealers this invoice belongs to. */
+  dealer_id?: number | null;
   scheme_id: number;
   invoice_number: string;
   invoice_date: string;
@@ -139,6 +142,14 @@ export interface RetailerOption {
   address?: string | null;
 }
 
+/** A dealer the chosen retailer is mapped to. */
+export interface RetailerDealerOption {
+  id: number;
+  name: string;
+  firmName: string;
+  code?: string | null;
+}
+
 export interface NewInvoiceListResult {
   invoices: NewInvoiceItem[];
   summary: NewInvoiceSummary;
@@ -180,10 +191,29 @@ export class NewInvoiceService {
     );
   }
 
-  retailers(search = ''): Observable<RetailerOption[]> {
-    const params = search ? new HttpParams().set('search', search) : new HttpParams();
+  retailers(search = '', pageSize = 30): Observable<RetailerOption[]> {
+    let params = new HttpParams().set('page', 1).set('page_size', pageSize);
+    if (search) params = params.set('search', search);
     return this.http.get<ApiResponse>(`${this.baseUrl}/retailers`, { headers: this.authHeaders(), params }).pipe(
       map(response => this.pickArray(response, ['retailers', 'data.retailers', 'data']).map(row => this.normalizeRetailer(row))),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  /** The dealers behind one retailer. One means the form can simply show it; more than one
+   *  means the person raising the invoice has to say which. */
+  retailerDealers(customerId: number): Observable<RetailerDealerOption[]> {
+    const params = new HttpParams().set('customer_id', customerId);
+    return this.http.get<ApiResponse>(`${this.baseUrl}/retailer-dealers`, { headers: this.authHeaders(), params }).pipe(
+      map(response => this.pickArray(response, ['dealers', 'data.dealers', 'data']).map(value => {
+        const row = this.asRecord(value);
+        return {
+          id: this.readNumber(row['id']),
+          name: this.readString(row['name']),
+          firmName: this.readString(row['firm_name'] ?? row['firmName']) || this.readString(row['name']),
+          code: this.readString(row['code']) || null
+        };
+      })),
       catchError(error => this.handleError(error))
     );
   }
@@ -337,6 +367,7 @@ export class NewInvoiceService {
       cityName: this.readNullableString(row['city_name'] ?? row['cityName']),
       zoneName: this.readNullableString(row['zone_name'] ?? row['zoneName']),
       branchName: this.readNullableString(row['branch_name'] ?? row['branchName']),
+      assignedDistributorId: this.readNumber(row['assigned_distributor_id'] ?? row['assignedDistributorId']) || null,
       assignedDistributorName: this.readNullableString(row['assigned_distributor_name'] ?? row['assignedDistributorName']),
       assignedEmployeeName: this.readNullableString(row['assigned_employee_name'] ?? row['assignedEmployeeName']),
       invoiceNumber: this.readString(row['invoice_number'] ?? row['invoiceNumber']),
