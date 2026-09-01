@@ -1,0 +1,46 @@
+<div class="app-setting-page">
+  <div class="page-heading">
+    <div class="page-icon"><span class="material-icons">manage_accounts</span></div>
+    <div>
+      <h2>Loyalty App Setting</h2>
+      <p>Manage the minimum Vriddhi KSB app versions used by force update.</p>
+    </div>
+  </div>
+
+  <div class="alert success" *ngIf="successMessage">{{ successMessage }}</div>
+  <div class="alert error" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="setting-card">
+    <div class="loading" *ngIf="loading">Loading app settings...</div>
+
+    <div class="notice">
+      <span class="material-icons">info</span>
+      <div>
+        <strong>Force update behavior</strong>
+        <p>The Vriddhi KSB app reads its installed version from the Android/iOS build and compares it with the required version set here. Anyone on an older version is held on the Update Required screen until they update from the store.</p>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Android App Version <span>*</span></label>
+        <input type="text" [(ngModel)]="form.androidVersion" placeholder="1.0" [disabled]="loading || saving" />
+        <small>The minimum Android version users must install, for example 1.0.1.</small>
+      </div>
+
+      <div class="field">
+        <label>iOS App Version</label>
+        <input type="text" [(ngModel)]="form.iosVersion" placeholder="1.0" [disabled]="loading || saving" />
+        <small>The minimum iOS version, or leave blank if iOS force update is not managed yet.</small>
+      </div>
+    </div>
+
+    <div class="card-footer">
+      <span class="updated" *ngIf="updatedAt">Last updated: {{ updatedAt | date:'medium' }}</span>
+      <button type="button" (click)="save()" *ngIf="canEdit" [disabled]="loading || saving">
+        <span class="material-icons">save</span>
+        {{ saving ? 'Saving...' : 'Save Setting' }}
+      </button>
+    </div>
+  </div>
+</div>

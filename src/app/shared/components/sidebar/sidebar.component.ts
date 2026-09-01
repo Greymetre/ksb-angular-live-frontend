@@ -231,7 +231,7 @@ export class SidebarComponent {
       children: [
         // { label: 'Power BI Setting', icon: 'analytics', permission: 'power_bi_setting_access' },
         // { label: 'Invoice Setting', icon: 'settings', permission: 'invoice_setting_access' },
-        { label: 'Loyalty App Setting', icon: 'manage_accounts', permission: 'app_setting.view' },
+        { label: 'Loyalty App Setting', icon: 'manage_accounts', route: '/loyalty-app-setting', permission: 'app_setting.view' },
         { label: 'FieldKonnect App Setting', icon: 'admin_panel_settings', route: '/field-konnect-app-setting', permission: 'app_setting.view' },
         { label: 'Dealer portal Setting', icon: 'settings_applications', permission: 'dealer_portal_setting.view' },
         // { label: 'Status', icon: 'format_paint', permission: 'status_access' },

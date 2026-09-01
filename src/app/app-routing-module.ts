@@ -29,6 +29,7 @@ import { BeatsComponent } from './pages/beats/beats.component';
 import { CheckinReportsComponent } from './pages/checkin-reports/checkin-reports.component';
 import { ReportManagementComponent } from './pages/report-management/report-management.component';
 import { FieldKonnectAppSettingComponent } from './pages/field-konnect-app-setting/field-konnect-app-setting.component';
+import { LoyaltyAppSettingComponent } from './pages/loyalty-app-setting/loyalty-app-setting.component';
 import { OrderDispatchComponent } from './pages/order-dispatch/order-dispatch.component';
 import { UserMonitoringComponent } from './pages/user-monitoring/user-monitoring.component';
 import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.component';
@@ -86,6 +87,7 @@ const routes: Routes = [
       { path: 'reports/retailer-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'retailer_performance_report.export', reportMode: 'retailer' } },
       { path: 'reports/dealer-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'retailer_performance_report.export', reportMode: 'dealer' } },
       { path: 'reports/market-intelligence', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'market_intelligence_report.view', reportMode: 'market' } },
+      { path: 'loyalty-app-setting', component: LoyaltyAppSettingComponent, canActivate: [authGuard], data: { permission: 'app_setting.view' } },
       { path: 'field-konnect-app-setting', component: FieldKonnectAppSettingComponent, canActivate: [authGuard], data: { permission: 'app_setting.view' } },
       { path: 'user-app-details', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'user_app.view', mode: 'apps' } },
       { path: 'user-live-activity', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'user_activity.view', mode: 'live' } },
