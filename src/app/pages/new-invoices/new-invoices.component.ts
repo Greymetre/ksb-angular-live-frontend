@@ -3,10 +3,14 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, timeout } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { InvoiceSchemeOption, NewInvoiceFilter, NewInvoiceItem, NewInvoicePayload, NewInvoiceService, NewInvoiceStageCounts, NewInvoiceSummary, RetailerDealerOption, RetailerOption } from '../../services/new-invoice.service';
+import { InvoiceSchemeOption, NewInvoiceAttachment, NewInvoiceFilter, NewInvoiceItem, NewInvoicePayload, NewInvoiceService, NewInvoiceStageCounts, NewInvoiceSummary, RetailerDealerOption, RetailerOption } from '../../services/new-invoice.service';
 import { SearchableSelectOption } from '../../shared/components/searchable-select/searchable-select.component';
 import { API_ORIGIN } from '../../config/api.config';
 import { isPdfOrImageFile } from '../../shared/utils/file-validation';
+import {
+  MAX_INVOICE_ATTACHMENTS,
+  compressInvoiceAttachment
+} from '../../shared/utils/invoice-attachments';
 import { formatKolkataDate, formatKolkataLongDateTime, kolkataDateInput, kolkataTodayInput } from '../../shared/utils/date-time';
 import { MasterCrudService } from '../../services/master-crud.service';
 import { ProductItem, ProductService } from '../../services/product.service';
@@ -32,6 +36,8 @@ interface InvoiceFormModel {
   amount: number | null;
   points: number;
   attachment: string | null;
+  /** Files already on the invoice when the edit dialog opened. */
+  savedAttachments: NewInvoiceAttachment[];
 }
 
 interface ApprovalDialogModel {
@@ -64,7 +70,9 @@ export class NewInvoicesComponent implements OnInit {
   form: InvoiceFormModel = this.emptyForm();
   retailerDealers: RetailerDealerOption[] = [];
   dealersLoading = false;
-  selectedAttachmentFile: File | null = null;
+  selectedAttachmentFiles: File[] = [];
+  removedAttachmentIds: number[] = [];
+  compressingAttachments = false;
   approvalDialog: ApprovalDialogModel = this.emptyApprovalDialog();
   selectedInvoice: NewInvoiceItem | null = null;
   selectedRetailer: RetailerOption | null = null;
@@ -80,6 +88,7 @@ export class NewInvoicesComponent implements OnInit {
   showPreGstNotice = false;
   approvalHistoryVisible = false;
   attachmentZoom = 1;
+  attachmentIndex = 0;
   attachmentFullscreen = false;
   attachmentViewerResourceUrl: SafeResourceUrl | null = null;
   productSearchOpen = false;
@@ -175,16 +184,17 @@ export class NewInvoicesComponent implements OnInit {
   }
 
   // Filters read the ungated dropdown routes, so a user without the zone/branch
-  // master permission still gets the filter values.
+  // master permission still gets the filter values. Page size 0 asks for the whole
+  // list - anything else and the API returns only the first page of it.
   loadLocationFilters(): void {
-    this.masterCrudService.list({ path: 'getdivisions', listKey: 'divisions', itemKey: 'division' }).subscribe({
+    this.masterCrudService.list({ path: 'getdivisions', listKey: 'divisions', itemKey: 'division' }, '', 1, 0).subscribe({
       next: rows => {
         this.zoneFilterOptions = rows.filter(row => row.active !== '0').map(row => ({ id: row.id, label: row.divisionName || row.name || `Zone ${row.id}` }));
         this.refreshView();
       },
       error: error => this.showToast(error.message, 'error')
     });
-    this.masterCrudService.list({ path: 'getbranches', listKey: 'branches', itemKey: 'branch' }).subscribe({
+    this.masterCrudService.list({ path: 'getbranches', listKey: 'branches', itemKey: 'branch' }, '', 1, 0).subscribe({
       next: rows => {
         this.branchFilterOptions = rows.filter(row => row.active !== '0').map(row => ({ id: row.id, label: row.branchName || row.name || `Branch ${row.id}` }));
         this.refreshView();
@@ -394,10 +404,9 @@ export class NewInvoicesComponent implements OnInit {
       next: invoice => {
         this.selectedInvoice = invoice;
         this.attachmentZoom = 1;
+        this.attachmentIndex = 0;
         this.attachmentFullscreen = false;
-        this.attachmentViewerResourceUrl = invoice.attachment && this.isPdfAttachment(invoice.attachment)
-          ? this.sanitizer.bypassSecurityTrustResourceUrl(this.mediaUrl(invoice.attachment))
-          : null;
+        this.syncAttachmentViewer();
         this.refreshView();
       },
       error: error => {
@@ -446,7 +455,7 @@ export class NewInvoicesComponent implements OnInit {
     this.showPreGstNotice = false;
     this.form = this.emptyForm();
     this.selectedRetailer = null;
-    this.selectedAttachmentFile = null;
+    this.resetAttachmentPicker();
     this.showModal = true;
     this.refreshView();
   }
@@ -465,9 +474,10 @@ export class NewInvoicesComponent implements OnInit {
       invoiceDate: this.toDateInput(invoice.invoiceDate),
       amount: invoice.amount,
       points: 0,
-      attachment: invoice.attachment || null
+      attachment: invoice.attachment || null,
+      savedAttachments: [...invoice.attachments]
     };
-    this.selectedAttachmentFile = null;
+    this.resetAttachmentPicker();
     this.selectedRetailer = this.retailers.find(retailer => retailer.id === invoice.secondaryCustomerId) || {
       id: invoice.secondaryCustomerId,
       ownerName: invoice.customerName,
@@ -584,8 +594,8 @@ export class NewInvoicesComponent implements OnInit {
 
     this.saving = true;
     const request = this.form.id
-      ? this.newInvoiceService.update(this.form.id, payload, this.selectedAttachmentFile)
-      : this.newInvoiceService.create(payload, this.selectedAttachmentFile);
+      ? this.newInvoiceService.update(this.form.id, payload, this.selectedAttachmentFiles)
+      : this.newInvoiceService.create(payload, this.selectedAttachmentFiles);
 
     request.pipe(finalize(() => {
       this.saving = false;
@@ -830,22 +840,81 @@ export class NewInvoicesComponent implements OnInit {
     return invoice.amount;
   }
 
-  onAttachmentChange(event: Event): void {
+  // Files come in a few at a time; each pick is added to what is already staged so
+  // the user can mix a camera photo, a scan and a PDF into one invoice.
+  async onAttachmentChange(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
-    if (file && !isPdfOrImageFile(file)) {
-      this.selectedAttachmentFile = null;
-      input.value = '';
+    const picked = Array.from(input.files ?? []);
+    input.value = '';
+    if (picked.length === 0) return;
+
+    if (picked.some(file => !isPdfOrImageFile(file))) {
       this.showToast('Only PDF and image files are allowed.', 'error');
       this.refreshView();
       return;
     }
-    this.selectedAttachmentFile = file;
+
+    const room = MAX_INVOICE_ATTACHMENTS - this.attachmentCount();
+    if (room <= 0) {
+      this.showToast(`An invoice can carry at most ${MAX_INVOICE_ATTACHMENTS} attachments.`, 'error');
+      this.refreshView();
+      return;
+    }
+    const accepted = picked.slice(0, room);
+    if (accepted.length < picked.length) {
+      this.showToast(`Only ${MAX_INVOICE_ATTACHMENTS} attachments are allowed, so ${picked.length - accepted.length} file(s) were skipped.`, 'error');
+    }
+
+    this.compressingAttachments = true;
+    this.refreshView();
+    try {
+      for (const file of accepted) {
+        try {
+          this.selectedAttachmentFiles = [...this.selectedAttachmentFiles, await compressInvoiceAttachment(file)];
+        } catch (error) {
+          this.showToast(error instanceof Error ? error.message : 'Attachment could not be processed.', 'error');
+        }
+        this.refreshView();
+      }
+    } finally {
+      this.compressingAttachments = false;
+      this.refreshView();
+    }
+  }
+
+  removeStagedAttachment(index: number): void {
+    this.selectedAttachmentFiles = this.selectedAttachmentFiles.filter((_, position) => position !== index);
     this.refreshView();
   }
 
+  removeSavedAttachment(attachment: NewInvoiceAttachment): void {
+    this.form.savedAttachments = this.form.savedAttachments.filter(item => item !== attachment);
+    // Id 0 means the row came from the legacy single-attachment column, so there is
+    // nothing for the API to delete by id - dropping it from the list is enough.
+    if (attachment.id > 0) this.removedAttachmentIds = [...this.removedAttachmentIds, attachment.id];
+    if (this.form.attachment === attachment.filePath) this.form.attachment = null;
+    this.refreshView();
+  }
+
+  attachmentCount(): number {
+    return this.form.savedAttachments.length + this.selectedAttachmentFiles.length;
+  }
+
   attachmentLabel(): string {
-    return this.selectedAttachmentFile?.name || this.form.attachment || 'No file selected';
+    const count = this.attachmentCount();
+    if (count === 0) return 'No file selected';
+    return `${count} of ${MAX_INVOICE_ATTACHMENTS} file${count === 1 ? '' : 's'} attached`;
+  }
+
+  attachmentFileName(path: string): string {
+    const clean = path.split('?')[0].split('#')[0];
+    return clean.substring(clean.lastIndexOf('/') + 1) || clean;
+  }
+
+  private resetAttachmentPicker(): void {
+    this.selectedAttachmentFiles = [];
+    this.removedAttachmentIds = [];
+    this.compressingAttachments = false;
   }
 
   mediaUrl(value?: string | null): string {
@@ -855,6 +924,31 @@ export class NewInvoicesComponent implements OnInit {
     if (/^(https?:)?\/\//i.test(path) || path.startsWith('data:') || path.startsWith('blob:')) return path;
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
     return `${this.backendOrigin}${cleanPath}`;
+  }
+
+  // The detail page shows one attachment at a time with a pager over the rest.
+  viewerAttachments(): NewInvoiceAttachment[] {
+    return this.selectedInvoice?.attachments ?? [];
+  }
+
+  currentAttachmentPath(): string | null {
+    return this.viewerAttachments()[this.attachmentIndex]?.filePath ?? null;
+  }
+
+  stepAttachment(step: number): void {
+    const total = this.viewerAttachments().length;
+    if (total < 2) return;
+    this.attachmentIndex = (this.attachmentIndex + step + total) % total;
+    this.attachmentZoom = 1;
+    this.syncAttachmentViewer();
+    this.refreshView();
+  }
+
+  private syncAttachmentViewer(): void {
+    const path = this.currentAttachmentPath();
+    this.attachmentViewerResourceUrl = path && this.isPdfAttachment(path)
+      ? this.sanitizer.bypassSecurityTrustResourceUrl(this.mediaUrl(path))
+      : null;
   }
 
   zoomAttachment(change: number): void {
@@ -1004,7 +1098,11 @@ export class NewInvoicesComponent implements OnInit {
       this.showToast('Amount must be greater than 0.', 'error');
       return null;
     }
-    if (!this.form.attachment && !this.selectedAttachmentFile) {
+    if (this.compressingAttachments) {
+      this.showToast('Attachments are still being processed.', 'error');
+      return null;
+    }
+    if (this.attachmentCount() === 0) {
       this.showToast('Invoice attachment is required.', 'error');
       return null;
     }
@@ -1016,7 +1114,8 @@ export class NewInvoicesComponent implements OnInit {
       invoice_date: this.form.invoiceDate,
       amount: Number(this.form.amount),
       points: 0,
-      attachment: this.form.attachment
+      attachment: this.form.attachment,
+      removed_attachment_ids: this.removedAttachmentIds
     };
   }
 
@@ -1034,7 +1133,8 @@ export class NewInvoicesComponent implements OnInit {
       invoiceDate: kolkataTodayInput(),
       amount: null,
       points: 0,
-      attachment: null
+      attachment: null,
+      savedAttachments: []
     };
   }
 

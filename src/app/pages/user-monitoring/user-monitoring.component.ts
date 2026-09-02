@@ -10,7 +10,11 @@ import { normalizeMapCoordinates } from '../../shared/utils/map-coordinates';
 @Component({selector:'app-user-monitoring',standalone:false,templateUrl:'./user-monitoring.component.html',styleUrls:['./user-monitoring.component.scss','./user-monitoring-actions.component.scss']})
 export class UserMonitoringComponent implements OnInit {
   @ViewChild('routeMapCanvas') routeMapElement?:ElementRef<HTMLDivElement>;
-  mode:'apps'|'live'='apps'; users:any[]=[]; allUsers:any[]=[]; branches:any[]=[]; divisions:any[]=[]; departments:any[]=[];
+  // 'customers' is the Vriddhi app's version of 'apps': same columns, same actions,
+  // read from the customer side of the session table and carrying the customer type,
+  // because both a dealer and a retailer sign in there.
+  mode:'apps'|'live'|'customers'='apps'; users:any[]=[]; allUsers:any[]=[]; branches:any[]=[]; divisions:any[]=[]; departments:any[]=[];
+  customers:any[]=[]; customerTypes:any[]=[]; customerId=''; customerTypeId='';
   rows:any[]=[]; locations:any[]=[]; activities:any[]=[]; selectedPoint:any=null; selectedMapUrl:SafeResourceUrl|null=null;
   userId=''; branchId=''; divisionId=''; departmentId=''; date=new Date().toISOString().slice(0,10); toDate=this.date;
   page=1;pageSize=10;total=0;lastPage=1;
@@ -19,14 +23,21 @@ export class UserMonitoringComponent implements OnInit {
   private requestSequence=0;
   private static mapsLoader?:Promise<void>;
   constructor(private http:HttpClient,private route:ActivatedRoute,private auth:AuthService,private sanitizer:DomSanitizer,private cdr:ChangeDetectorRef){}
-  ngOnInit(){this.mode=this.route.snapshot.data['mode']||'apps';this.options();if(this.mode==='apps')this.load();}
+  ngOnInit(){this.mode=this.route.snapshot.data['mode']||'apps';this.options();if(this.mode==='apps'||this.mode==='customers')this.load();}
   headers(){const token=this.auth.getToken();return token?new HttpHeaders({Authorization:`Bearer ${token}`}):new HttpHeaders();}
-  get canForceLogout(){return this.auth.hasPermission('user_app.force_logout');}
-  get canResetUuid(){return this.auth.hasPermission('user_app.reset_device');}
+  get canForceLogout(){return this.auth.hasPermission(this.mode==='customers'?'customer_app.force_logout':'user_app.force_logout');}
+  get canResetUuid(){return this.auth.hasPermission(this.mode==='customers'?'customer_app.reset_device':'user_app.reset_device');}
   canLogoutRow(row:any){return row?.login_status==='1'&&this.canForceLogout;}
   canResetUuidRow(row:any){return !!row?.unique_id&&this.canResetUuid;}
   options(){
     this.optionsLoading=true;
+    if(this.mode==='customers'){
+      this.http.get<any>(`${API_BASE_URL}/customer-app-details/options`,{headers:this.headers()}).subscribe({
+        next:r=>{this.customers=r.customers||[];this.customerTypes=r.customer_types||[];this.optionsLoading=false;this.refreshView();},
+        error:e=>{this.optionsLoading=false;this.fail(e);}
+      });
+      return;
+    }
     this.http.get<any>(`${API_BASE_URL}/user-monitoring/options`,{headers:this.headers()}).subscribe({
       next:r=>{this.allUsers=r.users||[];this.users=[...this.allUsers];this.branches=r.branches||[];this.divisions=r.divisions||[];this.departments=r.departments||[];this.optionsLoading=false;this.refreshView();},
       error:e=>{this.optionsLoading=false;this.fail(e);}
@@ -39,6 +50,12 @@ export class UserMonitoringComponent implements OnInit {
   private hasId(value:any,selected:any){return String(value??'').split(',').map(x=>x.trim()).includes(String(selected));}
   load(){
     const requestId=++this.requestSequence;this.loading=true;this.error='';
+    if(this.mode==='customers'){
+      let p=new HttpParams().set('page',this.page).set('page_size',this.pageSize);
+      if(this.customerId)p=p.set('customer_id',this.customerId);
+      if(this.customerTypeId)p=p.set('customer_type',this.customerTypeId);
+      this.http.get<any>(`${API_BASE_URL}/customer-app-details`,{headers:this.headers(),params:p}).pipe(finalize(()=>this.finishLoading(requestId))).subscribe({next:r=>{this.rows=r.data||[];this.page=Number(r.pagination?.current_page||1);this.pageSize=Number(r.pagination?.page_size||this.pageSize);this.total=Number(r.pagination?.total||0);this.lastPage=Number(r.pagination?.last_page||1);},error:e=>this.fail(e,false)});return;
+    }
     if(this.mode==='apps'){
       let p=new HttpParams().set('page',this.page).set('page_size',this.pageSize);if(this.userId)p=p.set('user_id',this.userId);
       this.http.get<any>(`${API_BASE_URL}/user-app-details`,{headers:this.headers(),params:p}).pipe(finalize(()=>this.finishLoading(requestId))).subscribe({next:r=>{this.rows=r.data||[];this.page=Number(r.pagination?.current_page||1);this.pageSize=Number(r.pagination?.page_size||this.pageSize);this.total=Number(r.pagination?.total||0);this.lastPage=Number(r.pagination?.last_page||1);},error:e=>this.fail(e,false)});return;
@@ -98,10 +115,11 @@ export class UserMonitoringComponent implements OnInit {
   confirmDeviceAction(){
     if(!this.confirmRow||!this.confirmAction||this.actionLoading)return;
     const row=this.confirmRow,action=this.confirmAction;
-    const url=action==='logout'?`${API_BASE_URL}/user-app-details/${row.user_id}/force-logout`:`${API_BASE_URL}/user-app-details/${row.user_id}/unique-id`;
+    const base=this.mode==='customers'?`${API_BASE_URL}/customer-app-details/${row.customer_id}`:`${API_BASE_URL}/user-app-details/${row.user_id}`;
+    const url=action==='logout'?`${base}/force-logout`:`${base}/unique-id`;
     this.actionLoading=true;this.error='';this.success='';
     const request=action==='logout'?this.http.post<any>(url,{}, {headers:this.headers()}):this.http.delete<any>(url,{headers:this.headers()});
-    request.pipe(finalize(()=>this.actionLoading=false)).subscribe({next:r=>{row.login_status='0';if(action==='uuid')row.unique_id='';this.success=r?.message||(action==='logout'?'User logged out successfully.':'Device UUID removed successfully.');this.confirmAction=null;this.confirmRow=null;this.refreshView();},error:e=>this.fail(e)});
+    request.pipe(finalize(()=>this.actionLoading=false)).subscribe({next:r=>{row.login_status='0';if(action==='uuid')row.unique_id='';this.success=r?.message||(action==='logout'?(this.mode==='customers'?'Customer logged out successfully.':'User logged out successfully.'):'Device UUID removed successfully.');this.confirmAction=null;this.confirmRow=null;this.refreshView();},error:e=>this.fail(e)});
   }
   get visiblePages(){const count=Math.min(5,this.lastPage);let start=Math.max(1,this.page-Math.floor(count/2));start=Math.min(start,Math.max(1,this.lastPage-count+1));return Array.from({length:count},(_,i)=>start+i);}
   private refreshView(){queueMicrotask(()=>{if(!(this.cdr as any).destroyed)this.cdr.detectChanges();});}

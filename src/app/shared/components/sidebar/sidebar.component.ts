@@ -48,7 +48,8 @@ export class SidebarComponent {
       icon: 'transcribe',
       children: [
         { label: 'Master', icon: 'diversity_3', route: '/customers', permission: 'customer.view' },
-        { label: 'KYC', icon: 'badge', route: '/customer-kyc', permission: 'customer_kyc.view' }
+        { label: 'KYC', icon: 'badge', route: '/customer-kyc', permission: 'customer_kyc.view' },
+        { label: 'Customer App details', icon: 'phonelink_setup', route: '/customer-app-details', permission: 'customer_app.view' }
       ]
     },
     {

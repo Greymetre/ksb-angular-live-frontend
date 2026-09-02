@@ -34,6 +34,7 @@ export interface NewInvoiceItem {
   tierName?: string | null;
   schemeHintMessage?: string | null;
   attachment?: string | null;
+  attachments: NewInvoiceAttachment[];
   approvalStatus: number;
   approvalStatusLabel: string;
   approvalRemark?: string | null;
@@ -47,6 +48,15 @@ export interface NewInvoiceItem {
   createdByName?: string | null;
   createdAt?: string | null;
   approvalLogs: NewInvoiceApprovalLog[];
+}
+
+/** One file on an invoice; an invoice can carry up to ten. */
+export interface NewInvoiceAttachment {
+  id: number;
+  filePath: string;
+  fileName?: string | null;
+  mimeType?: string | null;
+  fileSize?: number | null;
 }
 
 export interface NewInvoiceApprovalLog {
@@ -73,6 +83,8 @@ export interface NewInvoicePayload {
   amount: number;
   points: number;
   attachment?: string | null;
+  /** Ids of already-saved attachments the user removed while editing. */
+  removed_attachment_ids?: number[];
 }
 
 export interface InvoiceSchemeOption {
@@ -268,15 +280,15 @@ export class NewInvoiceService {
     );
   }
 
-  create(payload: NewInvoicePayload, file?: File | null): Observable<string> {
-    return this.http.post<ApiResponse>(this.baseUrl, this.toFormData(payload, file), { headers: this.authHeaders() }).pipe(
+  create(payload: NewInvoicePayload, files?: File[] | null): Observable<string> {
+    return this.http.post<ApiResponse>(this.baseUrl, this.toFormData(payload, files), { headers: this.authHeaders() }).pipe(
       map(response => this.responseMessage(response) || 'Invoice created successfully'),
       catchError(error => this.handleError(error))
     );
   }
 
-  update(id: number, payload: NewInvoicePayload, file?: File | null): Observable<string> {
-    return this.http.put<ApiResponse>(`${this.baseUrl}/${id}`, this.toFormData(payload, file), { headers: this.authHeaders() }).pipe(
+  update(id: number, payload: NewInvoicePayload, files?: File[] | null): Observable<string> {
+    return this.http.put<ApiResponse>(`${this.baseUrl}/${id}`, this.toFormData(payload, files), { headers: this.authHeaders() }).pipe(
       map(response => this.responseMessage(response) || 'Invoice updated successfully'),
       catchError(error => this.handleError(error))
     );
@@ -338,7 +350,7 @@ export class NewInvoiceService {
     return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
   }
 
-  private toFormData(payload: NewInvoicePayload, file?: File | null): FormData {
+  private toFormData(payload: NewInvoicePayload, files?: File[] | null): FormData {
     const form = new FormData();
     this.append(form, 'secondary_customer_id', payload.secondary_customer_id);
     this.append(form, 'scheme_id', payload.scheme_id);
@@ -347,7 +359,8 @@ export class NewInvoiceService {
     this.append(form, 'amount', payload.amount);
     this.append(form, 'points', payload.points);
     this.append(form, 'attachment', payload.attachment);
-    if (file) form.append('attachment_file', file);
+    for (const file of files ?? []) form.append('attachment_files', file, file.name);
+    for (const id of payload.removed_attachment_ids ?? []) form.append('removed_attachment_ids', String(id));
     return form;
   }
 
@@ -385,6 +398,7 @@ export class NewInvoiceService {
       tierName: this.readNullableString(row['tier_name'] ?? row['tierName']),
       schemeHintMessage: this.readNullableString(row['scheme_hint_message'] ?? row['schemeHintMessage']),
       attachment: this.readNullableString(row['attachment']),
+      attachments: this.normalizeAttachments(row),
       approvalStatus: this.readNumber(row['approval_status'] ?? row['approvalStatus']),
       approvalStatusLabel: this.readString(row['approval_status_label'] ?? row['approvalStatusLabel']) || 'Pending',
       approvalRemark: this.readNullableString(row['approval_remark'] ?? row['approvalRemark']),
@@ -399,6 +413,26 @@ export class NewInvoiceService {
       createdAt: this.readNullableString(row['created_at'] ?? row['createdAt']),
       approvalLogs: this.pickArray(row, ['approval_logs', 'approvalLogs']).map(log => this.normalizeApprovalLog(log))
     };
+  }
+
+  /** Older backends only send the single `attachment` column; fall back to it so the
+   *  UI keeps working before the multi-attachment release reaches a server. */
+  private normalizeAttachments(row: Record<string, unknown>): NewInvoiceAttachment[] {
+    const rows = this.pickArray(row, ['attachments']);
+    if (rows.length > 0) {
+      return rows.map(value => {
+        const item = this.asRecord(value);
+        return {
+          id: this.readNumber(item['id']),
+          filePath: this.readString(item['file_path'] ?? item['filePath']),
+          fileName: this.readNullableString(item['file_name'] ?? item['fileName']),
+          mimeType: this.readNullableString(item['mime_type'] ?? item['mimeType']),
+          fileSize: this.nullableNumber(item['file_size'] ?? item['fileSize'])
+        };
+      }).filter(item => !!item.filePath);
+    }
+    const legacy = this.readNullableString(row['attachment']);
+    return legacy ? [{ id: 0, filePath: legacy, fileName: null, mimeType: null, fileSize: null }] : [];
   }
 
   private normalizeApprovalLog(value: unknown): NewInvoiceApprovalLog {

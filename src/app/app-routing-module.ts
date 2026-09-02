@@ -90,6 +90,7 @@ const routes: Routes = [
       { path: 'loyalty-app-setting', component: LoyaltyAppSettingComponent, canActivate: [authGuard], data: { permission: 'app_setting.view' } },
       { path: 'field-konnect-app-setting', component: FieldKonnectAppSettingComponent, canActivate: [authGuard], data: { permission: 'app_setting.view' } },
       { path: 'user-app-details', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'user_app.view', mode: 'apps' } },
+      { path: 'customer-app-details', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'customer_app.view', mode: 'customers' } },
       { path: 'user-live-activity', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'user_activity.view', mode: 'live' } },
       {
         path: 'holidays',

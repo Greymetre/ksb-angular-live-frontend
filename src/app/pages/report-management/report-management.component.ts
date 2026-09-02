@@ -62,8 +62,15 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   get columns(): string[] { const keys = new Set<string>(); this.visibleRows.forEach(row => Object.keys(row).forEach(key => { if (key !== 'reporting') keys.add(key); })); return [...keys]; }
   get visibleRows(): Record<string, any>[] { const q = this.search.trim().toLowerCase(); return q ? this.rows.filter(row => Object.values(row).some(value => String(value ?? '').toLowerCase().includes(q))) : this.rows; }
   get ratingRows(): RatingTrendRow[] { return this.ratingDashboard?.rows || []; }
-  get selectedRatingMonth(): { key: string; label: string; full_label: string } | null {
+  get selectedRatingMonth(): { key: string; label: string; full_label: string; in_progress?: boolean; elapsed_days?: number; days_in_month?: number } | null {
     return this.ratingDashboard?.period.months.find(item => item.key === this.selectedRatingMonthKey) || null;
+  }
+  /** The month still running is scored on its elapsed days, so the targets beside each
+   *  driver are that share of the month's - worth saying rather than leaving unexplained. */
+  get selectedRatingMonthNote(): string {
+    const month = this.selectedRatingMonth;
+    if (!month?.in_progress) return '';
+    return `${month.full_label} is still running - targets are ${month.elapsed_days} of ${month.days_in_month} days' share.`;
   }
   get selectedRatingComponents(): RatingTrendComponent[] {
     return this.selectedRatingEmployee?.monthly_details?.[this.selectedRatingMonthKey]?.components || [];
@@ -171,14 +178,50 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   selectRatingMonth(monthKey: string): void { this.selectedRatingMonthKey = monthKey; }
   ratingBarHeight(value: any): number { return Math.max(4, Math.min(100, Number(value || 0))); }
   ratingTrendPoint(value: any): number { return Math.max(2, Math.min(98, Number(value || 0))); }
+  /**
+   * The average trend across the six months, as a straight least-squares line rather
+   * than a point-to-point join. The dot on each bar already shows that month's exact
+   * figure; this line answers the different question of which way the rating is going.
+   */
   ratingTrendPoints(employee: RatingTrendRow): string {
+    const fit = this.ratingTrendFit(employee);
+    if (!fit) return '';
+    // Drawn right across the plot rather than only between the first and last bar, so
+    // it reads as one trend over the whole period.
+    return `0,${(100 - fit.at(-0.5)).toFixed(3)} 100,${(100 - fit.at(fit.count - 0.5)).toFixed(3)}`;
+  }
+
+  /** Least squares over x = 0..count-1, so the slope is percentage points per month. */
+  private ratingTrendFit(employee: RatingTrendRow): { at: (x: number) => number; count: number; slope: number } | null {
     const months = this.ratingDashboard?.period.months || [];
-    if (!months.length) return '';
-    return months.map((item, index) => {
-      const x = ((index + .5) * 100) / months.length;
-      const y = 100 - this.ratingTrendPoint(employee.monthly_ratings?.[item.key]);
-      return `${x.toFixed(3)},${y.toFixed(3)}`;
-    }).join(' ');
+    if (!months.length) return null;
+
+    const values = months.map(item => Number(employee.monthly_ratings?.[item.key] || 0));
+    const count = values.length;
+    const meanX = (count - 1) / 2;
+    const meanY = values.reduce((sum, value) => sum + value, 0) / count;
+
+    let covariance = 0;
+    let variance = 0;
+    values.forEach((value, index) => {
+      covariance += (index - meanX) * (value - meanY);
+      variance += (index - meanX) ** 2;
+    });
+    const slope = variance === 0 ? 0 : covariance / variance;
+
+    return { count, slope, at: (x: number) => this.ratingTrendPoint(meanY + slope * (x - meanX)) };
+  }
+
+  /** Direction of the average trend, for the caption beside the chart. */
+  ratingTrendDirection(employee: RatingTrendRow): 'up' | 'down' | 'flat' {
+    const slope = this.ratingTrendFit(employee)?.slope ?? 0;
+    return Math.abs(slope) < .5 ? 'flat' : slope > 0 ? 'up' : 'down';
+  }
+
+  /** How much the rating moves per month along the trend, as a signed percentage. */
+  ratingTrendSlope(employee: RatingTrendRow): string {
+    const slope = this.ratingTrendFit(employee)?.slope ?? 0;
+    return `${slope > 0 ? '+' : ''}${slope.toFixed(2)}%`;
   }
 
   clearRatingFilters(): void {

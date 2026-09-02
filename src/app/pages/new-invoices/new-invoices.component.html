@@ -172,13 +172,24 @@
 
       <div class="detail-side">
         <div class="inline-attachment" [class.fullscreen]="attachmentFullscreen"
-          *ngIf="selectedInvoice.attachment; else noAttachment">
+          *ngIf="viewerAttachments().length; else noAttachment">
           <div class="inline-attachment-header">
             <div>
               <span class="material-icons">attach_file</span>
               <strong>Invoice Attachment</strong>
+              <span class="attachment-counter" *ngIf="viewerAttachments().length > 1">
+                {{ attachmentIndex + 1 }} / {{ viewerAttachments().length }}
+              </span>
             </div>
             <div class="attachment-viewer-controls">
+              <ng-container *ngIf="viewerAttachments().length > 1">
+                <button type="button" title="Previous attachment" (click)="stepAttachment(-1)">
+                  <span class="material-icons">chevron_left</span>
+                </button>
+                <button type="button" title="Next attachment" (click)="stepAttachment(1)">
+                  <span class="material-icons">chevron_right</span>
+                </button>
+              </ng-container>
               <button type="button" title="Zoom out" (click)="zoomAttachment(-0.25)"
                 [disabled]="attachmentZoom <= 0.5">
                 <span class="material-icons">zoom_out</span>
@@ -200,11 +211,11 @@
             <div class="attachment-zoom-canvas"
               [style.width.%]="attachmentZoom * 100"
               [style.height.%]="attachmentZoom * 100">
-              <iframe *ngIf="isPdfAttachment(selectedInvoice.attachment)"
+              <iframe *ngIf="isPdfAttachment(currentAttachmentPath())"
                 [src]="attachmentViewerResourceUrl"
                 title="Invoice PDF attachment"></iframe>
-              <img *ngIf="!isPdfAttachment(selectedInvoice.attachment)"
-                [src]="mediaUrl(selectedInvoice.attachment)"
+              <img *ngIf="!isPdfAttachment(currentAttachmentPath())"
+                [src]="mediaUrl(currentAttachmentPath())"
                 alt="Invoice attachment" />
             </div>
           </div>
@@ -490,8 +501,12 @@
             </td>
             <td>
               <a *ngIf="invoice.attachment" class="attachment-download-icon" [href]="mediaUrl(invoice.attachment)"
-                target="_blank" rel="noopener" download title="Download attachment">
+                target="_blank" rel="noopener" download
+                [title]="invoice.attachments.length > 1
+                  ? 'Download first of ' + invoice.attachments.length + ' attachments'
+                  : 'Download attachment'">
                 <span class="material-icons">download</span>
+                <span class="attachment-count" *ngIf="invoice.attachments.length > 1">{{ invoice.attachments.length }}</span>
               </a>
               <span *ngIf="!invoice.attachment">-</span>
             </td>
@@ -659,9 +674,32 @@
           </small>
         </div>
         <div class="modal-field">
-          <label>Attachment <span class="req">*</span></label>
-          <input type="file" accept="image/*,.pdf,application/pdf" (change)="onAttachmentChange($event)" />
-          <small>{{ attachmentLabel() }}</small>
+          <label>Attachments <span class="req">*</span></label>
+          <input type="file" multiple accept="image/*,.pdf,application/pdf"
+            [disabled]="compressingAttachments || attachmentCount() >= 10"
+            (change)="onAttachmentChange($event)" />
+          <small>{{ compressingAttachments ? 'Processing attachments...' : attachmentLabel() }}</small>
+          <ul class="attachment-chips" *ngIf="attachmentCount()">
+            <li *ngFor="let saved of form.savedAttachments">
+              <span class="material-icons">description</span>
+              <a [href]="mediaUrl(saved.filePath)" target="_blank" rel="noopener">
+                {{ saved.fileName || attachmentFileName(saved.filePath) }}
+              </a>
+              <button type="button" title="Remove attachment" (click)="removeSavedAttachment(saved)">
+                <span class="material-icons">close</span>
+              </button>
+            </li>
+            <li *ngFor="let file of selectedAttachmentFiles; let i = index">
+              <span class="material-icons">upload_file</span>
+              <span class="attachment-chip-name">{{ file.name }}</span>
+              <button type="button" title="Remove attachment" (click)="removeStagedAttachment(i)">
+                <span class="material-icons">close</span>
+              </button>
+            </li>
+          </ul>
+          <small class="attachment-hint">
+            Up to 10 files. Images are compressed to 5 MB, PDFs must be 10 MB or less.
+          </small>
         </div>
       </div>
 

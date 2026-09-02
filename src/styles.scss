@@ -815,6 +815,41 @@ body {
     stroke-width: .7;
     vector-effect: non-scaling-stroke;
   }
+
+  /* The average trend, not the month-to-month join - dashed so it reads as a guide
+     rather than as another series of readings. */
+  .rating-trend-average {
+    stroke: #1e6fbb;
+    stroke-width: 2;
+    stroke-dasharray: 7 5;
+    stroke-linecap: round;
+  }
+}
+
+.rating-trend-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: #6b7f99;
+  font-size: 12px;
+
+  b {
+    padding: 2px 8px;
+    border-radius: 9px;
+    background: #eef4fb;
+    color: #1e6fbb;
+    font-size: 11.5px;
+  }
+
+  &.trend-up b { background: #e8f5e9; color: #2e7d32; }
+  &.trend-down b { background: #fdecea; color: #c62828; }
+}
+
+.rating-trend-swatch {
+  width: 22px;
+  height: 0;
+  border-top: 2px dashed #1e6fbb;
 }
 
 .rating-month-bar {
@@ -937,4 +972,11 @@ body {
   .rating-month-bar { min-width: 78px; }
   .rating-driver-main { grid-template-columns: 1fr auto; }
   .rating-driver-main > strong { grid-column: auto; }
+}
+
+/* Says the selected month has not finished, so its part-share targets make sense. */
+.rating-partial-month {
+  margin-top: 4px !important;
+  color: #b26a00 !important;
+  font-weight: 600;
 }

@@ -153,9 +153,14 @@
           <div><h3>Month-wise Final Rating</h3><p>Select a month to inspect the rating drivers.</p></div>
           <strong>{{selectedRatingMonth?.full_label}}</strong>
         </div>
+        <p class="rating-trend-legend" [ngClass]="'trend-' + ratingTrendDirection(employee)">
+          <span class="rating-trend-swatch" aria-hidden="true"></span>
+          Average trend line
+          <b>{{ratingTrendSlope(employee)}} per month</b>
+        </p>
         <div class="rating-month-bars" *ngIf="ratingDashboard as dashboard">
           <svg class="rating-trend-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <polyline [attr.points]="ratingTrendPoints(employee)"></polyline>
+            <polyline class="rating-trend-average" [attr.points]="ratingTrendPoints(employee)"></polyline>
           </svg>
           <button type="button" class="rating-month-bar" *ngFor="let periodMonth of dashboard.period.months"
             [ngClass]="ratingScoreClass(employee.monthly_ratings[periodMonth.key])"
@@ -171,7 +176,11 @@
         </div>
 
         <div class="rating-driver-heading">
-          <div><h3>Needs Attention</h3><p>Only rating components below 85% for {{selectedRatingMonth?.full_label}} are shown.</p></div>
+          <div>
+            <h3>Needs Attention</h3>
+            <p>Only rating components below 85% for {{selectedRatingMonth?.full_label}} are shown.</p>
+            <p class="rating-partial-month" *ngIf="selectedRatingMonthNote">{{selectedRatingMonthNote}}</p>
+          </div>
           <span>{{selectedWeakRatingComponents.length}} of 5</span>
         </div>
         <div class="rating-driver-list" *ngIf="selectedWeakRatingComponents.length; else allRatingTargetsMet">

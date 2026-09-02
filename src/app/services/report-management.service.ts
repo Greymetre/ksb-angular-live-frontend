@@ -52,7 +52,7 @@ export interface RatingTrendComponent {
 }
 export interface RatingTrendMonthDetail { final_rating: number; components: RatingTrendComponent[]; }
 export interface RatingReportDashboard {
-  period: { label: string; start_date: string; end_date: string; months: Array<{ key: string; label: string; full_label: string }> };
+  period: { label: string; start_date: string; end_date: string; months: Array<{ key: string; label: string; full_label: string; in_progress?: boolean; elapsed_days?: number; days_in_month?: number }> };
   summary: {
     total_employees: number; total_zones: number; average_rating: number; oldest_month_average: number; average_change: number; comparison_month: string;
     monthly_averages: Record<string, number>;

@@ -51,8 +51,16 @@ export class MasterCrudService {
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
+  /**
+   * Pass pageSize 0 to ask for the whole list.
+   *
+   * The API paginates any GET that carries page_size, so a dropdown feed that sends the
+   * default silently arrives truncated - the branch filter was showing only the ten
+   * newest branches out of twenty. Screens that page for real keep passing a real size.
+   */
   list(config: MasterConfig, search = '', page = 1, pageSize = 10): Observable<PagedArray<MasterItem>> {
-    let params = new HttpParams().set('page', String(page)).set('page_size', String(pageSize));
+    let params = new HttpParams();
+    if (pageSize > 0) params = params.set('page', String(page)).set('page_size', String(pageSize));
     if (search.trim()) params = params.set('search', search.trim());
 
     return this.http.get<MasterApiResponse>(`${this.baseUrl}/${config.path}`, {
