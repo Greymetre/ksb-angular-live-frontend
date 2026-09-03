@@ -28,6 +28,9 @@ export class SearchableSelectComponent {
    *  server has to narrow anyway - fourteen thousand retailers is two megabytes - the
    *  options given here are already the answer, so filtering them again would hide rows. */
   @Input() serverSearch = false;
+  /** How long typing has to settle before the server is asked. Long enough that a whole
+   *  name can be typed without a request going out mid-word. */
+  @Input() searchDebounceMs = 3000;
 
   @Output() selectedChange = new EventEmitter<any>();
   /** Emitted as the user types, debounced, only when serverSearch is on. */
@@ -76,9 +79,10 @@ export class SearchableSelectComponent {
     this.search = value;
     this.page = 1;
     if (!this.serverSearch) return;
-    // One request when the typing settles, not one per keystroke.
+    // One request when the typing settles, not one per keystroke - and the wait is long
+    // enough to type a full shop name without the list changing underneath.
     if (this.searchTimeoutId) window.clearTimeout(this.searchTimeoutId);
-    this.searchTimeoutId = window.setTimeout(() => this.searchChange.emit(value.trim()), 350);
+    this.searchTimeoutId = window.setTimeout(() => this.searchChange.emit(value.trim()), this.searchDebounceMs);
   }
 
   private searchTimeoutId: number | null = null;

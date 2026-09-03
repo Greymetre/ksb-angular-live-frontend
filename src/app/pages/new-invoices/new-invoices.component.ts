@@ -1,7 +1,8 @@
-import { ChangeDetectorRef, Component, HostListener, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, timeout } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { InvoiceSchemeOption, NewInvoiceAttachment, NewInvoiceFilter, NewInvoiceItem, NewInvoicePayload, NewInvoiceService, NewInvoiceStageCounts, NewInvoiceSummary, RetailerDealerOption, RetailerOption } from '../../services/new-invoice.service';
 import { SearchableSelectOption } from '../../shared/components/searchable-select/searchable-select.component';
@@ -54,7 +55,7 @@ interface ApprovalDialogModel {
   templateUrl: './new-invoices.component.html',
   styleUrls: ['./new-invoices.component.scss']
 })
-export class NewInvoicesComponent implements OnInit {
+export class NewInvoicesComponent implements OnInit, OnDestroy {
   invoices: NewInvoiceItem[] = [];
   retailers: RetailerOption[] = [];
   retailerOptions: SelectOption[] = [];
@@ -99,6 +100,7 @@ export class NewInvoicesComponent implements OnInit {
   errorMessage = '';
   toast: ToastModel = { visible: false, message: '', type: 'success' };
   private readonly backendOrigin = this.resolveBackendOrigin();
+  private retailerSearchSub?: Subscription;
   private filterSearchTimeoutId?: number;
   private productSearchTimeoutId?: number;
 
@@ -159,6 +161,10 @@ export class NewInvoicesComponent implements OnInit {
     private productService: ProductService
   ) {}
 
+
+  ngOnDestroy(): void {
+    this.retailerSearchSub?.unsubscribe();
+  }
   ngOnInit(): void {
     this.loadRetailers();
     this.loadSchemeFilters();
@@ -375,8 +381,12 @@ export class NewInvoicesComponent implements OnInit {
   }
 
   loadRetailers(search = ''): void {
+    // A search still in flight is abandoned when a newer one starts. Without this a slow
+    // earlier reply could land last and put its results under a term nobody is looking at.
+    this.retailerSearchSub?.unsubscribe();
     this.retailersLoading = true;
-    this.newInvoiceService.retailers(search).pipe(
+    this.refreshView();
+    this.retailerSearchSub = this.newInvoiceService.retailers(search).pipe(
       finalize(() => {
         this.retailersLoading = false;
         this.refreshView();

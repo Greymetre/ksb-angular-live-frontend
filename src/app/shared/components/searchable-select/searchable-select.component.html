@@ -8,7 +8,9 @@
   </button>
 
   <div class="select-panel" *ngIf="opened" (click)="$event.stopPropagation()">
-    <input class="select-search-box" type="text" [ngModel]="search" (ngModelChange)="onSearchChange($event)" placeholder="Search" [disabled]="loading"/>
+    <!-- Never disabled while loading: a slow lookup used to lock the box mid-word, so
+         the rest of what was being typed went nowhere. The spinner belongs in the list. -->
+    <input class="select-search-box" type="text" [ngModel]="search" (ngModelChange)="onSearchChange($event)" placeholder="Search"/>
     <div class="select-options">
       <div class="empty-option" *ngIf="loading">{{ loadingText }}</div>
       <button type="button" class="select-option" *ngFor="let option of (loading ? [] : visibleOptions)" (click)="choose(option, $event)" [class.selected]="isSelected(option.id)">
