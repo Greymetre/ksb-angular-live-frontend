@@ -111,8 +111,11 @@
     font-weight: 600;
   }
 
+  // Smaller and unbolded: the cards now carry two figures each, and a "K" value does not
+  // need the weight a long digit string did.
   strong {
-    font-size: 24px;
+    font-size: 18px;
+    font-weight: 500;
     line-height: 1;
   }
 
@@ -609,4 +612,272 @@
   .info-row { grid-template-columns: 1fr; gap: 3px; }
   .image-modal-overlay { padding: 12px; }
   .image-modal-body { padding: 10px; }
+}
+
+/* The KYC document popup: file on the left, its details and the review on the right. */
+.profile-photo.clickable {
+  cursor: zoom-in;
+}
+
+.kyc-doc-modal {
+  background: white;
+  border-radius: 12px;
+  width: min(980px, 94vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .kyc-doc-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    h3 { margin: 0; }
+    small { color: var(--text-muted); }
+  }
+}
+
+.kyc-doc-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr);
+  gap: 16px;
+  padding: 16px;
+  overflow: auto;
+}
+
+.kyc-doc-file {
+  background: #f4f6fb;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  min-height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+
+  a { display: block; max-width: 100%; max-height: 100%; }
+  img { max-width: 100%; max-height: 62vh; display: block; object-fit: contain; }
+  iframe { width: 100%; height: 62vh; border: 0; background: white; }
+}
+
+.kyc-doc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+
+  .material-icons { font-size: 40px; }
+  p { margin: 0; }
+}
+
+.kyc-doc-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.kyc-doc-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  h4 { margin: 0; font-size: 14px; }
+
+  .btn-link {
+    background: none;
+    border: 0;
+    color: var(--primary-color, #1e3a8a);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+
+    .material-icons { font-size: 16px; }
+  }
+}
+
+.kyc-doc-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .kyc-doc-detail {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed var(--border-color);
+    font-size: 13px;
+
+    span { color: var(--text-muted); }
+    strong { text-align: right; word-break: break-word; }
+    strong.missing { color: var(--text-muted); font-weight: 400; font-style: italic; }
+  }
+}
+
+.kyc-doc-none { color: var(--text-muted); font-size: 13px; margin: 0; }
+
+.kyc-doc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+
+    span { color: var(--text-muted); }
+
+    input {
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font: inherit;
+    }
+  }
+}
+
+.kyc-doc-form-actions,
+.kyc-doc-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.kyc-doc-actions {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* Labelled buttons, not the 34px icon squares the KYC cards use - those clip their text. */
+.kyc-doc-form-actions,
+.kyc-doc-actions {
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 38px;
+    padding: 0 16px;
+    width: auto;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+
+    .material-icons { font-size: 18px; }
+    &:disabled { opacity: .6; cursor: not-allowed; }
+  }
+
+  .btn-approve { background: #16a34a; color: white; }
+  .btn-reject { background: #dc2626; color: white; }
+  .btn-submit-kyc { background: var(--primary-color, #1e3a8a); color: white; }
+  .btn-submit-kyc.reject { background: #dc2626; }
+  .btn-secondary { background: white; border-color: var(--border-color); color: var(--text-muted); }
+}
+
+.kyc-doc-hint { color: var(--text-muted); font-size: 13px; }
+
+.kyc-doc-review {
+  background: #f7f8fc;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 13px;
+
+  .kyc-review-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+
+    .material-icons { font-size: 16px; }
+  }
+
+  .kyc-review-remark { margin: 6px 0 0; }
+}
+
+.kyc-doc-remark {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+
+  .required { color: #dc2626; }
+
+  textarea {
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font: inherit;
+    resize: vertical;
+  }
+}
+
+@media (max-width: 860px) {
+  .kyc-doc-body { grid-template-columns: 1fr; }
+  .kyc-doc-file iframe,
+  .kyc-doc-file img { max-height: 40vh; height: 40vh; }
+}
+
+/* One page at a time on every tab. */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 2px 2px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.pager-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  button {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+
+    .material-icons { font-size: 18px; }
+    &:disabled { opacity: .4; cursor: not-allowed; }
+  }
+}
+
+.pager-page { min-width: 54px; text-align: center; }
+
+/* The three scheme cards carry two figures; the rest stay a single number. */
+.point-split {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+
+  small {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    opacity: .65;
+  }
 }

@@ -22,13 +22,29 @@
     <div class="points-grid">
       <div class="point-card" *ngFor="let card of pointCards" [class.success]="card.tone === 'success'" [class.danger]="card.tone === 'danger'" [class.info]="card.tone === 'info'">
         <span>{{ card.label }}</span>
-        <strong>{{ card.value | number:'1.0-0' }}</strong>
+        <ng-container *ngIf="card.expected === undefined; else splitPoints">
+          <strong [title]="card.value | number:'1.0-2'">{{ formatPoints(card.value) }}</strong>
+        </ng-container>
+        <ng-template #splitPoints>
+          <div class="point-split">
+            <div>
+              <strong [title]="card.value | number:'1.0-2'">{{ formatPoints(card.value) }}</strong>
+              <small>Earned</small>
+            </div>
+            <div>
+              <strong [title]="card.expected | number:'1.0-2'">{{ formatPoints(card.expected) }}</strong>
+              <small>Expected</small>
+            </div>
+          </div>
+        </ng-template>
       </div>
     </div>
 
     <div class="profile-card">
       <div class="profile-main">
-        <img [src]="imageUrl" alt="Customer image"/>
+        <img [src]="imageUrl" alt="Customer image" class="profile-photo"
+          [class.clickable]="hasShopImage" (click)="openShopImage()"
+          [title]="hasShopImage ? 'View shop image' : ''"/>
         <div>
           <h3>{{ displayName }}</h3>
           <p>{{ customer.customerTypeName || 'Customer' }}</p>
@@ -106,7 +122,7 @@
       <div class="tab-body" *ngIf="activeTab === 'kyc'">
         <div class="document-grid" *ngIf="kycDocuments.length > 0">
           <div class="document-card" *ngFor="let document of kycDocuments" [class.approved]="document.status === 'approved'" [class.rejected]="document.status === 'rejected'">
-            <button type="button" class="document-preview" [class.empty]="!document.url" (click)="openKycPreview(document)" [disabled]="!document.url">
+            <button type="button" class="document-preview" [class.empty]="!document.url" (click)="openKycPreview(document)">
               <img *ngIf="document.url" [src]="document.url" [alt]="document.label"/>
               <span class="material-icons" *ngIf="!document.url">description</span>
             </button>
@@ -129,13 +145,13 @@
               <p *ngIf="document.remark">{{ document.remark }}</p>
             </div>
             <div class="document-actions">
-              <button type="button" class="btn-view-doc" title="View" (click)="openKycPreview(document)" [disabled]="!document.url">
+              <button type="button" class="btn-view-doc" title="View document and details" (click)="openKycPreview(document)">
                 <span class="material-icons">visibility</span>
               </button>
-              <button type="button" class="btn-approve-doc" title="Approve" (click)="openKycDialog(document, 'approve')" *ngIf="canApproveKyc && document.status !== 'approved'">
+              <button type="button" class="btn-approve-doc" title="Approve" (click)="openKycReview(document, 'approve')" *ngIf="canApproveKyc && document.url && document.status !== 'approved'">
                 <span class="material-icons">task_alt</span>
               </button>
-              <button type="button" class="btn-reject-doc" title="Reject" (click)="openKycDialog(document, 'reject')" *ngIf="canApproveKyc && document.status !== 'rejected'">
+              <button type="button" class="btn-reject-doc" title="Reject" (click)="openKycReview(document, 'reject')" *ngIf="canApproveKyc && document.url && document.status !== 'rejected'">
                 <span class="material-icons">block</span>
               </button>
             </div>
@@ -181,6 +197,18 @@
             </tbody>
           </table>
         </div>
+        <div class="pager" *ngIf="invoicesTotal > pageSize">
+          <span class="pager-info">{{ pageRangeLabel(invoicesTotal, invoicesPage, invoices.length) }}</span>
+          <div class="pager-buttons">
+            <button type="button" [disabled]="invoicesPage <= 1" (click)="goToInvoicesPage(invoicesPage - 1)">
+              <span class="material-icons">chevron_left</span>
+            </button>
+            <span class="pager-page">{{ invoicesPage }} / {{ totalPages(invoicesTotal) }}</span>
+            <button type="button" [disabled]="invoicesPage >= totalPages(invoicesTotal)" (click)="goToInvoicesPage(invoicesPage + 1)">
+              <span class="material-icons">chevron_right</span>
+            </button>
+          </div>
+        </div>
         <div class="empty-state" *ngIf="!loadingTransactions && filteredInvoices.length === 0">
           <span class="material-icons">receipt_long</span>
           <strong>No {{ transactionSchemeTag }} invoices found</strong>
@@ -210,7 +238,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let redemption of filteredRedemptions">
+              <tr *ngFor="let redemption of pagedRedemptions">
                 <td>{{ formatShortDate(redemption.createdAt) }}</td>
                 <td class="link-text">{{ redemption.transactionNo }}</td>
                 <td><span class="mode-pill">{{ redemption.redeemMode }}</span></td>
@@ -221,13 +249,185 @@
             </tbody>
           </table>
         </div>
+        <div class="pager" *ngIf="redemptionsTotal > pageSize">
+          <span class="pager-info">{{ pageRangeLabel(redemptionsTotal, redemptionsPage, pagedRedemptions.length) }}</span>
+          <div class="pager-buttons">
+            <button type="button" [disabled]="redemptionsPage <= 1" (click)="goToRedemptionsPage(redemptionsPage - 1)">
+              <span class="material-icons">chevron_left</span>
+            </button>
+            <span class="pager-page">{{ redemptionsPage }} / {{ totalPages(redemptionsTotal) }}</span>
+            <button type="button" [disabled]="redemptionsPage >= totalPages(redemptionsTotal)" (click)="goToRedemptionsPage(redemptionsPage + 1)">
+              <span class="material-icons">chevron_right</span>
+            </button>
+          </div>
+        </div>
         <div class="empty-state" *ngIf="!loadingRedemptions && filteredRedemptions.length === 0">
           <span class="material-icons">account_balance_wallet</span>
           <strong>No {{ redemptionWallet }} redemptions found</strong>
         </div>
       </div>
 
-      <div class="tab-body" *ngIf="activeTab !== 'details' && activeTab !== 'kyc' && activeTab !== 'transaction' && activeTab !== 'redemption'">
+      <div class="tab-body" *ngIf="activeTab === 'orders'">
+        <div class="section-toolbar">
+          <h4>Orders</h4>
+        </div>
+        <div class="loading-bar" *ngIf="loadingOrders">Loading orders...</div>
+        <div class="table-wrap" *ngIf="!loadingOrders && orders.length > 0">
+          <table class="mini-table">
+            <thead>
+              <tr>
+                <th>Order Date</th>
+                <th>Order No</th>
+                <th>Dealer</th>
+                <th>Qty</th>
+                <th>Shipped</th>
+                <th>Value</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let order of orders">
+                <td>{{ formatShortDate(order.orderDate) }}</td>
+                <td>{{ order.orderNo || '-' }}</td>
+                <td>{{ order.sellerName || '-' }}</td>
+                <td>{{ order.totalQty | number:'1.0-0' }}</td>
+                <td>{{ order.shippedQty | number:'1.0-0' }}</td>
+                <td>{{ order.grandTotal | currency:'INR':'symbol':'1.2-2' }}</td>
+                <td><span class="status-badge">{{ order.statusName || '-' }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pager" *ngIf="ordersTotal > pageSize">
+          <span class="pager-info">{{ pageRangeLabel(ordersTotal, ordersPage, orders.length) }}</span>
+          <div class="pager-buttons">
+            <button type="button" [disabled]="ordersPage <= 1" (click)="goToOrdersPage(ordersPage - 1)">
+              <span class="material-icons">chevron_left</span>
+            </button>
+            <span class="pager-page">{{ ordersPage }} / {{ totalPages(ordersTotal) }}</span>
+            <button type="button" [disabled]="ordersPage >= totalPages(ordersTotal)" (click)="goToOrdersPage(ordersPage + 1)">
+              <span class="material-icons">chevron_right</span>
+            </button>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="!loadingOrders && orders.length === 0">
+          <span class="material-icons">shopping_cart</span>
+          <strong>No orders found</strong>
+        </div>
+      </div>
+
+      <div class="tab-body" *ngIf="activeTab === 'sales'">
+        <div class="section-toolbar">
+          <h4>Dispatch</h4>
+          <div class="segment-control">
+            <button type="button" [class.active]="dispatchMode === 'full'" (click)="setDispatchMode('full')">Full</button>
+            <button type="button" [class.active]="dispatchMode === 'partial'" (click)="setDispatchMode('partial')">Partial</button>
+          </div>
+        </div>
+        <div class="loading-bar" *ngIf="loadingDispatches">Loading dispatches...</div>
+        <div class="table-wrap" *ngIf="!loadingDispatches && dispatches.length > 0">
+          <table class="mini-table">
+            <thead>
+              <tr>
+                <th>Invoice Date</th>
+                <th>Invoice No</th>
+                <th>Order No</th>
+                <th>Dispatch Date</th>
+                <th>LR No</th>
+                <th>Shipped</th>
+                <th>Value</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let dispatch of pagedDispatches">
+                <td>{{ formatShortDate(dispatch.invoiceDate) }}</td>
+                <td>{{ dispatch.invoiceNo || '-' }}</td>
+                <td>{{ dispatch.orderNo || '-' }}</td>
+                <td>{{ formatShortDate(dispatch.dispatchDate) }}</td>
+                <td>{{ dispatch.lrNo || '-' }}</td>
+                <td>{{ dispatch.shippedQty | number:'1.0-0' }}</td>
+                <td>{{ dispatch.grandTotal | currency:'INR':'symbol':'1.2-2' }}</td>
+                <td><span class="status-badge">{{ dispatch.statusName || '-' }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pager" *ngIf="dispatchesTotal > pageSize">
+          <span class="pager-info">{{ pageRangeLabel(dispatchesTotal, dispatchesPage, pagedDispatches.length) }}</span>
+          <div class="pager-buttons">
+            <button type="button" [disabled]="dispatchesPage <= 1" (click)="goToDispatchesPage(dispatchesPage - 1)">
+              <span class="material-icons">chevron_left</span>
+            </button>
+            <span class="pager-page">{{ dispatchesPage }} / {{ totalPages(dispatchesTotal) }}</span>
+            <button type="button" [disabled]="dispatchesPage >= totalPages(dispatchesTotal)" (click)="goToDispatchesPage(dispatchesPage + 1)">
+              <span class="material-icons">chevron_right</span>
+            </button>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="!loadingDispatches && dispatches.length === 0">
+          <span class="material-icons">local_shipping</span>
+          <strong>No {{ dispatchMode }} dispatches found</strong>
+        </div>
+      </div>
+
+      <div class="tab-body" *ngIf="activeTab === 'activity'">
+        <div class="section-toolbar">
+          <h4>Check-ins</h4>
+        </div>
+        <div class="loading-bar" *ngIf="loadingCheckins">Loading check-ins...</div>
+        <div class="table-wrap" *ngIf="!loadingCheckins && checkins.length > 0">
+          <table class="mini-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Emp Code</th>
+                <th>Designation</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th>Duration</th>
+                <th>Beat</th>
+                <th>Remark</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let visit of checkins">
+                <td>{{ visit.userName || '-' }}</td>
+                <td>{{ visit.employeeCode || '-' }}</td>
+                <td>{{ visit.designation || '-' }}</td>
+                <td>{{ formatShortDate(visit.checkinDate) }} {{ visit.checkinTime }}</td>
+                <td>
+                  <ng-container *ngIf="visit.checkoutDate || visit.checkoutTime; else openVisit">
+                    {{ formatShortDate(visit.checkoutDate) }} {{ visit.checkoutTime }}
+                  </ng-container>
+                  <ng-template #openVisit>Still open</ng-template>
+                </td>
+                <td>{{ visit.timeInterval || '-' }}</td>
+                <td>{{ visit.beatName || '-' }}</td>
+                <td>{{ visit.visitRemark || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pager" *ngIf="checkinsTotal > pageSize">
+          <span class="pager-info">{{ pageRangeLabel(checkinsTotal, checkinsPage, checkins.length) }}</span>
+          <div class="pager-buttons">
+            <button type="button" [disabled]="checkinsPage <= 1" (click)="goToCheckinsPage(checkinsPage - 1)">
+              <span class="material-icons">chevron_left</span>
+            </button>
+            <span class="pager-page">{{ checkinsPage }} / {{ totalPages(checkinsTotal) }}</span>
+            <button type="button" [disabled]="checkinsPage >= totalPages(checkinsTotal)" (click)="goToCheckinsPage(checkinsPage + 1)">
+              <span class="material-icons">chevron_right</span>
+            </button>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="!loadingCheckins && checkins.length === 0">
+          <span class="material-icons">where_to_vote</span>
+          <strong>Nobody has checked in on this customer yet</strong>
+        </div>
+      </div>
+
+      <div class="tab-body" *ngIf="activeTab !== 'details' && activeTab !== 'kyc' && activeTab !== 'transaction' && activeTab !== 'redemption' && activeTab !== 'orders' && activeTab !== 'sales' && activeTab !== 'activity'">
         <div class="empty-state">
           <span class="material-icons">{{ activeTabIcon() }}</span>
           <strong>No records found</strong>
@@ -236,49 +436,126 @@
     </div>
   </ng-container>
 
-  <div class="image-modal-overlay" *ngIf="selectedKycDocument" (click)="closeKycPreview()">
-    <div class="image-modal" (click)="$event.stopPropagation()">
+  <!-- One popup for a KYC document: the file, its details, editing them, and the review. -->
+  <div class="image-modal-overlay" *ngIf="selectedKycDocument as document" (click)="closeKycPreview()">
+    <div class="kyc-doc-modal" (click)="$event.stopPropagation()">
       <div class="image-modal-header">
-        <h3>{{ selectedKycDocument.label }}</h3>
-        <button type="button" class="image-modal-close" (click)="closeKycPreview()">
+        <div class="kyc-doc-title">
+          <h3>{{ document.label }}</h3>
+          <small>{{ displayName }}</small>
+        </div>
+        <span class="kyc-status" [class.approved]="document.status === 'approved'" [class.rejected]="document.status === 'rejected'">
+          {{ statusLabel(document.status) }}
+        </span>
+        <button type="button" class="image-modal-close" (click)="closeKycPreview()"
+          [disabled]="savingKyc || savingKycDetails">
           <span class="material-icons">close</span>
         </button>
       </div>
-      <div class="image-modal-body">
-        <img [src]="selectedKycDocument.url" [alt]="selectedKycDocument.label"/>
+
+      <div class="kyc-doc-body">
+        <div class="kyc-doc-file">
+          <ng-container *ngIf="document.url; else noKycFile">
+            <iframe *ngIf="isPdfDocument(document.url); else kycImage"
+              [src]="safeDocumentUrl(document.url)" title="KYC document"></iframe>
+            <ng-template #kycImage>
+              <a [href]="document.url" target="_blank" rel="noopener" title="Open in a new tab">
+                <img [src]="document.url" [alt]="document.label"/>
+              </a>
+            </ng-template>
+          </ng-container>
+          <ng-template #noKycFile>
+            <div class="kyc-doc-empty">
+              <span class="material-icons">upload_file</span>
+              <p>No document uploaded yet</p>
+            </div>
+          </ng-template>
+        </div>
+
+        <div class="kyc-doc-side">
+          <div class="kyc-doc-detail-head">
+            <h4>Details</h4>
+            <button type="button" class="btn-link" *ngIf="canEditCustomer && !editingKycDetails"
+              (click)="startKycDetailEdit()">
+              <span class="material-icons">edit</span> Edit
+            </button>
+          </div>
+
+          <div class="kyc-doc-details" *ngIf="!editingKycDetails">
+            <div class="kyc-doc-detail" *ngFor="let detail of document.rows">
+              <span>{{ detail.label }}</span>
+              <strong [class.missing]="!detail.value">{{ detail.value || 'Not entered' }}</strong>
+            </div>
+            <p class="kyc-doc-none" *ngIf="document.rows.length === 0">No details for this document</p>
+          </div>
+
+          <div class="kyc-doc-form" *ngIf="editingKycDetails">
+            <label *ngFor="let detail of document.rows">
+              <span>{{ detail.label }}</span>
+              <input type="text" [(ngModel)]="kycEdit[detail.key!]" *ngIf="detail.key"
+                [placeholder]="detail.label" [disabled]="savingKycDetails"/>
+            </label>
+            <div class="kyc-doc-form-actions">
+              <button type="button" class="btn-secondary" (click)="cancelKycDetailEdit()" [disabled]="savingKycDetails">Cancel</button>
+              <button type="button" class="btn-submit-kyc" (click)="saveKycDetails()" [disabled]="savingKycDetails">
+                {{ savingKycDetails ? 'Saving...' : 'Save Details' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="kyc-doc-review" *ngIf="document.actionBy || document.actionAt || document.remark">
+            <div class="kyc-review-line" *ngIf="document.actionBy || document.actionAt">
+              <span class="material-icons">history</span>
+              {{ statusLabel(document.status) }} by {{ document.actionBy || '-' }}
+              <span *ngIf="document.actionAt">on {{ formatDate(document.actionAt) }}</span>
+            </div>
+            <p class="kyc-review-remark" *ngIf="document.remark">{{ document.remark }}</p>
+          </div>
+
+          <div class="kyc-doc-remark" *ngIf="kycReviewAction">
+            <label>Remark <span class="required" *ngIf="kycReviewAction === 'reject'">*</span></label>
+            <textarea rows="3" [(ngModel)]="kycReviewRemark" [disabled]="savingKyc"
+              [placeholder]="kycReviewAction === 'reject' ? 'Tell them what to correct' : 'Optional note'"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="kyc-doc-actions" *ngIf="canApproveKyc && !editingKycDetails">
+        <ng-container *ngIf="!kycReviewAction">
+          <button type="button" class="btn-reject" *ngIf="document.url && document.status !== 'rejected'"
+            (click)="startKycReview('reject')">
+            <span class="material-icons">block</span> Reject
+          </button>
+          <button type="button" class="btn-approve" *ngIf="document.url && document.status !== 'approved'"
+            (click)="startKycReview('approve')">
+            <span class="material-icons">task_alt</span> Approve
+          </button>
+          <span class="kyc-doc-hint" *ngIf="!document.url">Nothing to review until the document is uploaded.</span>
+        </ng-container>
+        <ng-container *ngIf="kycReviewAction">
+          <button type="button" class="btn-secondary" (click)="cancelKycReview()" [disabled]="savingKyc">Cancel</button>
+          <button type="button" class="btn-submit-kyc" [class.reject]="kycReviewAction === 'reject'"
+            (click)="submitKycReview()" [disabled]="savingKyc">
+            {{ savingKyc ? 'Saving...' : (kycReviewAction === 'reject' ? 'Confirm Reject' : 'Confirm Approve') }}
+          </button>
+        </ng-container>
       </div>
     </div>
   </div>
 
-  <div class="image-modal-overlay" *ngIf="kycDialog.visible" (click)="closeKycDialog()">
-    <div class="kyc-action-modal" (click)="$event.stopPropagation()">
+  <!-- The shop photo from the profile card, at a size worth looking at. -->
+  <div class="image-modal-overlay" *ngIf="shopImageOpen" (click)="closeShopImage()">
+    <div class="image-modal" (click)="$event.stopPropagation()">
       <div class="image-modal-header">
-        <h3>{{ kycDialogTitle() }}</h3>
-        <button type="button" class="image-modal-close" (click)="closeKycDialog()" [disabled]="savingKyc">
+        <h3>Shop Image</h3>
+        <button type="button" class="image-modal-close" (click)="closeShopImage()">
           <span class="material-icons">close</span>
         </button>
       </div>
-      <div class="kyc-action-body" *ngIf="kycDialog.document">
-        <div class="kyc-action-summary">
-          <img *ngIf="kycDialog.document.url" [src]="kycDialog.document.url" [alt]="kycDialog.document.label"/>
-          <div class="kyc-action-placeholder" *ngIf="!kycDialog.document.url">
-            <span class="material-icons">description</span>
-          </div>
-          <div>
-            <strong>{{ kycDialog.document.label }}</strong>
-            <span class="kyc-status" [class.approved]="kycDialog.document.status === 'approved'" [class.rejected]="kycDialog.document.status === 'rejected'">
-              {{ statusLabel(kycDialog.document.status) }}
-            </span>
-          </div>
-        </div>
-        <label>Remark <span *ngIf="kycDialog.action === 'reject'">*</span></label>
-        <textarea [(ngModel)]="kycDialog.remark" rows="4" placeholder="Write approval or rejection note"></textarea>
-        <div class="modal-actions">
-          <button type="button" class="btn-secondary" (click)="closeKycDialog()" [disabled]="savingKyc">Cancel</button>
-          <button type="button" class="btn-submit-kyc" [class.reject]="kycDialog.action === 'reject'" (click)="submitKycAction()" [disabled]="savingKyc">
-            {{ savingKyc ? 'Saving...' : (kycDialog.action === 'reject' ? 'Reject' : 'Approve') }}
-          </button>
-        </div>
+      <div class="image-modal-body">
+        <a [href]="imageUrl" target="_blank" rel="noopener" title="Open in a new tab">
+          <img [src]="imageUrl" alt="Shop image"/>
+        </a>
       </div>
     </div>
   </div>

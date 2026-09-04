@@ -70,6 +70,9 @@ export class CustomerKycComponent implements OnInit, OnDestroy {
     remark: string;
   } = { visible: false, customer: null, document: null, action: null, remark: '' };
   savingReview = false;
+  editingDetails = false;
+  savingDetails = false;
+  detailEdit: Record<string, string> = {};
   /// A stored path is no guarantee the file is still there. When it will not load, the
   /// popup says so instead of showing a broken image.
   attachmentBroken = false;
@@ -115,6 +118,77 @@ export class CustomerKycComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.searchTimeoutId) window.clearTimeout(this.searchTimeoutId);
     if (this.toastTimeoutId) window.clearTimeout(this.toastTimeoutId);
+  }
+
+  get canEditCustomer(): boolean {
+    return this.authService.hasPermission('customer.edit');
+  }
+
+  startDetailEdit(): void {
+    const document = this.viewer.document;
+    if (!document) return;
+    this.detailEdit = {};
+    for (const detail of document.details) {
+      if (detail.key) this.detailEdit[detail.key] = detail.value ?? '';
+    }
+    this.editingDetails = true;
+    this.refreshView();
+  }
+
+  cancelDetailEdit(): void {
+    this.editingDetails = false;
+    this.detailEdit = {};
+    this.refreshView();
+  }
+
+  saveDetails(): void {
+    const customer = this.viewer.customer;
+    const document = this.viewer.document;
+    if (!customer || !document) return;
+
+    this.savingDetails = true;
+    // The stored set has to go back whole: the update replaces custom_fields outright, so
+    // reading the customer first is what stops everything else being wiped.
+    this.customerService.get(customer.id).subscribe({
+      next: existing => {
+        const fields: Record<string, string | null> = { ...existing.customFields };
+        for (const [key, value] of Object.entries(this.detailEdit)) {
+          fields[key] = value.trim() === '' ? null : value.trim();
+        }
+        const payload = new FormData();
+        payload.append('customer_type', String(existing.customerType ?? ''));
+        payload.append('name', existing.name ?? '');
+        payload.append('custom_fields', JSON.stringify(fields));
+
+        this.customerService.update(customer.id, payload).subscribe({
+          next: result => {
+            this.savingDetails = false;
+            this.editingDetails = false;
+            this.detailEdit = {};
+            this.showToast(result.message || 'Details updated', 'success');
+            // The row's detail counts and the popup both move with this, so the list is read
+        // again and the open popup re-pointed at the fresh document rather than closed.
+        this.load(() => {
+          const customerId = this.viewer.customer?.id;
+          const documentKey = this.viewer.document?.key;
+          const fresh = this.customers.find(item => item.id === customerId);
+          const document = fresh?.documents.find(item => item.key === documentKey);
+          if (fresh && document) this.viewer = { ...this.viewer, customer: fresh, document };
+        });
+          },
+          error: error => {
+            this.savingDetails = false;
+            this.showToast(error.message, 'error');
+            this.refreshView();
+          }
+        });
+      },
+      error: error => {
+        this.savingDetails = false;
+        this.showToast(error.message, 'error');
+        this.refreshView();
+      }
+    });
   }
 
   get canReviewKyc(): boolean {
@@ -214,7 +288,7 @@ export class CustomerKycComponent implements OnInit, OnDestroy {
     }, 3500);
   }
 
-  load(): void {
+  load(onLoaded?: () => void): void {
     this.loading = true;
     this.errorMessage = '';
     this.refreshView();
@@ -231,6 +305,7 @@ export class CustomerKycComponent implements OnInit, OnDestroy {
         this.summary = result.summary;
         this.total = result.total;
         this.loading = false;
+        onLoaded?.();
         this.refreshView();
       },
       error: (error: Error) => {

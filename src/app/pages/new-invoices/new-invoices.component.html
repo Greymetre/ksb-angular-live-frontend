@@ -201,6 +201,14 @@
                 [disabled]="attachmentZoom >= 3">
                 <span class="material-icons">zoom_in</span>
               </button>
+              <ng-container *ngIf="!isPdfAttachment(currentAttachmentPath())">
+                <button type="button" title="Rotate left" (click)="rotateAttachment(-90)">
+                  <span class="material-icons">rotate_left</span>
+                </button>
+                <button type="button" title="Rotate right" (click)="rotateAttachment(90)">
+                  <span class="material-icons">rotate_right</span>
+                </button>
+              </ng-container>
               <button type="button" [title]="attachmentFullscreen ? 'Exit full screen' : 'Full screen'"
                 (click)="toggleAttachmentFullscreen()">
                 <span class="material-icons">{{ attachmentFullscreen ? 'fullscreen_exit' : 'fullscreen' }}</span>
@@ -216,6 +224,7 @@
                 title="Invoice PDF attachment"></iframe>
               <img *ngIf="!isPdfAttachment(currentAttachmentPath())"
                 [src]="mediaUrl(currentAttachmentPath())"
+                [style.transform]="attachmentRotationStyle()"
                 alt="Invoice attachment" />
             </div>
           </div>
@@ -335,27 +344,27 @@
       </div>
       <div class="summary-tile">
         <span>Total Amount</span>
-        <strong>{{ formatMoney(summary.totalAmount) }}</strong>
+        <strong [title]="exactAmount(summary.totalAmount)">{{ summaryAmount(summary.totalAmount) }}</strong>
       </div>
       <div class="summary-tile" *ngIf="!isCustomerView">
         <span>SS Approval Amt</span>
-        <strong>{{ formatMoney(summary.ssApprovalAmount) }}</strong>
+        <strong [title]="exactAmount(summary.ssApprovalAmount)">{{ summaryAmount(summary.ssApprovalAmount) }}</strong>
       </div>
       <div class="summary-tile" *ngIf="!isCustomerView">
         <span>Sales Approval Amt</span>
-        <strong>{{ formatMoney(summary.salesApprovalAmount) }}</strong>
+        <strong [title]="exactAmount(summary.salesApprovalAmount)">{{ summaryAmount(summary.salesApprovalAmount) }}</strong>
       </div>
       <div class="summary-tile">
         <span>{{ isCustomerView ? 'Approved Amount' : 'HO Approval Amt' }}</span>
-        <strong>{{ formatMoney(summary.hoApprovalAmount) }}</strong>
+        <strong [title]="exactAmount(summary.hoApprovalAmount)">{{ summaryAmount(summary.hoApprovalAmount) }}</strong>
       </div>
       <div class="summary-tile">
         <span>Total Reward Earned</span>
-        <strong>{{ summary.totalRewardEarned | number:'1.2-2' }}</strong>
+        <strong [title]="summary.totalRewardEarned | number:'1.2-2'">{{ summaryPoints(summary.totalRewardEarned) }}</strong>
       </div>
       <div class="summary-tile">
         <span>Total Expected Reward</span>
-        <strong>{{ summary.totalExpectedReward | number:'1.2-2' }}</strong>
+        <strong [title]="summary.totalExpectedReward | number:'1.2-2'">{{ summaryPoints(summary.totalExpectedReward) }}</strong>
       </div>
     </div>
 

@@ -90,6 +90,9 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
   approvalHistoryVisible = false;
   attachmentZoom = 1;
   attachmentIndex = 0;
+  /** Quarter turns applied to the image, in degrees. Phone photos of a bill often
+   *  arrive on their side, so the viewer has to be able to stand them up. */
+  attachmentRotation = 0;
   attachmentFullscreen = false;
   attachmentViewerResourceUrl: SafeResourceUrl | null = null;
   productSearchOpen = false;
@@ -415,6 +418,7 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
         this.selectedInvoice = invoice;
         this.attachmentZoom = 1;
         this.attachmentIndex = 0;
+        this.attachmentRotation = 0;
         this.attachmentFullscreen = false;
         this.syncAttachmentViewer();
         this.refreshView();
@@ -824,6 +828,30 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value || 0);
   }
 
+  /** Summary tiles only. The listing and the detail panel keep the full figure - it is the
+   *  tiles that have to hold a running total across every invoice on screen, and those
+   *  already reach crores. Under a lakh the plain amount is clearer than "0.42L". */
+  summaryAmount(value: number | null | undefined): string {
+    const amount = Number(value) || 0;
+    if (Math.abs(amount) < 100000) return this.formatMoney(amount);
+    const lakhs = amount / 100000;
+    const decimals = Math.abs(lakhs) >= 100 ? 0 : Math.abs(lakhs) >= 10 ? 1 : 2;
+    return `₹${Number(lakhs.toFixed(decimals))}L`;
+  }
+
+  /** Reward points on the summary tiles, in thousands for the same reason. */
+  summaryPoints(value: number | null | undefined): string {
+    const points = Number(value) || 0;
+    if (Math.abs(points) < 1000) return points.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    const thousands = points / 1000;
+    const decimals = Math.abs(thousands) >= 100 ? 0 : Math.abs(thousands) >= 10 ? 1 : 2;
+    return `${Number(thousands.toFixed(decimals))}K`;
+  }
+
+  exactAmount(value: number | null | undefined): string {
+    return this.formatMoney(Number(value) || 0);
+  }
+
   schemeDisplay(invoice: NewInvoiceItem): string {
     return invoice.schemeName ? `${invoice.schemeName}${invoice.schemeCode ? ' (' + invoice.schemeCode + ')' : ''}` : '-';
   }
@@ -950,6 +978,7 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
     if (total < 2) return;
     this.attachmentIndex = (this.attachmentIndex + step + total) % total;
     this.attachmentZoom = 1;
+    this.attachmentRotation = 0;
     this.syncAttachmentViewer();
     this.refreshView();
   }
@@ -968,7 +997,20 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
 
   resetAttachmentZoom(): void {
     this.attachmentZoom = 1;
+    this.attachmentRotation = 0;
     this.refreshView();
+  }
+
+  rotateAttachment(step: number): void {
+    this.attachmentRotation = (this.attachmentRotation + step + 360) % 360;
+    this.refreshView();
+  }
+
+  /** A quarter turn makes the image's footprint as wide as the frame is tall, which on
+   *  this portrait panel is wider than the frame. The body scrolls, and zoom out brings
+   *  the whole bill back into view - the same way any document viewer behaves. */
+  attachmentRotationStyle(): string {
+    return `rotate(${this.attachmentRotation}deg)`;
   }
 
   toggleAttachmentFullscreen(): void {

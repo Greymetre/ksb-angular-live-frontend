@@ -1,10 +1,13 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { finalize, timeout } from 'rxjs/operators';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 import { CustomerItem, CustomerService } from '../../../services/customer.service';
 import { NewInvoiceItem, NewInvoiceService } from '../../../services/new-invoice.service';
+import { Order, OrderDispatch, OrderService } from '../../../services/order.service';
+import { CheckinReportService, CheckinRow } from '../../../services/checkin-report.service';
 import { RedemptionItem, RedemptionService } from '../../../services/redemption.service';
 import { UserService } from '../../../services/user.service';
 import { API_ORIGIN } from '../../../config/api.config';
@@ -13,12 +16,18 @@ import { formatKolkataDate, formatKolkataDateTime } from '../../../shared/utils/
 interface InfoRow {
   label: string;
   value: string | null | undefined;
+  /** The custom_fields key this row reads from. Present only on rows the KYC popup is
+   *  allowed to write back; a row without it is display-only. */
+  key?: string;
 }
 
 interface PointCard {
   label: string;
   value: number;
   tone: 'primary' | 'success' | 'danger' | 'info';
+  /** Set on the three scheme cards, which split into what is banked and what is still
+   *  coming. The other cards are a single figure and leave this undefined. */
+  expected?: number;
 }
 
 interface TabItem {
@@ -38,13 +47,6 @@ interface KycDocument {
   actionAt: string;
 }
 
-interface KycDialogModel {
-  visible: boolean;
-  action: 'approve' | 'reject' | null;
-  document: KycDocument | null;
-  remark: string;
-}
-
 @Component({
   standalone: false,
   selector: 'app-customer-show',
@@ -61,9 +63,33 @@ export class CustomerShowComponent implements OnInit {
   errorMessage = '';
   activeTab = 'details';
   transactionSchemeTag: 'Regular' | 'Booster' = 'Regular';
+  /** One page per tab. Orders, Check-ins and Transaction page on the server and are told
+   *  the real total; Dispatch and Redemption have no server paging, so their already
+   *  customer-scoped set is paged here - either way only one page is ever on screen. */
+  readonly pageSize = 10;
+  orders: Order[] = [];
+  ordersPage = 1;
+  ordersTotal = 0;
+  loadingOrders = false;
+  dispatches: OrderDispatch[] = [];
+  dispatchesPage = 1;
+  loadingDispatches = false;
+  dispatchMode: 'full' | 'partial' = 'full';
+  checkins: CheckinRow[] = [];
+  checkinsPage = 1;
+  checkinsTotal = 0;
+  loadingCheckins = false;
+  invoicesPage = 1;
+  invoicesTotal = 0;
+  redemptionsPage = 1;
   redemptionWallet: 'Regular' | 'Booster' = 'Regular';
   selectedKycDocument: KycDocument | null = null;
-  kycDialog: KycDialogModel = this.emptyKycDialog();
+  editingKycDetails = false;
+  savingKycDetails = false;
+  kycEdit: Record<string, string> = {};
+  kycReviewAction: 'approve' | 'reject' | null = null;
+  kycReviewRemark = '';
+  shopImageOpen = false;
   savingKyc = false;
   toast = { visible: false, message: '', type: 'success' as 'success' | 'error' };
   private lookupLabels: Record<string, string> = {};
@@ -92,7 +118,6 @@ export class CustomerShowComponent implements OnInit {
     { id: 'details', label: 'Details', icon: 'preview' },
     { id: 'orders', label: 'Orders', icon: 'add_shopping_cart' },
     { id: 'sales', label: 'Sales', icon: 'shopping_bag' },
-    { id: 'payments', label: 'Payments', icon: 'currency_rupee' },
     { id: 'activity', label: 'Activity', icon: 'add_task' },
     { id: 'kyc', label: 'KYC', icon: 'verified' },
     { id: 'transaction', label: 'Transaction', icon: 'payment' },
@@ -121,8 +146,11 @@ export class CustomerShowComponent implements OnInit {
     private customerService: CustomerService,
     private newInvoiceService: NewInvoiceService,
     private redemptionService: RedemptionService,
+    private orderService: OrderService,
+    private checkinService: CheckinReportService,
     private userService: UserService,
     private authService: AuthService,
+    private sanitizer: DomSanitizer,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -153,11 +181,25 @@ export class CustomerShowComponent implements OnInit {
     return this.mediaUrl(this.field('shop_photo') || this.customer.shopImage || this.field('shop_image') || this.customer.profileImage || this.field('profile_image')) || 'assets/img/images-placeholder.png';
   }
 
+  /** Points in thousands. These already run to five figures and are heading for lakhs,
+   *  where the full number stops being readable at a glance and starts wrapping the card.
+   *  Below a thousand the plain number is clearer, so it is left alone. */
+  formatPoints(value: number | null | undefined): string {
+    const points = Number(value) || 0;
+    if (Math.abs(points) < 1000) return points.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+    const thousands = points / 1000;
+    const decimals = Math.abs(thousands) >= 100 ? 0 : Math.abs(thousands) >= 10 ? 1 : 2;
+    return `${Number(thousands.toFixed(decimals))}K`;
+  }
+
   get pointCards(): PointCard[] {
     return [
-      { label: 'Total Points', value: this.customer?.totalPoints || 0, tone: 'primary' },
-      { label: 'Total Regular Points', value: this.customer?.totalRegularPoints || 0, tone: 'primary' },
-      { label: 'Total Booster Points', value: this.customer?.totalBoosterPoints || 0, tone: 'primary' },
+      { label: 'Total Points', value: this.customer?.totalPoints || 0, tone: 'primary',
+        expected: this.customer?.totalExpectedPoints || 0 },
+      { label: 'Total Regular Points', value: this.customer?.totalRegularPoints || 0, tone: 'primary',
+        expected: this.customer?.totalExpectedRegularPoints || 0 },
+      { label: 'Total Booster Points', value: this.customer?.totalBoosterPoints || 0, tone: 'primary',
+        expected: this.customer?.totalExpectedBoosterPoints || 0 },
       { label: 'Total Redeem Point', value: this.customer?.totalRedeemPoints || 0, tone: 'success' },
       { label: 'Total Rejected Point', value: this.customer?.totalRejectedPoints || 0, tone: 'danger' },
       { label: 'Total Balance Point', value: this.customer?.totalBalancePoints || 0, tone: 'info' }
@@ -239,20 +281,59 @@ export class CustomerShowComponent implements OnInit {
   get kycDocuments(): KycDocument[] {
     return [
       this.kycDocument('gst', 'GST', this.firstField('gst_attachment', 'gst_image'), [
-        { label: 'GST Number', value: this.field('gst_number') || this.field('gstin_no') }
+        { label: 'GST Number', key: 'gst_number', value: this.field('gst_number') || this.field('gstin_no') }
       ]),
       this.kycDocument('pan', 'PAN', this.firstField('pan_attachment', 'pan_image'), [
-        { label: 'PAN Number', value: this.field('pan_number') || this.field('pan_no') }
+        { label: 'PAN Number', key: 'pan_number', value: this.field('pan_number') || this.field('pan_no') }
       ]),
       this.kycDocument('aadhar', 'Aadhaar Card', this.firstField('aadhar_attachment', 'aadhaar_attachment', 'adharcard'), [
-        { label: 'Aadhaar Number', value: this.firstField('aadhar_no', 'aadhaar_no', 'aadhaar_number', 'aadhar_number') }
+        { label: 'Aadhaar Number', key: 'aadhar_no', value: this.firstField('aadhar_no', 'aadhaar_no', 'aadhaar_number', 'aadhar_number') }
       ]),
-      this.kycDocument('bank', 'Blank Cheque / Passbook', this.firstField('bank_proof', 'blank_cheque', 'passbook'), this.bankRows)
+      this.kycDocument('bank', 'Blank Cheque / Passbook', this.firstField('bank_proof', 'blank_cheque', 'passbook'), this.bankKycRows)
     ].filter(document => !!document.url || document.rows.length > 0);
+  }
+
+  openShopImage(): void {
+    if (!this.hasShopImage) return;
+    this.shopImageOpen = true;
+    this.refreshView();
+  }
+
+  closeShopImage(): void {
+    this.shopImageOpen = false;
+    this.refreshView();
+  }
+
+  get hasShopImage(): boolean {
+    return !this.imageUrl.includes('images-placeholder');
+  }
+
+  isPdfDocument(url: string | null | undefined): boolean {
+    return /\.pdf(\?|$)/i.test(String(url ?? ''));
+  }
+
+  safeDocumentUrl(url: string): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
 
   get canApproveKyc(): boolean {
     return this.authService.hasPermission('customer.kyc_review');
+  }
+
+  get canEditCustomer(): boolean {
+    return this.authService.hasPermission('customer.edit');
+  }
+
+  /** The bank block as the KYC popup needs it: every row present, even the empty ones,
+   *  because a blank field is exactly what someone opens the popup to fill in. */
+  get bankKycRows(): InfoRow[] {
+    return [
+      { label: 'Bank Account Type', key: 'bank_account_type', value: this.field('bank_account_type') },
+      { label: 'Bank Name', key: 'bank_name', value: this.field('bank_name') },
+      { label: 'Account Number', key: 'bank_account_number', value: this.field('bank_account_number') },
+      { label: 'IFSC Code', key: 'ifsc_code', value: this.field('ifsc_code') },
+      { label: 'Account Holder Name', key: 'account_holder_name', value: this.field('account_holder_name') }
+    ];
   }
 
   get customRows(): InfoRow[] {
@@ -262,12 +343,70 @@ export class CustomerShowComponent implements OnInit {
       .map(([key, value]) => ({ label: this.titleCase(key), value }));
   }
 
+  /** The scheme tag is a display split the API does not offer, so it stays here. The rows
+   *  are already one server page of this customer's invoices. */
   get filteredInvoices(): NewInvoiceItem[] {
     return this.invoices.filter(invoice => this.schemeTag(invoice) === this.transactionSchemeTag);
   }
 
   get filteredRedemptions(): RedemptionItem[] {
     return this.redemptions.filter(redemption => (redemption.walletType || 'Regular').toLowerCase() === this.redemptionWallet.toLowerCase());
+  }
+
+  get pagedRedemptions(): RedemptionItem[] {
+    return this.pageSlice(this.filteredRedemptions, this.redemptionsPage);
+  }
+
+  get redemptionsTotal(): number {
+    return this.filteredRedemptions.length;
+  }
+
+  get pagedDispatches(): OrderDispatch[] {
+    return this.pageSlice(this.dispatches, this.dispatchesPage);
+  }
+
+  get dispatchesTotal(): number {
+    return this.dispatches.length;
+  }
+
+  private pageSlice<T>(rows: T[], page: number): T[] {
+    const start = (page - 1) * this.pageSize;
+    return rows.slice(start, start + this.pageSize);
+  }
+
+  totalPages(total: number): number {
+    return Math.max(1, Math.ceil(total / this.pageSize));
+  }
+
+  pageRangeLabel(total: number, page: number, shown: number): string {
+    if (total === 0) return 'No records';
+    const from = (page - 1) * this.pageSize + 1;
+    return `Showing ${from}-${from + shown - 1} of ${total}`;
+  }
+
+  goToOrdersPage(page: number): void {
+    this.ordersPage = page;
+    this.loadOrders();
+  }
+
+  goToCheckinsPage(page: number): void {
+    this.checkinsPage = page;
+    this.loadCheckins();
+  }
+
+  goToInvoicesPage(page: number): void {
+    this.invoicesPage = page;
+    this.loadTransactions();
+  }
+
+  goToDispatchesPage(page: number): void {
+    this.dispatchesPage = page;
+    this.refreshView();
+  }
+
+  goToRedemptionsPage(page: number): void {
+    this.redemptionsPage = page;
+    this.refreshView();
   }
 
   loadCustomer(id: number): void {
@@ -299,6 +438,72 @@ export class CustomerShowComponent implements OnInit {
 
   setTab(tab: string): void {
     this.activeTab = tab;
+    // Fetched the first time a tab is opened, not on page load - three more requests for
+    // tabs nobody may look at is what makes a detail page slow.
+    if (tab === 'orders' && this.orders.length === 0 && !this.loadingOrders) this.loadOrders();
+    if (tab === 'sales' && this.dispatches.length === 0 && !this.loadingDispatches) this.loadDispatches();
+    if (tab === 'activity' && this.checkins.length === 0 && !this.loadingCheckins) this.loadCheckins();
+  }
+
+  setDispatchMode(mode: 'full' | 'partial'): void {
+    this.dispatchMode = mode;
+    this.dispatchesPage = 1;
+    this.loadDispatches();
+  }
+
+  loadOrders(): void {
+    if (!this.customer) return;
+    this.loadingOrders = true;
+    this.refreshView();
+    this.orderService.getOrders({ retailersId: this.customer.id, page: this.ordersPage, pageSize: this.pageSize }).pipe(
+      finalize(() => {
+        this.loadingOrders = false;
+        this.refreshView();
+      })
+    ).subscribe({
+      next: rows => {
+        this.orders = [...rows];
+        this.ordersTotal = rows.total ?? rows.length;
+      },
+      error: error => this.showToast(error.message, 'error')
+    });
+  }
+
+  loadDispatches(): void {
+    if (!this.customer) return;
+    this.loadingDispatches = true;
+    this.refreshView();
+    this.orderService.getDispatches(this.dispatchMode, this.customer.id).pipe(
+      finalize(() => {
+        this.loadingDispatches = false;
+        this.refreshView();
+      })
+    ).subscribe({
+      next: rows => this.dispatches = rows,
+      error: error => this.showToast(error.message, 'error')
+    });
+  }
+
+  loadCheckins(): void {
+    if (!this.customer) return;
+    this.loadingCheckins = true;
+    this.refreshView();
+    this.checkinService.list({
+      page: this.checkinsPage, pageSize: this.pageSize, search: '', startDate: '', endDate: '',
+      userId: null, divisionId: null, branchId: null, designationIds: [],
+      customerId: this.customer.id
+    }).pipe(
+      finalize(() => {
+        this.loadingCheckins = false;
+        this.refreshView();
+      })
+    ).subscribe({
+      next: result => {
+        this.checkins = result.rows;
+        this.checkinsTotal = result.total;
+      },
+      error: error => this.showToast(error.message, 'error')
+    });
   }
 
   setTransactionSchemeTag(tag: 'Regular' | 'Booster'): void {
@@ -307,18 +512,26 @@ export class CustomerShowComponent implements OnInit {
 
   setRedemptionWallet(wallet: 'Regular' | 'Booster'): void {
     this.redemptionWallet = wallet;
+    this.redemptionsPage = 1;
   }
 
   loadTransactions(): void {
     if (!this.customer) return;
     this.loadingTransactions = true;
-    this.newInvoiceService.list({}).pipe(
+    this.newInvoiceService.list({
+      SecondaryCustomerIds: this.customer.id,
+      page: this.invoicesPage,
+      page_size: this.pageSize
+    } as any).pipe(
       finalize(() => {
         this.loadingTransactions = false;
         this.refreshView();
       })
     ).subscribe({
-      next: result => this.invoices = result.invoices.filter(invoice => invoice.secondaryCustomerId === this.customer?.id),
+      next: result => {
+        this.invoices = result.invoices;
+        this.invoicesTotal = result.total;
+      },
       error: error => this.showToast(error.message, 'error')
     });
   }
@@ -326,49 +539,115 @@ export class CustomerShowComponent implements OnInit {
   loadRedemptions(): void {
     if (!this.customer) return;
     this.loadingRedemptions = true;
-    this.redemptionService.list({}).pipe(
+    this.redemptionService.list({ CustomerId: this.customer.id } as any).pipe(
       finalize(() => {
         this.loadingRedemptions = false;
         this.refreshView();
       })
     ).subscribe({
-      next: result => this.redemptions = result.redemptions.filter(redemption => redemption.customerId === this.customer?.id),
+      next: result => this.redemptions = result.redemptions,
       error: error => this.showToast(error.message, 'error')
     });
   }
 
+  /// One popup for the whole document: the file, its details, and - where the permissions
+  /// allow it - editing those details and approving or rejecting. It opens whether or not a
+  /// file was uploaded, because the numbers are worth reading and fixing on their own.
   openKycPreview(document: KycDocument): void {
-    if (!document.url) return;
     this.selectedKycDocument = document;
+    this.kycEdit = {};
+    this.editingKycDetails = false;
+    this.kycReviewAction = null;
+    this.kycReviewRemark = '';
     this.refreshView();
   }
 
   closeKycPreview(): void {
+    if (this.savingKyc || this.savingKycDetails) return;
     this.selectedKycDocument = null;
+    this.editingKycDetails = false;
+    this.kycReviewAction = null;
     this.refreshView();
   }
 
-  openKycDialog(document: KycDocument, action: 'approve' | 'reject'): void {
-    this.kycDialog = { visible: true, document, action, remark: action === 'reject' ? document.remark : '' };
+  startKycDetailEdit(): void {
+    if (!this.selectedKycDocument) return;
+    this.kycEdit = {};
+    for (const row of this.selectedKycDocument.rows) {
+      if (row.key) this.kycEdit[row.key] = String(row.value ?? '');
+    }
+    this.editingKycDetails = true;
     this.refreshView();
   }
 
-  closeKycDialog(): void {
-    if (this.savingKyc) return;
-    this.kycDialog = this.emptyKycDialog();
+  cancelKycDetailEdit(): void {
+    this.editingKycDetails = false;
+    this.kycEdit = {};
     this.refreshView();
   }
 
-  submitKycAction(): void {
-    if (!this.customer || !this.kycDialog.document || !this.kycDialog.action) return;
-    if (this.kycDialog.action === 'reject' && !this.kycDialog.remark.trim()) {
+  saveKycDetails(): void {
+    const document = this.selectedKycDocument;
+    if (!this.customer || !document) return;
+
+    // The update replaces custom_fields outright, so the whole stored set goes back with
+    // only the edited keys changed - sending just the edits would erase everything else.
+    const fields: Record<string, string | null> = { ...this.customer.customFields };
+    for (const [key, value] of Object.entries(this.kycEdit)) {
+      fields[key] = value.trim() === '' ? null : value.trim();
+    }
+
+    const payload = new FormData();
+    payload.append('customer_type', String(this.customer.customerType ?? ''));
+    payload.append('name', this.customer.name ?? '');
+    payload.append('custom_fields', JSON.stringify(fields));
+
+    this.savingKycDetails = true;
+    this.customerService.update(this.customer.id, payload).pipe(finalize(() => {
+      this.savingKycDetails = false;
+      this.refreshView();
+    })).subscribe({
+      next: result => {
+        if (result.item) this.customer = result.item;
+        this.editingKycDetails = false;
+        this.kycEdit = {};
+        this.syncSelectedKycDocument();
+        this.showToast(result.message || 'Details updated', 'success');
+      },
+      error: error => this.showToast(error.message, 'error')
+    });
+  }
+
+  /** The approve/reject buttons on a KYC card open the same popup, already on the review
+   *  step - so a decision is always taken with the document and its details in view. */
+  openKycReview(document: KycDocument, action: 'approve' | 'reject'): void {
+    this.openKycPreview(document);
+    this.startKycReview(action);
+  }
+
+  startKycReview(action: 'approve' | 'reject'): void {
+    this.kycReviewAction = action;
+    this.kycReviewRemark = action === 'reject' ? (this.selectedKycDocument?.remark ?? '') : '';
+    this.refreshView();
+  }
+
+  cancelKycReview(): void {
+    this.kycReviewAction = null;
+    this.kycReviewRemark = '';
+    this.refreshView();
+  }
+
+  submitKycReview(): void {
+    const document = this.selectedKycDocument;
+    if (!this.customer || !document || !this.kycReviewAction) return;
+    if (this.kycReviewAction === 'reject' && !this.kycReviewRemark.trim()) {
       this.showToast('Remark is required to reject KYC.', 'error');
       return;
     }
 
-    const request = this.kycDialog.action === 'approve'
-      ? this.customerService.approveKyc(this.customer.id, this.kycDialog.document.key, this.kycDialog.remark)
-      : this.customerService.rejectKyc(this.customer.id, this.kycDialog.document.key, this.kycDialog.remark);
+    const request = this.kycReviewAction === 'approve'
+      ? this.customerService.approveKyc(this.customer.id, document.key, this.kycReviewRemark)
+      : this.customerService.rejectKyc(this.customer.id, document.key, this.kycReviewRemark);
 
     this.savingKyc = true;
     request.pipe(finalize(() => {
@@ -377,12 +656,21 @@ export class CustomerShowComponent implements OnInit {
     })).subscribe({
       next: result => {
         if (result.item) this.customer = result.item;
-        this.kycDialog = this.emptyKycDialog();
+        this.kycReviewAction = null;
+        this.kycReviewRemark = '';
+        this.syncSelectedKycDocument();
         this.showToast(result.message, 'success');
-        this.refreshView();
       },
       error: error => this.showToast(error.message, 'error')
     });
+  }
+
+  /** The open popup holds a copy taken before the save, so it is re-read from the
+   *  refreshed customer - otherwise it keeps showing the values that were just replaced. */
+  private syncSelectedKycDocument(): void {
+    if (!this.selectedKycDocument) return;
+    const key = this.selectedKycDocument.key;
+    this.selectedKycDocument = this.kycDocuments.find(item => item.key === key) ?? null;
   }
 
   field(key: string): string {
@@ -446,18 +734,13 @@ export class CustomerShowComponent implements OnInit {
     return 'Pending';
   }
 
-  kycDialogTitle(): string {
-    if (!this.kycDialog.document || !this.kycDialog.action) return 'KYC Approval';
-    return `${this.kycDialog.action === 'approve' ? 'Approve' : 'Reject'} ${this.kycDialog.document.label}`;
-  }
-
   private kycDocument(key: string, label: string, path: string, rows: InfoRow[]): KycDocument {
     const prefix = `${key}_kyc`;
     return {
       key,
       label,
       url: this.mediaUrl(path),
-      rows: this.presentRows(rows),
+      rows,
       status: this.kycStatus(this.field(`${prefix}_status`)),
       remark: this.field(`${prefix}_remark`),
       actionBy: this.field(`${prefix}_action_by_name`) || this.field(`${prefix}_action_by`),
@@ -477,10 +760,6 @@ export class CustomerShowComponent implements OnInit {
   private numberField(key: string): number {
     const value = Number(this.field(key));
     return Number.isFinite(value) ? value : 0;
-  }
-
-  private emptyKycDialog(): KycDialogModel {
-    return { visible: false, action: null, document: null, remark: '' };
   }
 
   private showToast(message: string, type: 'success' | 'error'): void {

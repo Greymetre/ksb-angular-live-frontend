@@ -609,3 +609,74 @@
   &.show { opacity: 1; transform: translateY(0); }
   &.error { background: #dc2626; }
 }
+
+/* Details block in the document popup, with its inline edit form. */
+.doc-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+
+  h4 { margin: 0; font-size: 14px; }
+
+  .btn-link {
+    background: none;
+    border: 0;
+    color: var(--primary-color, #1e3a8a);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+
+    .material-icons { font-size: 16px; }
+  }
+}
+
+.doc-detail-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+
+    span { color: var(--text-muted); }
+
+    input {
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font: inherit;
+    }
+  }
+}
+
+.doc-detail-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 16px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:disabled { opacity: .6; cursor: not-allowed; }
+  }
+
+  .btn-approve { background: #16a34a; color: white; }
+  .btn-secondary { background: white; border-color: var(--border-color); color: var(--text-muted); }
+}

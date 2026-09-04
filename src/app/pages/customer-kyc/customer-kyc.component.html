@@ -214,10 +214,31 @@
         </ng-template>
       </div>
 
-      <div class="doc-detail-list">
+      <div class="doc-detail-head">
+        <h4>Details</h4>
+        <button type="button" class="btn-link" *ngIf="canEditCustomer && !editingDetails" (click)="startDetailEdit()">
+          <span class="material-icons">edit</span> Edit
+        </button>
+      </div>
+
+      <div class="doc-detail-list" *ngIf="!editingDetails">
         <div class="doc-detail-row" *ngFor="let detail of document.details">
           <span>{{ detail.label }}</span>
           <strong [class.missing]="!detail.value">{{ detail.value || 'Not entered' }}</strong>
+        </div>
+      </div>
+
+      <div class="doc-detail-form" *ngIf="editingDetails">
+        <label *ngFor="let detail of document.details">
+          <span>{{ detail.label }}</span>
+          <input type="text" *ngIf="detail.key" [(ngModel)]="detailEdit[detail.key]"
+            [placeholder]="detail.label" [disabled]="savingDetails"/>
+        </label>
+        <div class="doc-detail-form-actions">
+          <button type="button" class="btn-secondary" (click)="cancelDetailEdit()" [disabled]="savingDetails">Cancel</button>
+          <button type="button" class="btn-approve" (click)="saveDetails()" [disabled]="savingDetails">
+            {{ savingDetails ? 'Saving...' : 'Save Details' }}
+          </button>
         </div>
       </div>
 
@@ -237,7 +258,7 @@
       </div>
     </div>
 
-    <div class="doc-modal-actions" *ngIf="canReviewKyc">
+    <div class="doc-modal-actions" *ngIf="canReviewKyc && !editingDetails">
       <ng-container *ngIf="!viewer.action">
         <button type="button" class="btn-reject" *ngIf="document.uploaded && document.status !== 'rejected'" (click)="startReview('reject')">
           <span class="material-icons">block</span> Reject

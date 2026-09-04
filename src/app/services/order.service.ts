@@ -271,9 +271,11 @@ export class OrderService {
     );
   }
 
-  getDispatches(mode: 'full' | 'partial' | 'cancelled'): Observable<OrderDispatch[]> {
+  getDispatches(mode: 'full' | 'partial' | 'cancelled', customerId?: number | null): Observable<OrderDispatch[]> {
+    let params = new HttpParams().set('mode', mode);
+    if (customerId) params = params.set('customer_id', String(customerId));
     return this.http.get<ApiResponse>(`${this.baseUrl}/order-dispatches`, {
-      headers: this.authHeaders(), params: new HttpParams().set('mode', mode)
+      headers: this.authHeaders(), params
     }).pipe(map(response => this.pickArray(response, ['dispatches', 'data.dispatches', 'data']).map(row => {
       const x = this.asRecord(row);
       return { id: Number(x['id']), orderId: Number(x['orderId'] ?? x['order_id']), orderNo: String(x['orderNo'] ?? x['order_no'] ?? ''),

@@ -17,6 +17,8 @@ export type KycStage = 'approved' | 'complete_pending' | 'partial' | 'none';
 export interface KycDetailRow {
   label: string;
   value: string | null;
+  /** The stored field an edit to this row writes back to. */
+  key: string;
 }
 
 export interface KycDocumentState {
@@ -175,7 +177,11 @@ export class CustomerKycService {
       detailSummary: this.nullableStr(this.pick(row, 'detail_summary', 'detailSummary')),
       details: this.readArray(row['details']).map(detail => {
         const value = this.asRecord(detail);
-        return { label: this.str(value['label']), value: this.nullableStr(value['value']) };
+        return {
+          label: this.str(value['label']),
+          value: this.nullableStr(value['value']),
+          key: this.str(value['field'] ?? value['Field'])
+        };
       }),
       status: this.status(row['status']),
       remark: this.nullableStr(row['remark']),

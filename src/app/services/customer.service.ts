@@ -39,6 +39,10 @@ export interface CustomerItem {
   totalRedeemPoints: number;
   totalRejectedPoints: number;
   totalBalancePoints: number;
+  /** Points from invoices still awaiting approval - what the customer stands to earn. */
+  totalExpectedPoints: number;
+  totalExpectedRegularPoints: number;
+  totalExpectedBoosterPoints: number;
   customFields: Record<string, string | null>;
 }
 
@@ -325,6 +329,9 @@ export class CustomerService {
       totalRedeemPoints: this.readNumber(row['total_redeem_points'] ?? row['totalRedeemPoints'] ?? row['TotalRedeemPoints']),
       totalRejectedPoints: this.readNumber(row['total_rejected_points'] ?? row['totalRejectedPoints'] ?? row['TotalRejectedPoints']),
       totalBalancePoints: this.readNumber(row['total_balance_points'] ?? row['totalBalancePoints'] ?? row['TotalBalancePoints']),
+      totalExpectedPoints: this.readNumber(row['total_expected_points'] ?? row['totalExpectedPoints'] ?? row['TotalExpectedPoints']),
+      totalExpectedRegularPoints: this.readNumber(row['total_expected_regular_points'] ?? row['totalExpectedRegularPoints'] ?? row['TotalExpectedRegularPoints']),
+      totalExpectedBoosterPoints: this.readNumber(row['total_expected_booster_points'] ?? row['totalExpectedBoosterPoints'] ?? row['TotalExpectedBoosterPoints']),
       customFields: fields
     };
   }

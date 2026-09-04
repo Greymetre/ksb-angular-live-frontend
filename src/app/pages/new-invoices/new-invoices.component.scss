@@ -409,6 +409,10 @@
     height: 100%;
     display: block;
     object-fit: contain;
+    // Turned about its own centre, and animated so a quarter turn reads as a turn
+    // rather than the picture suddenly being replaced by a different one.
+    transform-origin: center center;
+    transition: transform 0.2s ease;
   }
 
   iframe {
@@ -618,7 +622,11 @@
 }
 
 .approval-summary-grid {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  // The status filters read as one set, so they sit on one line. auto-fit rather than a
+  // fixed six: the customer view drops two of them and adds one, leaving five, and a
+  // fixed count would leave a hole on the end.
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
   margin-bottom: 14px;
 }
 
@@ -1222,7 +1230,13 @@
 }
 
 
+@media (max-width: 1280px) {
+  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 900px) {
+  .approval-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
   .detail-layout,
   .summary-grid,
   .filter-grid,
