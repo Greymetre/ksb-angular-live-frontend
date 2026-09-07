@@ -197,10 +197,50 @@ export class CustomerKycComponent implements OnInit, OnDestroy {
 
   /// Opens the document itself - what was uploaded, what was typed in, and where the
   /// review stands - without leaving the list.
+
+  // The KYC document used to open at whatever size it was scanned at, with no way
+  // to look closer at a faint stamp or a small account number. These are the same
+  // controls the invoice attachment viewer carries.
+  docZoom = 1;
+  docRotation = 0;
+
+  zoomDocument(change: number): void {
+    this.docZoom = Math.min(3, Math.max(0.5, Math.round((this.docZoom + change) * 100) / 100));
+    this.refreshView();
+  }
+
+  resetDocumentView(): void {
+    this.docZoom = 1;
+    this.docRotation = 0;
+    this.refreshView();
+  }
+
+  rotateDocument(step: number): void {
+    this.docRotation = (this.docRotation + step + 360) % 360;
+    this.refreshView();
+  }
+
+  documentTransform(): string {
+    return `rotate(${this.docRotation}deg)`;
+  }
+
+  zoomLabel(): string {
+    return `${Math.round(this.docZoom * 100)}%`;
+  }
+
+  /** Zoom drives a real height, so the document actually outgrows its frame and the
+   *  frame scrolls. Scaling a percentage width against an auto-sized parent looked
+   *  like it should work and did nothing at all. */
+  documentSize(): string {
+    return `calc(52vh * ${this.docZoom})`;
+  }
+
   openDocument(customer: KycCustomerItem, document: KycDocumentState | null): void {
     if (!document) return;
     this.viewer = { visible: true, customer, document, action: null, remark: '' };
     this.attachmentBroken = false;
+    this.docZoom = 1;
+    this.docRotation = 0;
     this.refreshView();
   }
 

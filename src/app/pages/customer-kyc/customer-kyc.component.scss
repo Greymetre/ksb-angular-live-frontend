@@ -461,23 +461,11 @@
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background: #f8fafc;
-  overflow: hidden;
+  height: 58vh;
+  min-height: 300px;
+  display: block;
+  overflow: auto;
   margin-bottom: 16px;
-
-  img {
-    display: block;
-    width: 100%;
-    max-height: 320px;
-    object-fit: contain;
-    background: #0f172a08;
-  }
-
-  iframe {
-    display: block;
-    width: 100%;
-    height: 320px;
-    border: 0;
-  }
 }
 
 .attachment-empty {
@@ -679,4 +667,819 @@
 
   .btn-approve { background: #16a34a; color: white; }
   .btn-secondary { background: white; border-color: var(--border-color); color: var(--text-muted); }
+}
+
+/* Zoom and rotate controls on the KYC document popup, matching the invoice
+   attachment viewer. The frame scrolls once the canvas grows past it, which is
+   what lets a zoomed-in scan be panned. */
+.kyc-doc-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color);
+
+  button,
+  .open-tab {
+    width: 34px;
+    height: 34px;
+    // Without this the buttons shrink under the flex row and the icons spill out.
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: #fff;
+    color: #334155;
+    cursor: pointer;
+    text-decoration: none;
+    line-height: 1;
+
+    .material-icons { font-size: 18px; }
+
+    &:hover:not(:disabled) { background: #eef2f7; }
+    &:disabled { opacity: .45; cursor: default; }
+  }
+
+  .zoom-value {
+    width: auto;
+    min-width: 62px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    color: #334155;
+  }
+
+  .open-tab { margin-left: auto; }
+}
+
+yc-page { padding: 4px; }
+
+.page-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.page-icon {
+  width: 52px;
+  height: 52px;
+  background: var(--primary-blue);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .material-icons { color: white; font-size: 26px; }
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+/* The tiles are the filter. Clicking one narrows the table to exactly the count shown,
+   and clicking it again clears it, so the number and the list can never disagree. */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.summary-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-left: 4px solid #9ca3af;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  text-align: left;
+  transition: box-shadow .15s ease, transform .15s ease;
+
+  &:hover { box-shadow: 0 4px 14px rgba(15, 23, 42, .10); transform: translateY(-1px); }
+  &.selected { box-shadow: 0 0 0 2px rgba(26, 111, 212, .18); }
+
+  .tile-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    background: #f1f5f9;
+    color: #475569;
+  }
+
+  .tile-body { display: flex; flex-direction: column; }
+  .tile-value { font-size: 20px; font-weight: 700; color: var(--text-dark); line-height: 1.1; }
+  .tile-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  &.total { border-left-color: var(--primary-blue); .tile-icon { background: #e8f1fd; color: var(--primary-blue); } }
+  &.approved { border-left-color: #16a34a; .tile-icon { background: #e7f6ec; color: #16a34a; } }
+  &.pending { border-left-color: #d97706; .tile-icon { background: #fef3c7; color: #b45309; } }
+  &.partial { border-left-color: #0ea5e9; .tile-icon { background: #e0f2fe; color: #0369a1; } }
+  &.none { border-left-color: #94a3b8; .tile-icon { background: #f1f5f9; color: #64748b; } }
+  &.rejected { border-left-color: #dc2626; .tile-icon { background: #fee2e2; color: #b91c1c; } }
+}
+
+.filter-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.filter-field {
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 7px;
+  }
+
+  input {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+
+    &:focus { border-color: var(--primary-blue); }
+  }
+}
+
+.filter-actions .btn-clear {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: white;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+
+  .material-icons { font-size: 18px; }
+  &:hover { border-color: var(--primary-blue); color: var(--primary-blue); }
+}
+
+.alert {
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.error-alert {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #b91c1c;
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.entries-input {
+  width: 78px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-muted);
+
+  .legend-item { display: inline-flex; align-items: center; gap: 5px; }
+  .material-icons { font-size: 16px; }
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+
+  &.approved { background: #16a34a; }
+  &.rejected { background: #dc2626; }
+  &.pending { background: #d97706; }
+}
+
+.table-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+}
+
+.loading-bar {
+  padding: 10px 16px;
+  border-bottom: 1px solid #eee;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.table-scroll { overflow-x: auto; }
+
+.kyc-table {
+  min-width: 1180px;
+
+  th { white-space: nowrap; }
+  .col-no { width: 56px; }
+  .col-customer { min-width: 210px; }
+  .col-dealer { min-width: 150px; color: var(--text-muted); }
+  .col-doc { width: 132px; }
+  .col-progress { width: 120px; }
+  /* Wide enough for "Partly Submitted" to stay on one line. */
+  .col-stage { width: 140px; }
+}
+
+.name-cell {
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.link-cell {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+
+  &:hover { color: var(--primary-blue); }
+}
+
+.col-customer small {
+  display: block;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.type-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* One document, three answers: the two ticks say whether the file and the matching
+   details are in, the strip underneath says where the review stands. */
+.doc-box {
+  /* It is a button now - clicking it opens the document - so the browser's own button
+     styling is cleared and the box keeps the look it had. */
+  display: block;
+  padding: 0;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fbfcfe;
+  width: 112px;
+  transition: box-shadow .15s ease, transform .15s ease;
+
+  &:hover { box-shadow: 0 3px 10px rgba(15, 23, 42, .12); transform: translateY(-1px); }
+
+  .doc-checks {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 6px 7px;
+  }
+
+  .check {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: #cbd5e1;
+    position: relative;
+
+    .material-icons { font-size: 16px; }
+
+    &.on {
+      background: #e7f6ec;
+      color: #16a34a;
+    }
+
+    /* A missing item is struck through, so "not done" reads at a glance instead of
+       depending on the colour alone. */
+    &:not(.on) {
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      color: #b8c2cf;
+    }
+
+    &:not(.on)::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 2px;
+      border-radius: 2px;
+      background: #94a3b8;
+      transform: rotate(-45deg);
+    }
+  }
+
+  .doc-status {
+    display: block;
+    padding: 4px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: .2px;
+  }
+
+  &.approved { border-color: #bbf7d0; .doc-status { background: #e7f6ec; color: #15803d; } }
+  &.rejected { border-color: #fecaca; .doc-status { background: #fee2e2; color: #b91c1c; } }
+  &.pending  { border-color: #fde68a; .doc-status { background: #fef3c7; color: #b45309; } }
+  /* Nothing submitted yet - not a review state, so it stays out of the traffic lights. */
+  &.empty { border-color: var(--border-color); .doc-status { background: #f1f5f9; color: #94a3b8; } }
+}
+
+.progress-value {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-dark);
+  margin-bottom: 5px;
+}
+
+.progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #16a34a;
+  transition: width .25s ease;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+
+  &.approved { background: #e7f6ec; color: #15803d; }
+  &.rejected { background: #fee2e2; color: #b91c1c; }
+  &.pending,
+  &.complete_pending { background: #fef3c7; color: #b45309; }
+  &.partial { background: #e0f2fe; color: #0369a1; }
+  &.none { background: #f1f5f9; color: #64748b; }
+  white-space: nowrap;
+}
+
+/* A rejection can sit inside any stage, so it is noted on the row rather than replacing
+   the stage the customer has reached. */
+.rejected-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+.empty-row {
+  text-align: center;
+  color: #999;
+  padding: 32px 16px !important;
+}
+
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-top: 1px solid #eee;
+}
+
+@media (max-width: 1400px) {
+  .summary-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1100px) {
+  .summary-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* The document popup: the file first, then what was typed in, then the review. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1200;
+}
+
+.doc-modal {
+  background: white;
+  border-radius: 10px;
+  width: min(560px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, .28);
+  overflow: hidden;
+}
+
+.doc-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #eef2f7;
+
+  .doc-modal-title { flex: 1; min-width: 0; }
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+
+  small {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+}
+
+.modal-close {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: inline-flex;
+
+  &:hover { color: var(--text-dark); }
+  .material-icons { font-size: 20px; }
+}
+
+.doc-modal-body {
+  padding: 16px 18px;
+  overflow-y: auto;
+}
+
+.doc-attachment {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #f8fafc;
+  height: 58vh;
+  min-height: 300px;
+  display: block;
+  overflow: auto;
+  margin-bottom: 16px;
+}
+
+.attachment-empty {
+  padding: 38px 16px;
+  text-align: center;
+  color: var(--text-muted);
+
+  .material-icons { font-size: 34px; color: #cbd5e1; }
+  p { margin: 8px 0 0; font-size: 13px; }
+  a { display: inline-block; margin-top: 6px; font-size: 12px; color: var(--primary-blue); }
+}
+
+.doc-detail-list {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.doc-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  font-size: 13px;
+
+  & + .doc-detail-row { border-top: 1px solid #f1f5f9; }
+  span { color: var(--text-muted); }
+  strong { color: var(--text-dark); text-align: right; word-break: break-word; }
+  strong.missing { color: #b8c2cf; font-weight: 500; font-style: italic; }
+}
+
+.doc-review {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 12px;
+  color: var(--text-muted);
+
+  .review-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    .material-icons { font-size: 16px; }
+  }
+
+  .review-remark {
+    margin: 8px 0 0;
+    color: var(--text-dark);
+    font-size: 13px;
+  }
+}
+
+.doc-remark {
+  margin-top: 14px;
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .required { color: var(--danger-red); }
+
+  textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    resize: vertical;
+
+    &:focus { border-color: var(--primary-blue); }
+  }
+}
+
+.doc-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid #eef2f7;
+  background: #fbfcfe;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 38px;
+    padding: 0 16px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    .material-icons { font-size: 18px; }
+    &:disabled { opacity: .6; cursor: not-allowed; }
+  }
+
+  .btn-approve { background: #16a34a; color: white; }
+  .btn-reject { background: #dc2626; color: white; }
+  .btn-secondary { background: white; border-color: var(--border-color); color: var(--text-muted); }
+  .review-hint { font-size: 12px; color: var(--text-muted); }
+}
+
+.toast-message {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 2000;
+  max-width: 360px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  background: #16a34a;
+  color: white;
+  font-size: 13px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .2);
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+
+  &.show { opacity: 1; transform: translateY(0); }
+  &.error { background: #dc2626; }
+}
+
+/* Details block in the document popup, with its inline edit form. */
+.doc-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+
+  h4 { margin: 0; font-size: 14px; }
+
+  .btn-link {
+    background: none;
+    border: 0;
+    color: var(--primary-color, #1e3a8a);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+
+    .material-icons { font-size: 16px; }
+  }
+}
+
+.doc-detail-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+
+    span { color: var(--text-muted); }
+
+    input {
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font: inherit;
+    }
+  }
+}
+
+.doc-detail-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 16px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:disabled { opacity: .6; cursor: not-allowed; }
+  }
+
+  .btn-approve { background: #16a34a; color: white; }
+  .btn-secondary { background: white; border-color: var(--border-color); color: var(--text-muted); }
+}
+
+/* Zoom and rotate controls on the KYC document popup, matching the invoice
+   attachment viewer. The frame scrolls once the canvas grows past it, which is
+   what lets a zoomed-in scan be panned. */
+.kyc-doc-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color);
+
+  button,
+  .open-tab {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: #fff;
+    color: #334155;
+    cursor: pointer;
+    text-decoration: none;
+
+    .material-icons { font-size: 18px; }
+
+    &:hover:not(:disabled) { background: #eef2f7; }
+    &:disabled { opacity: .45; cursor: default; }
+  }
+
+  .zoom-value {
+    width: auto;
+    min-width: 56px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .open-tab { margin-left: auto; }
+}
+
+.kyc-zoom-canvas {
+  min-width: 100%;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img,
+  iframe {
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border: 0;
+    transition: transform .15s ease;
+  }
+}
+
+/* A bounded frame that scrolls. Zooming makes the document taller than the frame,
+   and those scrollbars are what let it be panned - which is why the frame itself
+   does not centre its content: flex centring clips the overflow instead of
+   scrolling to it. The canvas inside centres with auto margins, which does not. */
+.kyc-zoom-canvas {
+  min-width: 100%;
+  min-height: 100%;
+  display: flex;
+  padding: 10px;
+  box-sizing: border-box;
+
+  img {
+    /* Height drives the zoom and the width follows, so the page keeps its shape.
+       The caps have to be cleared or the frame pulls the image back to its size. */
+    margin: auto;
+    display: block;
+    width: auto;
+    max-width: none;
+    max-height: none;
+    object-fit: contain;
+    transform-origin: center center;
+    transition: transform .15s ease, height .15s ease;
+  }
+
+  iframe {
+    margin: auto;
+    display: block;
+    width: 100%;
+    min-width: 100%;
+    max-height: none;
+    border: 0;
+    background: #fff;
+  }
 }

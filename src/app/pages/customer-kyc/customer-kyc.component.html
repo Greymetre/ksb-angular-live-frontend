@@ -191,20 +191,46 @@
       </button>
     </div>
 
+
+    <!-- The same zoom and rotate the invoice attachment viewer carries, so a faint
+         scan can be read without leaving the page. -->
+    <div class="kyc-doc-tools" *ngIf="document.uploaded">
+      <button type="button" title="Zoom out" (click)="zoomDocument(-0.25)" [disabled]="docZoom <= 0.5">
+        <span class="material-icons">zoom_out</span>
+      </button>
+      <button type="button" class="zoom-value" title="Reset zoom" (click)="resetDocumentView()">{{ zoomLabel() }}</button>
+      <button type="button" title="Zoom in" (click)="zoomDocument(0.25)" [disabled]="docZoom >= 3">
+        <span class="material-icons">zoom_in</span>
+      </button>
+      <ng-container *ngIf="!isPdf(document)">
+        <button type="button" title="Rotate left" (click)="rotateDocument(-90)">
+          <span class="material-icons">rotate_left</span>
+        </button>
+        <button type="button" title="Rotate right" (click)="rotateDocument(90)">
+          <span class="material-icons">rotate_right</span>
+        </button>
+      </ng-container>
+      <a class="open-tab" [href]="attachmentUrl(document)" target="_blank" rel="noopener" title="Open in a new tab">
+        <span class="material-icons">open_in_new</span>
+      </a>
+    </div>
+
     <div class="doc-modal-body">
       <div class="doc-attachment">
         <ng-container *ngIf="document.uploaded; else noAttachment">
-          <iframe *ngIf="isPdf(document); else imageAttachment" [src]="safeAttachmentUrl(document)" title="Attachment"></iframe>
-          <ng-template #imageAttachment>
-            <a *ngIf="!attachmentBroken" [href]="attachmentUrl(document)" target="_blank" rel="noopener" title="Open in a new tab">
-              <img [src]="attachmentUrl(document)" [alt]="document.label" (error)="onAttachmentError()"/>
-            </a>
-            <div class="attachment-empty" *ngIf="attachmentBroken">
-              <span class="material-icons">broken_image</span>
-              <p>The uploaded file could not be opened</p>
-              <a [href]="attachmentUrl(document)" target="_blank" rel="noopener">Try opening it in a new tab</a>
-            </div>
-          </ng-template>
+          <div class="kyc-zoom-canvas">
+            <iframe *ngIf="isPdf(document); else imageAttachment" [style.height]="documentSize()"
+              [src]="safeAttachmentUrl(document)" title="Attachment"></iframe>
+            <ng-template #imageAttachment>
+              <img *ngIf="!attachmentBroken" [src]="attachmentUrl(document)" [alt]="document.label"
+                [style.height]="documentSize()" [style.transform]="documentTransform()" (error)="onAttachmentError()"/>
+              <div class="attachment-empty" *ngIf="attachmentBroken">
+                <span class="material-icons">broken_image</span>
+                <p>The uploaded file could not be opened</p>
+                <a [href]="attachmentUrl(document)" target="_blank" rel="noopener">Try opening it in a new tab</a>
+              </div>
+            </ng-template>
+          </div>
         </ng-container>
         <ng-template #noAttachment>
           <div class="attachment-empty">

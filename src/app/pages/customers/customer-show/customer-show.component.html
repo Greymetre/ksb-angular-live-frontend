@@ -453,16 +453,41 @@
         </button>
       </div>
 
+
+      <!-- The same zoom and rotate the invoice attachment viewer carries, so a faint
+           scan can be read without leaving the page. -->
+      <div class="kyc-doc-tools" *ngIf="document.url">
+        <button type="button" title="Zoom out" (click)="zoomDocument(-0.25)" [disabled]="docZoom <= 0.5">
+          <span class="material-icons">zoom_out</span>
+        </button>
+        <button type="button" class="zoom-value" title="Reset zoom" (click)="resetDocumentView()">{{ zoomLabel() }}</button>
+        <button type="button" title="Zoom in" (click)="zoomDocument(0.25)" [disabled]="docZoom >= 3">
+          <span class="material-icons">zoom_in</span>
+        </button>
+        <ng-container *ngIf="!isPdfDocument(document.url)">
+          <button type="button" title="Rotate left" (click)="rotateDocument(-90)">
+            <span class="material-icons">rotate_left</span>
+          </button>
+          <button type="button" title="Rotate right" (click)="rotateDocument(90)">
+            <span class="material-icons">rotate_right</span>
+          </button>
+        </ng-container>
+        <a class="open-tab" [href]="document.url" target="_blank" rel="noopener" title="Open in a new tab">
+          <span class="material-icons">open_in_new</span>
+        </a>
+      </div>
+
       <div class="kyc-doc-body">
         <div class="kyc-doc-file">
           <ng-container *ngIf="document.url; else noKycFile">
-            <iframe *ngIf="isPdfDocument(document.url); else kycImage"
-              [src]="safeDocumentUrl(document.url)" title="KYC document"></iframe>
-            <ng-template #kycImage>
-              <a [href]="document.url" target="_blank" rel="noopener" title="Open in a new tab">
-                <img [src]="document.url" [alt]="document.label"/>
-              </a>
-            </ng-template>
+            <div class="kyc-zoom-canvas">
+              <iframe *ngIf="isPdfDocument(document.url); else kycImage" [style.height]="documentSize()"
+                [src]="safeDocumentUrl(document.url)" title="KYC document"></iframe>
+              <ng-template #kycImage>
+                <img [src]="document.url" [alt]="document.label" [style.height]="documentSize()"
+                  [style.transform]="documentTransform()"/>
+              </ng-template>
+            </div>
           </ng-container>
           <ng-template #noKycFile>
             <div class="kyc-doc-empty">
