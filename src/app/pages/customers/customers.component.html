@@ -39,7 +39,7 @@
       </div>
       <div class="filter-field">
         <label>Mobile Number</label>
-        <input type="text" [(ngModel)]="filter.mobile" (ngModelChange)="scheduleFilterSearch()" placeholder="Mobile number"/>
+        <input type="text" inputmode="numeric" maxlength="10" [ngModel]="filter.mobile" (ngModelChange)="filter.mobile = onlyDigits($event); scheduleFilterSearch()" placeholder="Mobile number"/>
       </div>
       <div class="filter-field">
         <label>Beat</label>
@@ -236,11 +236,11 @@
           </div>
           <div class="modal-field">
             <label>Primary Mobile <span class="req">*</span></label>
-            <input type="text" [(ngModel)]="form.mobile" maxlength="10"/>
+            <input type="text" inputmode="numeric" maxlength="10" [ngModel]="form.mobile" (ngModelChange)="form.mobile = onlyDigits($event)"/>
           </div>
           <div class="modal-field">
             <label>Alternate Mobile</label>
-            <input type="text" [(ngModel)]="form.contactNumber" maxlength="10"/>
+            <input type="text" inputmode="numeric" maxlength="10" [ngModel]="form.contactNumber" (ngModelChange)="form.contactNumber = onlyDigits($event)"/>
           </div>
           <div class="modal-field">
             <label>Primary Email <span class="req">*</span></label>
@@ -340,7 +340,7 @@
             </div>
             <div class="mobile-list">
               <div class="mobile-input-row" *ngFor="let mobile of form.mobileNumbers; let index = index; trackBy: trackByIndex">
-                <input type="text" [ngModel]="mobile" (ngModelChange)="updateMobileNumber(index, $event)" maxlength="10" placeholder="Mobile Number {{ index + 1 }}"/>
+                <input type="text" inputmode="numeric" maxlength="10" [ngModel]="mobile" (ngModelChange)="updateMobileNumber(index, $event)" placeholder="Mobile Number {{ index + 1 }}"/>
                 <button type="button" class="btn-mini danger" (click)="removeMobileNumber(index)" [disabled]="form.mobileNumbers.length === 1">
                   <span class="material-icons">remove</span>
                 </button>
@@ -350,7 +350,7 @@
           </div>
           <div class="modal-field">
             <label>WhatsApp / Alternate Number</label>
-            <input type="text" [(ngModel)]="form.contactNumber" maxlength="10"/>
+            <input type="text" inputmode="numeric" maxlength="10" [ngModel]="form.contactNumber" (ngModelChange)="form.contactNumber = onlyDigits($event)"/>
           </div>
           <div class="modal-field">
             <label>Email</label>

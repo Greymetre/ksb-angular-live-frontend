@@ -6,6 +6,7 @@ import { User, UserFilters, UserOption, UserPayload, UserService } from '../../s
 import { SearchableSelectOption } from '../../shared/components/searchable-select/searchable-select.component';
 import { firstCaps } from '../../shared/pipes/first-caps.pipe';
 import { formatKolkataDateTime, kolkataDateInput, kolkataTodayInput } from '../../shared/utils/date-time';
+import { onlyMobileDigits } from '../../shared/utils/mobile-number';
 
 interface UserFormModel {
   id: number | null;
@@ -631,4 +632,9 @@ export class UsersComponent implements OnInit {
       dateOfJoining: null
     };
   }
+  /** The mobile field accepts digits only, and stops at ten. */
+  onlyDigits(value: unknown): string {
+    return onlyMobileDigits(value);
+  }
+
 }

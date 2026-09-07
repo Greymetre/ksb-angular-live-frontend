@@ -197,7 +197,7 @@
         </div>
         <div class="modal-field">
           <label>Mobile <span class="req">*</span></label>
-          <input type="text" [(ngModel)]="userForm.mobile" placeholder="Mobile number"/>
+          <input type="text" inputmode="numeric" maxlength="10" [ngModel]="userForm.mobile" (ngModelChange)="userForm.mobile = onlyDigits($event)" placeholder="Mobile number"/>
         </div>
         <div class="modal-field">
           <label>Email</label>

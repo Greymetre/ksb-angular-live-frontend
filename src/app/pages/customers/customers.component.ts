@@ -8,6 +8,7 @@ import { UserService } from '../../services/user.service';
 import { BeatRow, BeatService } from '../../services/beat.service';
 import { hasOnlyPdfOrImageFiles } from '../../shared/utils/file-validation';
 import { formatKolkataDateTime } from '../../shared/utils/date-time';
+import { onlyMobileDigits } from '../../shared/utils/mobile-number';
 
 interface CustomerTypeOption {
   id: number;
@@ -827,9 +828,16 @@ export class CustomersComponent implements OnInit {
     this.refreshView();
   }
 
+  /** Every mobile field in this screen goes through here, so a pasted or typed
+   *  non-digit never reaches the form and the value never passes ten characters. */
+  onlyDigits(value: unknown): string {
+    return onlyMobileDigits(value);
+  }
+
   updateMobileNumber(index: number, value: string): void {
-    this.form.mobileNumbers[index] = value;
-    if (index === 0) this.form.mobile = value;
+    const digits = onlyMobileDigits(value);
+    this.form.mobileNumbers[index] = digits;
+    if (index === 0) this.form.mobile = digits;
   }
 
   trackByIndex(index: number): number {
