@@ -57,6 +57,11 @@ export class DealerSchemeComponent implements OnInit {
   }
 
   slabReward(slab: DealerSchemeSlab): string {
-    return this.detail?.basedOn === 'Percentage' ? `${slab.rewardValue}%` : this.money(slab.rewardValue);
+    // A mixed scheme decides per slab, so the row's own type wins; every other
+    // scheme has none and follows the scheme.
+    const percentage = this.detail?.basedOn === 'Value + Percentage'
+      ? slab.rewardType === 'Percentage'
+      : this.detail?.basedOn === 'Percentage';
+    return percentage ? `${slab.rewardValue}%` : this.money(slab.rewardValue);
   }
 }

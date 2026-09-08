@@ -22,7 +22,7 @@ export interface DealerScheme {
 }
 
 export interface DealerSchemeSlab {
-  tierName: string; valueFrom: number; valueTo: number | null; rewardValue: number;
+  tierName: string; valueFrom: number; valueTo: number | null; rewardValue: number; rewardType: string | null;
 }
 
 export interface DealerSchemeRetailer {
@@ -499,7 +499,8 @@ export class DashboardService {
             tierName: String(x?.tier_name ?? ''),
             valueFrom: num(x?.value_from),
             valueTo: x?.value_to === null || x?.value_to === undefined ? null : num(x?.value_to),
-            rewardValue: num(x?.reward_value)
+            rewardValue: num(x?.reward_value),
+            rewardType: (x?.reward_type ?? null) as string | null
           })),
           retailers: (Array.isArray(d?.retailers) ? d.retailers : []).map((x: any): DealerSchemeRetailer => ({
             retailerId: num(x?.retailer_id),

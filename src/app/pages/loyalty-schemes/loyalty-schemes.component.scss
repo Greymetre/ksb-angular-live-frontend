@@ -105,7 +105,9 @@
 .empty-options { grid-column: 1 / -1; padding: 12px; color: #94a3b8; text-align: center; font-size: 13px; }
 
 .slab-table { border: 1px solid #e5e7eb; border-radius: 8px; overflow-x: auto; }
-.slab-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 42px; gap: 10px; align-items: center; min-width: 760px; padding: 10px; border-top: 1px solid #eef0f2; &:first-child { border-top: 0; } input { min-height: 36px; padding: 7px 9px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; } }
+.slab-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 42px; gap: 10px; align-items: center; min-width: 760px; padding: 10px; border-top: 1px solid #eef0f2; &:first-child { border-top: 0; } input, select { min-height: 36px; padding: 7px 9px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: #fff; } }
+// A mixed scheme carries one more column: the type this slab pays in.
+.slab-row.mixed { grid-template-columns: 1.4fr 1fr 1fr 1.1fr 1fr 42px; min-width: 880px; }
 .slab-head { background: #f8fafc; font-size: 12px; font-weight: 700; color: #475569; }
 .reward-input {
   appearance: textfield;

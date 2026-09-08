@@ -824,6 +824,16 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
     return (value || '-').replace(/\b\w/g, char => char.toUpperCase());
   }
 
+
+  /// The employee's name with their mobile beside it, so whoever is reviewing the
+  /// invoice can call them without going looking for the number.
+  assignedEmployeeLabel(invoice: { assignedEmployeeName?: string | null; assignedEmployeeMobile?: string | null }): string {
+    const name = (invoice.assignedEmployeeName || '').trim();
+    if (!name) return '-';
+    const mobile = (invoice.assignedEmployeeMobile || '').trim();
+    return mobile ? `${name} (${mobile})` : name;
+  }
+
   formatMoney(value: number): string {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value || 0);
   }

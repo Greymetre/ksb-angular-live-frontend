@@ -12,6 +12,7 @@ export interface LoyaltySchemeSlab {
   valueFrom: number;
   valueTo: number | null;
   rewardValue: number;
+  rewardType: string | null;
   sortOrder?: number;
 }
 
@@ -240,6 +241,7 @@ export class LoyaltySchemeService {
       valueFrom: this.readNumber(row['value_from'] ?? row['valueFrom']),
       valueTo: this.nullableNumber(row['value_to'] ?? row['valueTo']),
       rewardValue: this.readNumber(row['reward_value'] ?? row['rewardValue']),
+      rewardType: (row['reward_type'] ?? row['rewardType'] ?? null) as string | null,
       sortOrder: this.readNumber(row['sort_order'] ?? row['sortOrder'])
     };
   }

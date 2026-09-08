@@ -33,6 +33,7 @@ interface SchemeFormModel {
     valueFrom: number | null;
     valueTo: number | null;
     rewardValue: number | string | null;
+    rewardType: string;
   }>;
 }
 
@@ -60,7 +61,8 @@ export class LoyaltySchemesComponent implements OnInit {
   customerTypes = ['Dealer', 'Retailer', 'Influencer'];
   schemeTags = ['Regular', 'Booster'];
   areaScopes = ['All', 'Branch', 'Zone', 'State', 'Customer'];
-  basedOnOptions = ['Value', 'Percentage'];
+  basedOnOptions = ['Value', 'Percentage', 'Value + Percentage'];
+  slabRewardTypes = ['Value', 'Percentage'];
   schemeTypes: Array<{ value: string; label: string; available: boolean }> = [
     { value: 'Invoice', label: 'Invoice', available: true },
     { value: 'Product', label: 'Product', available: false },
@@ -273,7 +275,8 @@ export class LoyaltySchemesComponent implements OnInit {
         tierName: slab.tierName,
         valueFrom: slab.valueFrom,
         valueTo: slab.valueTo,
-        rewardValue: slab.rewardValue
+        rewardValue: slab.rewardValue,
+        rewardType: slab.rewardType || 'Value'
       })) : [this.emptySlab()]
     };
     this.errorMessage = '';
@@ -458,8 +461,27 @@ export class LoyaltySchemesComponent implements OnInit {
     return path ? `${API_ORIGIN}${path.startsWith('/') ? '' : '/'}${path}` : '';
   }
 
+  /// A mixed scheme decides per slab, so the column heading cannot name one or the
+  /// other and the row carries its own picker instead.
+  get isMixedScheme(): boolean {
+    return this.form.basedOn === 'Value + Percentage';
+  }
+
+  /// What this row pays, whichever way the scheme is set up.
+  slabIsPercentage(slab: SchemeFormModel['slabs'][number]): boolean {
+    return this.isMixedScheme ? slab.rewardType === 'Percentage' : this.form.basedOn === 'Percentage';
+  }
+
   rewardLabel(): string {
+    if (this.isMixedScheme) return 'Reward';
     return this.form.basedOn === 'Percentage' ? 'Reward %' : 'Reward Amount';
+  }
+
+  /// Switching a row between the two clears the figure: 2.8 as a percentage and 2.8
+  /// as rupees are not the same number, and keeping it invites the wrong one.
+  onSlabRewardTypeChange(slab: SchemeFormModel['slabs'][number]): void {
+    slab.rewardValue = null;
+    this.refreshView();
   }
 
   onRewardValueChange(slab: SchemeFormModel['slabs'][number], value: number | string | null): void {
@@ -468,7 +490,7 @@ export class LoyaltySchemesComponent implements OnInit {
       return;
     }
 
-    if (this.form.basedOn === 'Percentage') {
+    if (this.slabIsPercentage(slab)) {
       const sanitized = String(value).replace(/[^\d.]/g, '');
       const [integer = '', ...decimalParts] = sanitized.split('.');
       const combined = `${integer}${decimalParts.length ? `.${decimalParts.join('')}` : ''}`.slice(0, 4);
@@ -502,7 +524,10 @@ export class LoyaltySchemesComponent implements OnInit {
         tier_name: slab.tierName.trim(),
         value_from: Number(slab.valueFrom ?? 0),
         value_to: slab.valueTo === null || slab.valueTo === undefined ? null : Number(slab.valueTo),
-        reward_value: Number(slab.rewardValue ?? 0)
+        reward_value: Number(slab.rewardValue ?? 0),
+        // Only a mixed scheme carries a per-slab type; the others follow the scheme,
+        // and sending one would be noise the server has to ignore.
+        reward_type: this.isMixedScheme ? (slab.rewardType || 'Value') : null
       }))
     };
   }
@@ -547,7 +572,7 @@ export class LoyaltySchemesComponent implements OnInit {
   }
 
   private emptySlab() {
-    return { tierName: '', valueFrom: 0, valueTo: null, rewardValue: 0 };
+    return { tierName: '', valueFrom: 0, valueTo: null, rewardValue: 0, rewardType: 'Value' };
   }
 
   private syncFollowingSlab(index: number): void {
@@ -573,7 +598,7 @@ export class LoyaltySchemesComponent implements OnInit {
   private localFallbackCode(): string {
     const namePart = this.abbr(this.form.schemeName || 'Scheme');
     const tagPart = this.form.schemeTag === 'Booster' ? 'BST' : 'REG';
-    const basisPart = this.form.basedOn === 'Percentage' ? 'PCT' : 'VAL';
+    const basisPart = this.isMixedScheme ? 'MIX' : this.form.basedOn === 'Percentage' ? 'PCT' : 'VAL';
     const year = new Date().getFullYear();
     const random = Math.floor(Math.random() * 99) + 1;
     return `${tagPart}-${namePart}-INV-${basisPart}-${year}-${String(random).padStart(2, '0')}`.toUpperCase();

@@ -219,23 +219,29 @@
       <div class="form-section">
         <div class="section-title">Slab Configuration</div>
         <div class="slab-table">
-          <div class="slab-row slab-head">
+          <div class="slab-row slab-head" [class.mixed]="isMixedScheme">
             <span>Tier Name</span>
             <span>Value From</span>
             <span>Value To</span>
+            <!-- Only a mixed scheme decides per slab; the others follow the scheme. -->
+            <span *ngIf="isMixedScheme">Based On</span>
             <span>{{ rewardLabel() }}</span>
             <span></span>
           </div>
-          <div class="slab-row" *ngFor="let slab of form.slabs; let index = index">
+          <div class="slab-row" *ngFor="let slab of form.slabs; let index = index" [class.mixed]="isMixedScheme">
             <input type="text" [(ngModel)]="slab.tierName" placeholder="Silver"/>
             <input type="number" [(ngModel)]="slab.valueFrom" min="0"/>
             <input type="number" [(ngModel)]="slab.valueTo" (ngModelChange)="onValueToChange(index)" min="0" placeholder="No limit"/>
-            <input class="reward-input" [type]="form.basedOn === 'Percentage' ? 'text' : 'number'"
-              [attr.inputmode]="form.basedOn === 'Percentage' ? 'decimal' : 'decimal'"
-              [attr.maxlength]="form.basedOn === 'Percentage' ? 4 : null"
+            <select *ngIf="isMixedScheme" [(ngModel)]="slab.rewardType" (ngModelChange)="onSlabRewardTypeChange(slab)">
+              <option *ngFor="let type of slabRewardTypes" [value]="type">{{ type }}</option>
+            </select>
+            <input class="reward-input" [type]="slabIsPercentage(slab) ? 'text' : 'number'"
+              inputmode="decimal"
+              [attr.maxlength]="slabIsPercentage(slab) ? 4 : null"
+              [attr.placeholder]="slabIsPercentage(slab) ? '2.8' : '140000'"
               [ngModel]="slab.rewardValue"
               (ngModelChange)="onRewardValueChange(slab, $event)"
-              min="0" [max]="form.basedOn === 'Percentage' ? 99.9 : 10000000" step="0.01"/>
+              min="0" [max]="slabIsPercentage(slab) ? 99.9 : 10000000" step="0.01"/>
             <button type="button" class="btn-danger" title="Remove" (click)="removeSlab(index)" [disabled]="form.slabs.length === 1"><span class="material-icons">close</span></button>
           </div>
         </div>
