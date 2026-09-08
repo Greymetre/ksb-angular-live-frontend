@@ -17,6 +17,7 @@ interface SchemeFormModel {
   schemeName: string;
   schemeCode: string;
   schemeDescription: string;
+  schemeNote: string;
   schemeTag: string;
   customerType: string;
   areaScope: string;
@@ -77,6 +78,7 @@ export class LoyaltySchemesComponent implements OnInit {
   appliedSearchQuery = '';
   selectedStatus = '';
   loading = false;
+  exporting = false;
   saving = false;
   generatingCode = false;
   showFilters = false;
@@ -163,10 +165,36 @@ export class LoyaltySchemesComponent implements OnInit {
   get canSubmit(): boolean { return this.authService.hasPermission('scheme.submit'); }
   get canReject(): boolean { return this.authService.hasPermission('scheme.reject'); }
   get canPublish(): boolean { return this.authService.hasPermission('scheme.publish'); }
+  get canExport(): boolean { return this.authService.hasPermission('scheme.export'); }
 
   private isPublishedScheme(scheme: LoyaltyScheme): boolean {
     return ['Published', 'Live'].includes(scheme.workflowStatus)
       || scheme.status === 'Live';
+  }
+
+  /** The same listing the screen is showing, as a workbook. */
+  exportSchemes(): void {
+    this.exporting = true;
+    this.schemeService.export({
+      status: this.selectedStatus || undefined,
+      search: this.appliedSearchQuery || undefined
+    }).pipe(
+      timeout(60000),
+      finalize(() => {
+        this.exporting = false;
+        this.refreshView();
+      })
+    ).subscribe({
+      next: blob => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `loyalty-schemes-${new Date().toISOString().slice(0, 10)}.xlsx`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: error => this.showToast(error.message, 'error')
+    });
   }
 
   loadSchemes(): void {
@@ -260,6 +288,7 @@ export class LoyaltySchemesComponent implements OnInit {
       schemeName: scheme.schemeName,
       schemeCode: scheme.schemeCode,
       schemeDescription: scheme.schemeDescription || '',
+      schemeNote: scheme.schemeNote || '',
       schemeTag: scheme.schemeTag || 'Regular',
       customerType: scheme.customerType,
       areaScope: scheme.areaScope || 'All',
@@ -511,6 +540,7 @@ export class LoyaltySchemesComponent implements OnInit {
       scheme_name: this.form.schemeName.trim(),
       scheme_code: this.form.schemeCode.trim(),
       scheme_description: this.form.schemeDescription.trim() || null,
+      scheme_note: this.form.schemeNote.trim() || null,
       scheme_tag: this.form.schemeTag,
       customer_type: this.form.customerType,
       area_scope: this.form.areaScope,
@@ -556,6 +586,7 @@ export class LoyaltySchemesComponent implements OnInit {
       schemeName: '',
       schemeCode: '',
       schemeDescription: '',
+      schemeNote: '',
       schemeTag: 'Regular',
       customerType: 'Retailer',
       areaScope: 'All',

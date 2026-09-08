@@ -120,6 +120,7 @@
                 <div class="readonly-field">
                   <label>Scheme</label>
                   <input type="text" [value]="schemeDisplay(selectedInvoice)" readonly />
+                  <small class="scheme-note" *ngIf="selectedInvoice.schemeNote">{{ selectedInvoice.schemeNote }}</small>
                 </div>
                 <div class="readonly-field" *ngIf="selectedInvoice.schemeHintMessage">
                   <label>Scheme Hint</label>

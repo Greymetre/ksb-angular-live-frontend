@@ -241,3 +241,12 @@ table.lead { width: 100%; border-collapse: collapse; font-size: 13px;
   &.live { background: #e6f7f1; color: #075041; }
   &.upcoming { background: #eaf2fd; color: #1d4ed8; }
   &.expired { background: #f4f5f7; color: #64748b; } }
+
+/* The scheme note on a ticker card, below the validity footer. */
+.sl-note {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 11.5px;
+  line-height: 1.5;
+  white-space: normal;
+}

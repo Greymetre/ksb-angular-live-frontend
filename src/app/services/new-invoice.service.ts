@@ -19,6 +19,7 @@ export interface NewInvoiceItem {
   assignedDistributorId?: number | null;
   assignedDistributorName?: string | null;
   assignedEmployeeName?: string | null;
+  schemeNote?: string | null;
   assignedEmployeeMobile?: string | null;
   invoiceNumber: string;
   invoiceDate: string;
@@ -384,6 +385,7 @@ export class NewInvoiceService {
       assignedDistributorId: this.readNumber(row['assigned_distributor_id'] ?? row['assignedDistributorId']) || null,
       assignedDistributorName: this.readNullableString(row['assigned_distributor_name'] ?? row['assignedDistributorName']),
       assignedEmployeeName: this.readNullableString(row['assigned_employee_name'] ?? row['assignedEmployeeName']),
+      schemeNote: this.readNullableString(row['scheme_note'] ?? row['schemeNote']),
       assignedEmployeeMobile: this.readNullableString(row['assigned_employee_mobile'] ?? row['assignedEmployeeMobile']),
       invoiceNumber: this.readString(row['invoice_number'] ?? row['invoiceNumber']),
       invoiceDate: this.readString(row['invoice_date'] ?? row['invoiceDate']),

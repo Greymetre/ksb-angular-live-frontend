@@ -66,6 +66,13 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
   branchFilterOptions: SelectOption[] = [];
   dealerFilterOptions: SelectOption[] = [];
   filter: NewInvoiceFilter = {};
+  /**
+   * A filter someone set stays set: through a refresh, through opening an invoice
+   * and coming back, and through a trip to another screen. Only Clear puts the
+   * listing back to everything, so nobody loses a search they were part way
+   * through. Signing out drops it as well - see AuthService.logout.
+   */
+  private static readonly filterStorageKey = 'netproject_new_invoice_filter';
   summary: NewInvoiceSummary = this.emptySummary();
   stageCounts: NewInvoiceStageCounts = this.emptyStageCounts();
   form: InvoiceFormModel = this.emptyForm();
@@ -169,6 +176,9 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
     this.retailerSearchSub?.unsubscribe();
   }
   ngOnInit(): void {
+    // Before the route subscription below fires its first load, so the stored
+    // filter is part of that request rather than a second one after it.
+    this.restoreFilter();
     this.loadRetailers();
     this.loadSchemeFilters();
     this.loadLocationFilters();
@@ -355,6 +365,9 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.errorMessage = '';
     if (resetPage) this.currentPage = 1;
+    // Every filter change ends up here, so this is the one place that has to
+    // remember it. Paging through results writes the same filter back unchanged.
+    this.persistFilter();
     this.newInvoiceService.list({ ...this.filter, page: this.currentPage, page_size: this.safeShowEntries }).pipe(
       timeout(20000),
       finalize(() => {
@@ -718,7 +731,70 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
   resetFilters(): void {
     this.filter = {};
     this.currentPage = 1;
+    this.forgetFilter();
     this.loadInvoices();
+  }
+
+  /** True when anything is narrowing the listing, so the panel can open itself. */
+  get hasActiveFilter(): boolean {
+    return Object.values(this.filter).some(value => value !== null && value !== undefined && value !== '');
+  }
+
+  private persistFilter(): void {
+    try {
+      if (!this.hasActiveFilter) {
+        localStorage.removeItem(NewInvoicesComponent.filterStorageKey);
+        return;
+      }
+      localStorage.setItem(NewInvoicesComponent.filterStorageKey, JSON.stringify(this.filter));
+    } catch {
+      // Private browsing, or storage full. The listing still works; the filter
+      // just will not outlive this page.
+    }
+  }
+
+  private forgetFilter(): void {
+    try {
+      localStorage.removeItem(NewInvoicesComponent.filterStorageKey);
+    } catch {
+      // Nothing to do - there was nothing readable to remove.
+    }
+  }
+
+  private restoreFilter(): void {
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem(NewInvoicesComponent.filterStorageKey);
+    } catch {
+      return;
+    }
+    if (!stored) return;
+
+    try {
+      const saved = JSON.parse(stored) as Record<string, unknown>;
+      if (!saved || typeof saved !== 'object' || Array.isArray(saved)) {
+        this.forgetFilter();
+        return;
+      }
+      // Only the fields this screen filters on, so a key left behind by an older
+      // build can never reach the API. page and page_size are set per request.
+      const allowed: (keyof NewInvoiceFilter)[] = [
+        'scheme_id', 'retailer_search', 'invoice_number', 'approval_status',
+        'zone_id', 'branch_id', 'dealer_id', 'from_date', 'to_date', 'search'
+      ];
+      const restored: NewInvoiceFilter = {};
+      for (const key of allowed) {
+        const value = saved[key as string];
+        if (value === null || value === undefined || value === '') continue;
+        (restored as Record<string, unknown>)[key as string] = value;
+      }
+      this.filter = restored;
+      // Open the panel, otherwise a listing arrives already narrowed with no
+      // visible reason and no Clear button in reach.
+      if (this.hasActiveFilter) this.showFilters = true;
+    } catch {
+      this.forgetFilter();
+    }
   }
 
   resetPage(): void {

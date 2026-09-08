@@ -11,6 +11,8 @@ export interface DealerScheme {
   id: number;
   name: string;
   code: string;
+  /** The scheme creator's note, shown under the dates. */
+  note: string;
   tag: string;
   areaScope: string;
   startDate: string;
@@ -31,7 +33,7 @@ export interface DealerSchemeRetailer {
 }
 
 export interface DealerSchemeDetail {
-  id: number; name: string; code: string; description: string; tag: string;
+  id: number; name: string; code: string; description: string; note: string; tag: string;
   basedOn: string; areaScope: string; startDate: string; endDate: string;
   status: DealerSchemeStatus; statusLabel: string; isLive: boolean; daysRemaining: number;
   summary: {
@@ -243,6 +245,7 @@ export class DashboardService {
             id: num(row?.id),
             name: String(row?.name ?? 'Scheme'),
             code: String(row?.code ?? ''),
+            note: String(row?.scheme_note ?? ''),
             tag: String(row?.tag ?? 'Regular'),
             areaScope: String(row?.area_scope ?? 'All'),
             startDate: String(row?.start_date ?? ''),
@@ -474,6 +477,7 @@ export class DashboardService {
           name: String(d?.name ?? 'Scheme'),
           code: String(d?.code ?? ''),
           description: String(d?.description ?? ''),
+          note: String(d?.scheme_note ?? ''),
           tag: String(d?.tag ?? 'Regular'),
           basedOn: String(d?.based_on ?? 'Value'),
           areaScope: String(d?.area_scope ?? 'All'),

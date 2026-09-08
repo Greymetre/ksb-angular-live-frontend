@@ -27,6 +27,10 @@
       <label>Show <select [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input"><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option></select> entries</label>
     </div>
     <div class="toolbar-right">
+      <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download'" (click)="exportSchemes()"
+        [disabled]="exporting" *ngIf="canExport">
+        <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
+      </button>
       <button class="btn-icon-round add-btn" title="Add" (click)="openCreate()" *ngIf="canCreate"><span class="material-icons">add</span></button>
       <div class="search-group">
         <label>Search:</label>
@@ -79,7 +83,10 @@
             <td>{{ scheme.customerType }}</td>
             <td class="area-cell" [title]="scheme.areaDisplay">{{ scheme.areaDisplay }}</td>
             <td>{{ scheme.schemeType }} / {{ scheme.basedOn }}</td>
-            <td>{{ formatDate(scheme.startDate) }} - {{ formatDate(scheme.endDate) }}</td>
+            <td>
+              {{ formatDate(scheme.startDate) }} - {{ formatDate(scheme.endDate) }}
+              <small class="scheme-note" *ngIf="scheme.schemeNote" [title]="scheme.schemeNote">{{ scheme.schemeNote }}</small>
+            </td>
             <td><span class="status-pill" [class.live]="scheme.status === 'Live'" [class.ended]="scheme.status === 'Expired'" [class.rejected]="scheme.status === 'Rejected'">{{ scheme.status }}</span></td>
             <td>{{ scheme.createdByName }}</td>
             <td>{{ formatDate(scheme.createdAt) || '-' }}</td>
@@ -166,6 +173,12 @@
             <textarea rows="3" [(ngModel)]="form.schemeDescription"></textarea>
           </div>
           <div class="modal-field full-field">
+            <label>Note</label>
+            <textarea rows="2" maxlength="500" placeholder="A short note shown under the scheme dates, on the CRM and both apps"
+              [(ngModel)]="form.schemeNote"></textarea>
+            <small class="field-hint">{{ form.schemeNote.length }} / 500</small>
+          </div>
+          <div class="modal-field full-field">
             <label>Scheme Brochure (PDF, maximum 10 MB)</label>
             <input *ngIf="!viewOnly" type="file" accept="application/pdf,.pdf" (change)="onBrochureSelected($event)"/>
             <a *ngIf="form.brochurePath" [href]="brochureUrl(form.brochurePath)" target="_blank" rel="noopener">View current brochure</a>
@@ -180,9 +193,14 @@
           <div><label>Status</label><strong>{{ viewedScheme.status }}</strong></div>
           <div><label>Created By</label><strong>{{ viewedScheme.createdByName || '-' }}</strong></div>
           <div><label>Created Date</label><strong>{{ formatDate(viewedScheme.createdAt) || '-' }}</strong></div>
+          <div><label>Submitted / Forwarded By</label><strong>{{ viewedScheme.submittedByName || '-' }}</strong></div>
           <div><label>Submitted / Forwarded Date</label><strong>{{ formatDate(viewedScheme.submittedAt) || '-' }}</strong></div>
+          <div><label>Approved By</label><strong>{{ viewedScheme.approvedByName || '-' }}</strong></div>
           <div><label>Approved Date</label><strong>{{ formatDate(viewedScheme.approvedAt) || '-' }}</strong></div>
           <div class="full-field"><label>Approval Remark</label><strong>{{ viewedScheme.approvalRemark || '-' }}</strong></div>
+          <div><label>Published By</label><strong>{{ viewedScheme.publishedByName || '-' }}</strong></div>
+          <div><label>Published Date</label><strong>{{ formatDate(viewedScheme.publishedAt) || '-' }}</strong></div>
+          <div *ngIf="viewedScheme.rejectedAt"><label>Rejected By</label><strong>{{ viewedScheme.rejectedByName || '-' }}</strong></div>
           <div *ngIf="viewedScheme.rejectedAt"><label>Rejected Date</label><strong>{{ formatDate(viewedScheme.rejectedAt) }}</strong></div>
           <div class="full-field"><label>Rejection Remark</label><strong>{{ viewedScheme.rejectionRemark || '-' }}</strong></div>
         </div>

@@ -22,6 +22,8 @@ export interface LoyaltyScheme {
   schemeName: string;
   schemeCode: string;
   schemeDescription?: string | null;
+  /** A couple of lines shown under the scheme dates wherever the scheme appears. */
+  schemeNote?: string | null;
   schemeTag: string;
   customerType: string;
   areaScope: string;
@@ -36,10 +38,16 @@ export interface LoyaltyScheme {
   workflowStatus: string;
   brochurePath?: string | null;
   submittedAt?: string | null;
+  submittedByName?: string | null;
   approvedAt?: string | null;
+  approvedByName?: string | null;
   approvalRemark?: string | null;
   rejectedAt?: string | null;
+  rejectedByName?: string | null;
   rejectionRemark?: string | null;
+  /** Blank on anything published before the server started recording it. */
+  publishedAt?: string | null;
+  publishedByName?: string | null;
   createdByName?: string | null;
   createdAt?: string | null;
   slabs: LoyaltySchemeSlab[];
@@ -50,6 +58,7 @@ export interface LoyaltySchemePayload {
   scheme_name: string;
   scheme_code: string;
   scheme_description?: string | null;
+  scheme_note?: string | null;
   scheme_tag: string;
   customer_type: string;
   area_scope: string;
@@ -93,6 +102,15 @@ export class LoyaltySchemeService {
   private readonly baseUrl = `${API_BASE_URL}/loyalty-schemes`;
 
   constructor(private http: HttpClient, private authService: AuthService) {}
+
+  /** The listing as a workbook, narrowed by whatever the screen is showing. */
+  export(filter: LoyaltySchemeFilter): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/export`, {
+      headers: this.authHeaders(),
+      params: this.filterParams(filter),
+      responseType: 'blob'
+    }).pipe(catchError(error => this.handleError(error)));
+  }
 
   list(filter: LoyaltySchemeFilter): Observable<PagedArray<LoyaltyScheme>> {
     return this.http.get<ApiResponse>(this.baseUrl, {
@@ -209,6 +227,7 @@ export class LoyaltySchemeService {
       schemeName: this.readString(row['scheme_name'] ?? row['schemeName']),
       schemeCode: this.readString(row['scheme_code'] ?? row['schemeCode']),
       schemeDescription: this.readNullableString(row['scheme_description'] ?? row['schemeDescription']),
+      schemeNote: this.readNullableString(row['scheme_note'] ?? row['schemeNote']),
       schemeTag: this.readString(row['scheme_tag'] ?? row['schemeTag']) || 'Regular',
       customerType: this.readString(row['customer_type'] ?? row['customerType']),
       areaScope: this.readString(row['area_scope'] ?? row['areaScope']) || 'All',
@@ -223,10 +242,15 @@ export class LoyaltySchemeService {
       workflowStatus: this.readString(row['workflow_status'] ?? row['workflowStatus'] ?? row['status']) || 'Draft',
       brochurePath: this.readNullableString(row['brochure_path'] ?? row['brochurePath']),
       submittedAt: this.readNullableString(row['submitted_at'] ?? row['submittedAt']),
+      submittedByName: this.readNullableString(row['submitted_by_name'] ?? row['submittedByName']),
       approvedAt: this.readNullableString(row['approved_at'] ?? row['approvedAt']),
+      approvedByName: this.readNullableString(row['approved_by_name'] ?? row['approvedByName']),
       approvalRemark: this.readNullableString(row['approval_remark'] ?? row['approvalRemark']),
       rejectedAt: this.readNullableString(row['rejected_at'] ?? row['rejectedAt']),
+      rejectedByName: this.readNullableString(row['rejected_by_name'] ?? row['rejectedByName']),
       rejectionRemark: this.readNullableString(row['rejection_remark'] ?? row['rejectionRemark']),
+      publishedAt: this.readNullableString(row['published_at'] ?? row['publishedAt']),
+      publishedByName: this.readNullableString(row['published_by_name'] ?? row['publishedByName']),
       createdByName: this.readNullableString(row['created_by_name'] ?? row['createdByName']),
       createdAt: this.readNullableString(row['created_at'] ?? row['createdAt']),
       slabs: this.pickArray(row, ['slabs']).map(slab => this.normalizeSlab(slab))

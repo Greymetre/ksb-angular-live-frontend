@@ -27,6 +27,7 @@
         {{ date(d.startDate) }} — {{ date(d.endDate) }}
         <span *ngIf="d.isLive && d.daysRemaining > 0"> · {{ d.daysRemaining }} days left</span>
       </p>
+      <p class="ds-note" *ngIf="d.note">{{ d.note }}</p>
       <div class="ds-tags">
         <span>{{ d.tag }}</span>
         <span>{{ d.basedOn === 'Percentage' ? '% based' : 'Value based' }}</span>

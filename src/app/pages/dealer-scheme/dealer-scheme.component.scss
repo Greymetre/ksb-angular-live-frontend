@@ -57,3 +57,14 @@
 .ds-retailer-points { flex: none; text-align: right;
   b { display: block; font-size: 14px; font-weight: 700; color: var(--success-green); }
   small { font-size: 10.5px; color: #b45309; } }
+
+/* The scheme note, directly under the dates on the hero. The hero is dark, so
+   this borrows the same muted white the code and dates already use. */
+.ds-note {
+  margin: 6px 0 0;
+  max-width: 620px;
+  color: rgba(255, 255, 255, .85);
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-line;
+}

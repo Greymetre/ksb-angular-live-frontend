@@ -31,6 +31,8 @@ export class AuthService {
   private readonly userKey = 'netproject_user';
   private readonly deviceKey = 'netproject_device_id';
   private readonly permissionSchemaKey = 'netproject_permission_schema';
+  /** Listing filters that survive a refresh, cleared when somebody signs out. */
+  private static readonly listingFilterKeys = ['netproject_new_invoice_filter'];
   private readonly permissionSchemaVersion = 'role-only-v1';
   private permissionRefresh$?: Observable<LoginUserInfo>;
   private permissionRefreshAt = 0;
@@ -74,6 +76,9 @@ export class AuthService {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
     localStorage.removeItem(this.permissionSchemaKey);
+    // A listing filter outlives a refresh on purpose, but it must not outlive the
+    // person who set it - the next sign-in on this browser starts clean.
+    for (const key of AuthService.listingFilterKeys) localStorage.removeItem(key);
     this.permissionRefresh$ = undefined;
   }
 

@@ -83,6 +83,7 @@
             </div>
             <span class="sl-days" *ngIf="scheme.isLive && scheme.daysRemaining > 0">{{ scheme.daysRemaining }} days left</span>
           </footer>
+          <p class="sl-note" *ngIf="scheme.note">{{ scheme.note }}</p>
           <button type="button" class="sl-cta" (click)="openScheme(scheme.id)">View details &nbsp;&rarr;</button>
         </article>
       </div>

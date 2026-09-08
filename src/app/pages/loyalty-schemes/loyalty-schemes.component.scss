@@ -146,3 +146,24 @@
 }
 
 .modal-field .field-note { display: block; margin-top: 4px; font-size: 11px; color: #777; }
+
+/* The scheme note: a couple of lines under the validity dates, and in the form
+   the running character count beside the box. Both are secondary to what they
+   sit under, so neither competes with it. */
+.scheme-note {
+  display: block;
+  margin-top: 3px;
+  max-width: 220px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 11px;
+  text-align: right;
+}
