@@ -29,6 +29,8 @@ export interface LoyaltyScheme {
   areaScope: string;
   areaValues: string[];
   areaDisplay: string;
+  /** Dealers this scheme leaves out. */
+  excludedDealerIds: number[];
   startDate: string;
   endDate: string;
   schemeType: string;
@@ -63,6 +65,7 @@ export interface LoyaltySchemePayload {
   customer_type: string;
   area_scope: string;
   area_values: string[];
+  excluded_dealer_ids?: number[];
   start_date: string;
   end_date: string;
   scheme_type: string;
@@ -74,6 +77,19 @@ export interface LoyaltySchemePayload {
     value_to: number | null;
     reward_value: number;
   }>;
+}
+
+/** One dealer for the Exclusion Dealers picker, with the area it belongs to so the
+ *  form can narrow the list without asking the server again. */
+export interface SchemeDealerOption {
+  id: number;
+  name: string;
+  code: string | null;
+  mobile: string | null;
+  email: string | null;
+  branch: string | null;
+  zone: string | null;
+  state: string | null;
 }
 
 export interface LoyaltySchemeFilter {
@@ -110,6 +126,27 @@ export class LoyaltySchemeService {
       params: this.filterParams(filter),
       responseType: 'blob'
     }).pipe(catchError(error => this.handleError(error)));
+  }
+
+  /** Every dealer, in one call. A few hundred rows, so the form searches and narrows
+   *  them itself rather than going back to the server on each keystroke. */
+  dealerOptions(): Observable<SchemeDealerOption[]> {
+    return this.http.get<ApiResponse>(`${this.baseUrl}/dealer-options`, { headers: this.authHeaders() }).pipe(
+      map(response => this.pickArray(response, ['dealers', 'data.dealers', 'data']).map(value => {
+        const row = this.asRecord(value);
+        return {
+          id: this.readNumber(row['id']),
+          name: this.readString(row['name']),
+          code: this.readNullableString(row['code']),
+          mobile: this.readNullableString(row['mobile']),
+          email: this.readNullableString(row['email']),
+          branch: this.readNullableString(row['branch']),
+          zone: this.readNullableString(row['zone']),
+          state: this.readNullableString(row['state'])
+        };
+      }).filter(dealer => dealer.id > 0)),
+      catchError(error => this.handleError(error))
+    );
   }
 
   list(filter: LoyaltySchemeFilter): Observable<PagedArray<LoyaltyScheme>> {
@@ -232,6 +269,7 @@ export class LoyaltySchemeService {
       customerType: this.readString(row['customer_type'] ?? row['customerType']),
       areaScope: this.readString(row['area_scope'] ?? row['areaScope']) || 'All',
       areaValues: this.asArray(row['area_values'] ?? row['areaValues']).map(item => this.readString(item)).filter(Boolean),
+      excludedDealerIds: this.asArray(row['excluded_dealer_ids'] ?? row['excludedDealerIds']).map(item => Number(item)).filter(id => Number.isFinite(id) && id > 0),
       areaDisplay: this.readString(row['area_display'] ?? row['areaDisplay']) || 'All India',
       startDate: this.readString(row['start_date'] ?? row['startDate']),
       endDate: this.readString(row['end_date'] ?? row['endDate']),

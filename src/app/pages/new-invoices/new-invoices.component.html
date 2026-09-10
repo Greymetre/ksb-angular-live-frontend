@@ -87,6 +87,10 @@
                   <input type="text"
                     [value]="(selectedInvoice.cityName || '-') + ' / ' + (selectedInvoice.zoneName || '-')" readonly />
                 </div>
+                <div class="readonly-field emphasis">
+                  <label>Assigned Distributor</label>
+                  <input type="text" [value]="selectedInvoice.assignedDistributorName || '-'" readonly />
+                </div>
                 <div class="readonly-field">
                   <label>Branch</label>
                   <input type="text" [value]="selectedInvoice.branchName || '-'" readonly />
@@ -125,10 +129,6 @@
                 <div class="readonly-field" *ngIf="selectedInvoice.schemeHintMessage">
                   <label>Scheme Hint</label>
                   <input type="text" [value]="selectedInvoice.schemeHintMessage" readonly />
-                </div>
-                <div class="readonly-field">
-                  <label>Assigned Distributor</label>
-                  <input type="text" [value]="selectedInvoice.assignedDistributorName || '-'" readonly />
                 </div>
               </div>
             </div>

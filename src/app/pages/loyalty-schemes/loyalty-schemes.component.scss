@@ -167,3 +167,12 @@
   font-size: 11px;
   text-align: right;
 }
+
+/* The chosen dealers, under the box. Smaller than the area chips because a dealer
+   carries its code as well and there can be a good many of them. */
+.dealer-chips {
+  margin-top: 8px;
+  margin-bottom: 0;
+  span { padding: 3px 7px; font-size: 11px; }
+  button { font-size: 15px; }
+}

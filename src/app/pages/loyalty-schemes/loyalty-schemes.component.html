@@ -231,6 +231,28 @@
               <div class="empty-options" *ngIf="areaOptions.length === 0">No options available</div>
             </div>
           </div>
+          <div class="modal-field full-field">
+            <label>Excluded dealers</label>
+            <app-searchable-select
+              [options]="dealerOptions"
+              [selected]="form.excludedDealerIds"
+              [multiple]="true"
+              [disabled]="viewOnly"
+              [loading]="dealersLoading"
+              [pageSize]="50"
+              placeholder="Select dealers to leave out"
+              loadingText="Loading dealers..."
+              (selectedChange)="onExcludedDealersChange($event)">
+            </app-searchable-select>
+            <div class="selected-values dealer-chips" *ngIf="excludedDealerChips.length">
+              <span *ngFor="let dealer of excludedDealerChips">{{ dealer.label }}
+                <button type="button" *ngIf="!viewOnly" (click)="removeExcludedDealer(dealer.id)">×</button>
+              </span>
+            </div>
+            <small class="field-hint">
+              {{ form.excludedDealerIds.length }} selected · searching reads name, dealer code, mobile and email
+            </small>
+          </div>
         </div>
       </div>
 

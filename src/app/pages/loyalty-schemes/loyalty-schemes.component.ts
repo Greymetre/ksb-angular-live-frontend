@@ -6,8 +6,10 @@ import {
   LoyaltySchemeOption,
   LoyaltySchemeOptions,
   LoyaltySchemePayload,
-  LoyaltySchemeService
+  LoyaltySchemeService,
+  SchemeDealerOption
 } from '../../services/loyalty-scheme.service';
+import { SearchableSelectOption as SelectOption } from '../../shared/components/searchable-select/searchable-select.component';
 import { formatKolkataDate } from '../../shared/utils/date-time';
 import { API_ORIGIN } from '../../config/api.config';
 
@@ -22,6 +24,7 @@ interface SchemeFormModel {
   customerType: string;
   areaScope: string;
   areaValues: string[];
+  excludedDealerIds: number[];
   startDate: string;
   endDate: string;
   schemeType: string;
@@ -89,6 +92,10 @@ export class LoyaltySchemesComponent implements OnInit {
   toast: ToastModel = { visible: false, message: '', type: 'success' };
   workflowDialog: WorkflowDialog = { visible: false, scheme: null, remark: '' };
   areaSearch = '';
+  /** Every dealer, fetched once when the form first opens and then kept. A few hundred
+   *  rows, so narrowing and searching happen here rather than over the wire. */
+  allDealers: SchemeDealerOption[] = [];
+  dealersLoading = false;
   form: SchemeFormModel = this.emptyForm();
   private toastTimeoutId?: number;
   private codeGenerateTimeoutId?: number;
@@ -270,6 +277,7 @@ export class LoyaltySchemesComponent implements OnInit {
   }
 
   openCreate(): void {
+    this.loadDealerOptions();
     this.viewOnly = false;
     this.viewedScheme = null;
     this.form = this.emptyForm();
@@ -280,6 +288,7 @@ export class LoyaltySchemesComponent implements OnInit {
   }
 
   openEdit(scheme: LoyaltyScheme): void {
+    this.loadDealerOptions();
     this.viewOnly = false;
     this.viewedScheme = null;
     this.form = {
@@ -293,6 +302,7 @@ export class LoyaltySchemesComponent implements OnInit {
       customerType: scheme.customerType,
       areaScope: scheme.areaScope || 'All',
       areaValues: [...(scheme.areaValues || [])],
+      excludedDealerIds: [...(scheme.excludedDealerIds || [])],
       startDate: this.toDateInput(scheme.startDate),
       endDate: this.toDateInput(scheme.endDate),
       schemeType: 'Invoice',
@@ -329,6 +339,70 @@ export class LoyaltySchemesComponent implements OnInit {
   changeAreaScope(): void {
     this.form.areaValues = [];
     this.areaSearch = '';
+    this.pruneExcludedDealers();
+  }
+
+  /** The dealers the picker offers: everyone when the scheme is All India, otherwise only
+   *  the ones inside the chosen zones, branches or states. A Customer-scoped scheme names
+   *  its customers directly, so the dealer list is not narrowed for it. */
+  get dealerOptions(): SelectOption[] {
+    const scope = this.form.areaScope;
+    const values = this.form.areaValues.map(value => value.trim().toLowerCase()).filter(Boolean);
+    const inArea = (dealer: SchemeDealerOption): boolean => {
+      if (values.length === 0) return true;
+      const area = scope === 'Zone' ? dealer.zone : scope === 'Branch' ? dealer.branch : scope === 'State' ? dealer.state : null;
+      if (area === null) return true;
+      return values.includes((area || '').trim().toLowerCase());
+    };
+
+    return this.allDealers.filter(inArea).map(dealer => ({
+      id: dealer.id,
+      // The label carries the code so the closed box still identifies the dealer; mobile
+      // and email ride alongside because the search box reads those fields too.
+      label: dealer.code ? `${dealer.name} (${dealer.code})` : dealer.name,
+      mobile: dealer.mobile ?? '',
+      email: dealer.email ?? '',
+      code: dealer.code ?? ''
+    }));
+  }
+
+  /** The chosen dealers, named, for the chips under the box. Reading from the whole list
+   *  rather than the narrowed one, so a chip never goes blank when the area changes. */
+  get excludedDealerChips(): Array<{ id: number; label: string }> {
+    return this.form.excludedDealerIds.map(id => {
+      const dealer = this.allDealers.find(x => x.id === id);
+      if (!dealer) return { id, label: `#${id}` };
+      return { id, label: dealer.code ? `${dealer.name} (${dealer.code})` : dealer.name };
+    });
+  }
+
+  removeExcludedDealer(id: number): void {
+    this.form.excludedDealerIds = this.form.excludedDealerIds.filter(value => value !== id);
+    this.refreshView();
+  }
+
+  onExcludedDealersChange(value: number | string | Array<number | string> | null): void {
+    const ids = Array.isArray(value) ? value : value === null || value === '' ? [] : [value];
+    this.form.excludedDealerIds = ids.map(id => Number(id)).filter(id => Number.isFinite(id) && id > 0);
+    this.refreshView();
+  }
+
+  /** Narrowing the area must not silently keep a dealer that is no longer on offer. */
+  private pruneExcludedDealers(): void {
+    if (this.form.excludedDealerIds.length === 0) return;
+    const allowed = new Set(this.dealerOptions.map(option => Number(option.id)));
+    this.form.excludedDealerIds = this.form.excludedDealerIds.filter(id => allowed.has(id));
+  }
+
+  private loadDealerOptions(): void {
+    if (this.allDealers.length || this.dealersLoading) return;
+    this.dealersLoading = true;
+    this.schemeService.dealerOptions().pipe(
+      finalize(() => { this.dealersLoading = false; this.refreshView(); })
+    ).subscribe({
+      next: dealers => { this.allDealers = dealers; this.refreshView(); },
+      error: error => this.showToast(error.message, 'error')
+    });
   }
 
   addSlab(): void {
@@ -545,6 +619,7 @@ export class LoyaltySchemesComponent implements OnInit {
       customer_type: this.form.customerType,
       area_scope: this.form.areaScope,
       area_values: this.form.areaScope === 'All' ? [] : this.form.areaValues,
+      excluded_dealer_ids: this.form.excludedDealerIds,
       start_date: this.form.startDate,
       end_date: this.form.endDate,
       scheme_type: 'Invoice',
@@ -591,6 +666,7 @@ export class LoyaltySchemesComponent implements OnInit {
       customerType: 'Retailer',
       areaScope: 'All',
       areaValues: [],
+      excludedDealerIds: [],
       startDate: '',
       endDate: '',
       schemeType: 'Invoice',
