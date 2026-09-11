@@ -75,6 +75,7 @@ export interface CustomerFilter {
   beat_id?: number | null;
   status?: string;
   designation_ids?: number[];
+  dealer_id?: number | null;
   start_date?: string;
   end_date?: string;
 }

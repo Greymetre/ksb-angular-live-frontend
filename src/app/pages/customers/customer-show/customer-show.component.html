@@ -52,7 +52,7 @@
       </div>
       <div class="profile-meta">
         <span class="status-pill" [class.inactive]="customer.active !== 'Y'">{{ customer.active === 'Y' ? 'Active' : 'Inactive' }}</span>
-        <span>{{ customer.customerCode || field('distributor_code') }}</span>
+        <span>{{ customer.customerCode }}</span>
         <span>{{ customer.mobile || field('mobile_numbers') }}</span>
       </div>
     </div>

@@ -210,7 +210,7 @@ export class CustomerShowComponent implements OnInit {
     if (!this.customer) return [];
     return this.presentRows([
       { label: 'Full Name', value: [this.field('first_name'), this.field('last_name')].filter(Boolean).join(' ') || this.customer.name },
-      { label: 'Owner Name', value: this.field('owner_name') },
+      { label: 'Owner Name (Sister Concern)', value: this.field('owner_name') },
       { label: 'Mobile', value: this.customer.mobile || this.field('mobile_number') || this.field('mobile_numbers') },
       { label: 'WhatsApp / Alternate', value: this.customer.contactNumber || this.field('whatsapp_number') || this.field('alternate_mobile') },
       { label: 'Email', value: this.customer.email },
@@ -237,14 +237,18 @@ export class CustomerShowComponent implements OnInit {
     if (!this.customer) return [];
     return this.presentRows([
       { label: 'Customer Type', value: this.customer.customerTypeName },
-      { label: 'Customer Code', value: this.customer.customerCode || this.field('distributor_code') },
+      // A dealer's code is its own; a retailer has no dealer code of its own, so the one
+      // beside its Dealer is read from that dealer and shown as what it is.
+      { label: this.isDealerCustomer ? 'Dealer Code' : 'Customer Code', value: this.customer.customerCode },
       { label: 'Legal Name', value: this.field('legal_name') },
       { label: 'Shop Name', value: this.field('shop_name') },
       { label: 'Trade / Business Name', value: this.field('trade_name') },
-      { label: 'Primary Contact Person', value: this.field('contact_person') },
+      { label: 'Primary Contact Person (Sister Concern)', value: this.field('contact_person') },
       { label: 'Parent', value: this.customer.parentName },
       { label: 'Dealer', value: this.lookupName('distributor_name') },
+      { label: 'Dealer Code', value: this.isDealerCustomer ? '' : this.field('distributor_code') },
       { label: 'Agri Dealer', value: this.lookupName('agri_distributor') },
+      { label: 'Agri Dealer Code', value: this.isDealerCustomer ? '' : this.field('agri_distributor_code') },
       { label: 'Beat', value: this.field('beat_id_name') || this.field('beat_name') || this.field('beat_route') || this.field('beat_id') },
       { label: 'Assigned Sales Executive', value: this.lookupName('sales_executive_id') },
       { label: 'Supervisor / ASM / RSM', value: this.lookupName('supervisor_id') },
@@ -887,6 +891,12 @@ export class CustomerShowComponent implements OnInit {
       .split(',')
       .map(item => Number(item.trim()))
       .filter(id => Number.isFinite(id) && id > 0);
+  }
+
+  get isDealerCustomer(): boolean {
+    return this.customer?.customerType === 1
+      || (this.customer?.customerTypeName || '').toLowerCase().includes('dealer')
+      || (this.customer?.customerTypeName || '').toLowerCase().includes('distributor');
   }
 
   private presentRows(rows: InfoRow[]): InfoRow[] {

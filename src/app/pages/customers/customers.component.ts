@@ -133,6 +133,7 @@ export class CustomersComponent implements OnInit {
 
   countries: SelectOption[] = [];
   distributorOptions: SelectOption[] = [];
+  distributorsLoading = false;
   employeeOptions: SelectOption[] = [];
   beatOptions: SelectOption[] = [];
   designationOptions: SelectOption[] = [];
@@ -163,6 +164,7 @@ export class CustomersComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCustomers();
+    this.loadDistributors();
     this.loadEmployees();
     this.loadBeats();
     this.loadDesignationOptions();
@@ -289,6 +291,7 @@ export class CustomersComponent implements OnInit {
   }
 
   loadDistributors(): void {
+    this.distributorsLoading = true;
     this.customerService.list({ customer_type: 1, active: 'Y', page: 1, page_size: 200 }).subscribe({
       next: result => {
         const remainingPages = Array.from(
@@ -296,18 +299,27 @@ export class CustomersComponent implements OnInit {
           (_, index) => this.customerService.list({ customer_type: 1, active: 'Y', page: index + 2, page_size: 200 })
         );
         const setOptions = (items: CustomerItem[]) => {
+          // The search box reads mobile and email as well as the label, so a dealer can be
+          // found by its number even though the number is not shown in the list.
           this.distributorOptions = items
-            .map(distributor => ({ id: distributor.id, label: this.distributorLabel(distributor) }))
+            .map(distributor => ({
+              id: distributor.id,
+              label: this.distributorLabel(distributor),
+              mobile: [distributor.mobile, distributor.customFields['mobile_number'], distributor.contactNumber, distributor.customFields['alternate_mobile']]
+                .filter(Boolean).join(' '),
+              email: distributor.email || ''
+            } as SelectOption))
             .sort((first, second) => first.label.localeCompare(second.label));
+          this.distributorsLoading = false;
           this.refreshView();
         };
         if (remainingPages.length === 0) return setOptions(result.items);
         forkJoin(remainingPages).subscribe({
           next: pages => setOptions([...result.items, ...pages.flatMap(page => page.items)]),
-          error: error => this.showToast(error.message, 'error')
+          error: error => { this.distributorsLoading = false; this.showToast(error.message, 'error'); this.refreshView(); }
         });
       },
-      error: error => this.showToast(error.message, 'error')
+      error: error => { this.distributorsLoading = false; this.showToast(error.message, 'error'); this.refreshView(); }
     });
   }
 
@@ -961,7 +973,9 @@ export class CustomersComponent implements OnInit {
     fields['mobile'] = mobile;
     fields['mobile_number'] = mobile;
     fields['email'] = this.form.email || null;
-    fields['customer_code'] = this.form.customerCode || this.field('distributor_code') || null;
+    // Only a dealer has a code of its own. Falling back to distributor_code here is what
+    // saved a dealer's code as the retailer's own.
+    fields['customer_code'] = (this.isDistributor ? this.form.customerCode || this.field('distributor_code') : this.form.customerCode) || null;
     fields['contact_number'] = contactNumber || null;
 
     if (this.isDistributor) {
@@ -981,7 +995,7 @@ export class CustomersComponent implements OnInit {
     this.appendValue(formData, 'mobile', mobile);
     this.appendValue(formData, 'email', this.form.email);
     this.appendValue(formData, 'contact_number', contactNumber);
-    this.appendValue(formData, 'customer_code', this.form.customerCode || this.field('distributor_code'));
+    this.appendValue(formData, 'customer_code', this.isDistributor ? this.form.customerCode || this.field('distributor_code') : this.form.customerCode);
     this.appendValue(formData, 'parent_id', this.form.parentId);
     formData.append('custom_fields', JSON.stringify(fields));
     Object.entries(this.form.files).forEach(([key, value]) => this.appendFile(formData, key, value));

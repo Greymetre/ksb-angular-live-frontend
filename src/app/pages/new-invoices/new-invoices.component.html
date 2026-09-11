@@ -71,7 +71,7 @@
               <div>
                 <div class="section-title">Retailer Information</div>
                 <div class="readonly-field">
-                  <label>Customer Name</label>
+                  <label>Customer Name (Sister Concern)</label>
                   <input type="text" [value]="selectedInvoice.customerName || '-'" readonly />
                 </div>
                 <div class="readonly-field emphasis">
@@ -609,7 +609,7 @@
         </div>
         <div class="retailer-preview wide-field" *ngIf="selectedRetailer">
           <div>
-            <span>Owner</span>
+            <span>Owner (Sister Concern)</span>
             <strong>{{ selectedRetailer.ownerName }}</strong>
           </div>
           <div>
