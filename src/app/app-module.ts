@@ -44,6 +44,7 @@ import { OrdersComponent } from './pages/orders/orders.component';
 import { BeatsComponent } from './pages/beats/beats.component';
 import { CheckinReportsComponent } from './pages/checkin-reports/checkin-reports.component';
 import { ReportManagementComponent } from './pages/report-management/report-management.component';
+import { LoyaltyPerformanceReportComponent } from './pages/loyalty-performance-report/loyalty-performance-report.component';
 import { FieldKonnectAppSettingComponent } from './pages/field-konnect-app-setting/field-konnect-app-setting.component';
 import { LoyaltyAppSettingComponent } from './pages/loyalty-app-setting/loyalty-app-setting.component';
 import { OrderDispatchComponent } from './pages/order-dispatch/order-dispatch.component';
@@ -85,6 +86,7 @@ import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.compo
     BeatsComponent,
     CheckinReportsComponent,
     ReportManagementComponent,
+    LoyaltyPerformanceReportComponent,
     LoyaltyAppSettingComponent,
     FieldKonnectAppSettingComponent,
     OrderDispatchComponent,

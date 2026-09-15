@@ -34,7 +34,7 @@
         <app-searchable-select [options]="distributorOptions" [selected]="filter.dealer_id || null" placeholder="All Dealers" [loading]="distributorsLoading" loadingText="Loading dealers..." [pageSize]="50" (selectedChange)="filter.dealer_id = $event || null; resetPage()"></app-searchable-select>
       </div>
       <div class="filter-field">
-        <label>Owner Name (Sister Concern)</label>
+        <label>Owner Name</label>
         <input type="text" [(ngModel)]="filter.owner_name" (ngModelChange)="scheduleFilterSearch()" placeholder="Owner name"/>
       </div>
       <div class="filter-field">
@@ -211,11 +211,11 @@
         <div class="section-title">Basic Dealer Information</div>
         <div class="form-grid">
           <div class="modal-field">
-            <label>Dealer Legal Name <span class="req">*</span></label>
+            <label>Shop Name <span class="req">*</span></label>
             <input type="text" [ngModel]="field('legal_name')" (ngModelChange)="setField('legal_name', $event)" maxlength="200"/>
           </div>
           <div class="modal-field">
-            <label>Trade / Business Name</label>
+            <label>Sister Concern</label>
             <input type="text" [ngModel]="field('trade_name')" (ngModelChange)="setField('trade_name', $event)" maxlength="200"/>
           </div>
           <div class="modal-field">
@@ -235,7 +235,7 @@
         <div class="section-title">Contact & Communication</div>
         <div class="form-grid">
           <div class="modal-field">
-            <label>Primary Contact Person (Sister Concern) <span class="req">*</span></label>
+            <label>Primary Contact Person <span class="req">*</span></label>
             <input type="text" [ngModel]="field('contact_person')" (ngModelChange)="setField('contact_person', $event)" maxlength="200"/>
           </div>
           <div class="modal-field">
@@ -316,7 +316,7 @@
             <input type="text" [ngModel]="field('shop_name')" (ngModelChange)="setField('shop_name', $event)" maxlength="200"/>
           </div>
           <div class="modal-field">
-            <label>Owner Name (Sister Concern) <span class="req">*</span></label>
+            <label>Owner Name <span class="req">*</span></label>
             <input type="text" [ngModel]="field('owner_name')" (ngModelChange)="setField('owner_name', $event)" maxlength="200"/>
           </div>
           <div class="modal-field">

@@ -72,6 +72,26 @@ export class AuthService {
     );
   }
 
+  /** Mails a 6-digit reset code. The server answers the same way for any address. */
+  requestPasswordReset(email: string): Observable<string> {
+    return this.http.post<{ status: string; message?: unknown }>(`${API_BASE_URL}/forgot-password`, { email }).pipe(
+      map(response => this.readMessage(response.message) || 'A reset code has been sent if the email belongs to an account.'),
+      catchError(error => throwError(() => new Error(this.getErrorMessage(error))))
+    );
+  }
+
+  resetPassword(email: string, code: string, password: string, passwordConfirmation: string): Observable<string> {
+    return this.http.post<{ status: string; message?: unknown }>(`${API_BASE_URL}/reset-password`, {
+      email,
+      code,
+      password,
+      password_confirmation: passwordConfirmation
+    }).pipe(
+      map(response => this.readMessage(response.message) || 'Your password has been reset.'),
+      catchError(error => throwError(() => new Error(this.getErrorMessage(error))))
+    );
+  }
+
   logout(): void {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);

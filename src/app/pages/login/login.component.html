@@ -9,14 +9,18 @@
     <div class="login-card">
       <div class="card-header">
         <img src="assets/img/ksb-logo-data.svg" alt="KSB" class="ksb-logo" />
-        <p class="login-subtitle">Please log in to your account</p>
+        <p class="login-subtitle">{{ subtitle }}</p>
       </div>
 
       <div *ngIf="errorMessage" class="alert error-alert" role="alert" aria-live="assertive">
         {{ errorMessage }}
       </div>
 
-      <form [formGroup]="loginForm" (ngSubmit)="onLogin()" novalidate>
+      <div *ngIf="successMessage" class="alert success-alert" role="status" aria-live="polite">
+        {{ successMessage }}
+      </div>
+
+      <form *ngIf="mode === 'login'" [formGroup]="loginForm" (ngSubmit)="onLogin()" novalidate>
         <div class="field-group">
           <label for="username">Email address</label>
           <input
@@ -52,9 +56,100 @@
           </div>
         </div>
 
+        <div class="form-links">
+          <button type="button" class="link-btn" (click)="openForgotPassword()">Forgot password?</button>
+        </div>
+
         <button type="submit" class="login-btn" [disabled]="loading">
           {{ loading ? 'Logging in...' : 'Login' }}
         </button>
+      </form>
+
+      <form *ngIf="mode === 'forgot'" [formGroup]="forgotForm" (ngSubmit)="onRequestCode()" novalidate>
+        <p class="form-note">Enter the email address on your account. We will send you a 6-digit code to reset your password.</p>
+
+        <div class="field-group">
+          <label for="reset-email">Email address</label>
+          <input
+            id="reset-email"
+            type="email"
+            formControlName="email"
+            placeholder="Enter email"
+            autocomplete="email"
+            [class.invalid]="forgotForm.get('email')?.invalid && forgotForm.get('email')?.touched"
+          />
+        </div>
+
+        <button type="submit" class="login-btn" [disabled]="loading">
+          {{ loading ? 'Sending code...' : 'Send code' }}
+        </button>
+
+        <div class="form-links centered">
+          <button type="button" class="link-btn" (click)="backToLogin()">Back to login</button>
+        </div>
+      </form>
+
+      <form *ngIf="mode === 'reset'" [formGroup]="resetForm" (ngSubmit)="onResetPassword()" novalidate>
+        <p class="form-note">Code sent to <strong>{{ resetEmail }}</strong>. It expires in 15 minutes.</p>
+
+        <div class="field-group">
+          <label for="reset-code">6-digit code</label>
+          <input
+            id="reset-code"
+            type="text"
+            inputmode="numeric"
+            maxlength="6"
+            formControlName="code"
+            placeholder="Enter code"
+            autocomplete="one-time-code"
+            (input)="resetForm.patchValue({ code: onlyDigits($any($event.target).value) })"
+            [class.invalid]="resetForm.get('code')?.invalid && resetForm.get('code')?.touched"
+          />
+        </div>
+
+        <div class="field-group">
+          <label for="new-password">New password</label>
+          <div class="password-control">
+            <input
+              id="new-password"
+              [type]="showNewPassword ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="At least 6 characters"
+              autocomplete="new-password"
+              [class.invalid]="resetForm.get('password')?.invalid && resetForm.get('password')?.touched"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="toggleNewPasswordVisibility()"
+              [attr.aria-label]="showNewPassword ? 'Hide password' : 'Show password'"
+              [title]="showNewPassword ? 'Hide' : 'Show'"
+            >
+              {{ showNewPassword ? 'Hide' : 'Show' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="confirm-password">Confirm new password</label>
+          <input
+            id="confirm-password"
+            [type]="showNewPassword ? 'text' : 'password'"
+            formControlName="confirmPassword"
+            placeholder="Re-enter new password"
+            autocomplete="new-password"
+            [class.invalid]="passwordsMismatch || (resetForm.get('confirmPassword')?.invalid && resetForm.get('confirmPassword')?.touched)"
+          />
+        </div>
+
+        <button type="submit" class="login-btn" [disabled]="loading">
+          {{ loading ? 'Resetting...' : 'Reset password' }}
+        </button>
+
+        <div class="form-links spread">
+          <button type="button" class="link-btn" (click)="onRequestCode()" [disabled]="loading">Send a new code</button>
+          <button type="button" class="link-btn" (click)="backToLogin()">Back to login</button>
+        </div>
       </form>
     </div>
 

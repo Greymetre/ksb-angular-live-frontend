@@ -78,6 +78,63 @@
   border: 1px solid #f5c2c7;
 }
 
+// The app capitalises every word by default. A sentence and, above all, an email
+// address must read exactly as written - "Customer1000058@Gmail.Com" is not the address.
+.alert,
+.form-note,
+.form-note strong {
+  text-transform: none;
+}
+
+.success-alert {
+  color: #0f5132;
+  background: #d1e7dd;
+  border: 1px solid #badbcc;
+}
+
+.form-note {
+  margin: 0 0 16px;
+  color: #555555;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.form-links {
+  display: flex;
+  justify-content: flex-end;
+  margin: -8px 0 12px;
+
+  &.centered {
+    justify-content: center;
+    margin: 14px 0 0;
+  }
+
+  &.spread {
+    justify-content: space-between;
+    margin: 14px 0 0;
+  }
+}
+
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #007bff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    text-decoration: underline;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
 .field-group {
   margin-bottom: 18px;
 

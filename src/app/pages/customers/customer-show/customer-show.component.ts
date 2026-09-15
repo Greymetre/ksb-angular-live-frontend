@@ -210,7 +210,7 @@ export class CustomerShowComponent implements OnInit {
     if (!this.customer) return [];
     return this.presentRows([
       { label: 'Full Name', value: [this.field('first_name'), this.field('last_name')].filter(Boolean).join(' ') || this.customer.name },
-      { label: 'Owner Name (Sister Concern)', value: this.field('owner_name') },
+      { label: 'Owner Name', value: this.field('owner_name') },
       { label: 'Mobile', value: this.customer.mobile || this.field('mobile_number') || this.field('mobile_numbers') },
       { label: 'WhatsApp / Alternate', value: this.customer.contactNumber || this.field('whatsapp_number') || this.field('alternate_mobile') },
       { label: 'Email', value: this.customer.email },
@@ -240,10 +240,11 @@ export class CustomerShowComponent implements OnInit {
       // A dealer's code is its own; a retailer has no dealer code of its own, so the one
       // beside its Dealer is read from that dealer and shown as what it is.
       { label: this.isDealerCustomer ? 'Dealer Code' : 'Customer Code', value: this.customer.customerCode },
-      { label: 'Legal Name', value: this.field('legal_name') },
-      { label: 'Shop Name', value: this.field('shop_name') },
-      { label: 'Trade / Business Name', value: this.field('trade_name') },
-      { label: 'Primary Contact Person (Sister Concern)', value: this.field('contact_person') },
+      { label: this.isDealerCustomer ? 'Shop Name' : 'Legal Name', value: this.field('legal_name') },
+      // A dealer's shop name is its legal name, shown above; a second Shop Name row would repeat the label.
+      { label: 'Shop Name', value: this.isDealerCustomer && this.field('legal_name') ? '' : this.field('shop_name') },
+      { label: this.isDealerCustomer ? 'Sister Concern' : 'Trade / Business Name', value: this.field('trade_name') },
+      { label: 'Primary Contact Person', value: this.field('contact_person') },
       { label: 'Parent', value: this.customer.parentName },
       { label: 'Dealer', value: this.lookupName('distributor_name') },
       { label: 'Dealer Code', value: this.isDealerCustomer ? '' : this.field('distributor_code') },

@@ -1,0 +1,30 @@
+<section class="page">
+  <header>
+    <div><h1>Loyalty Performance Report</h1><p>Download the loyalty performance report, ASR wise or dealer wise.</p></div>
+  </header>
+
+  <form class="asr-filter-card" (ngSubmit)="$event.preventDefault()">
+    <label><span class="field-label">Segment <span class="required">*</span></span>
+      <app-searchable-select [options]="options.segments" labelKey="name" [selected]="segmentId" placeholder="Select Segment" [loading]="optionsLoading" loadingText="Loading segments..." (selectedChange)="segmentId=$event"></app-searchable-select>
+    </label>
+    <label><span class="field-label">Zone <span class="required">*</span></span>
+      <app-searchable-select [options]="options.zones" labelKey="name" [selected]="zoneId" placeholder="Select Zone" [loading]="optionsLoading" loadingText="Loading zones..." (selectedChange)="zoneId=$event"></app-searchable-select>
+    </label>
+    <label><span class="field-label">Scheme Name <span class="required">*</span></span>
+      <app-searchable-select [options]="schemeOptions" labelKey="name" [selected]="schemeId" placeholder="Select Scheme" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading schemes..." (selectedChange)="schemeId=$event"></app-searchable-select>
+    </label>
+    <label><span class="field-label">Start Date <span class="required">*</span></span><input type="date" [(ngModel)]="startDate" name="startDate" required></label>
+    <label><span class="field-label">End Date <span class="required">*</span></span><input type="date" [(ngModel)]="endDate" name="endDate" [min]="startDate" required></label>
+
+    <div class="download-wrap" *ngIf="canDownloadAny">
+      <button class="primary" type="button" *ngIf="auth.hasPermission('loyalty_performance_report.export_asr')" [disabled]="!!downloading" (click)="download('asr')">
+        <span class="material-icons">download</span>{{ downloading === 'asr' ? 'Preparing...' : 'ASR Wise' }}
+      </button>
+      <button class="primary" type="button" *ngIf="auth.hasPermission('loyalty_performance_report.export_dealer')" [disabled]="!!downloading" (click)="download('dealer')">
+        <span class="material-icons">download</span>{{ downloading === 'dealer' ? 'Preparing...' : 'Dealer Wise' }}
+      </button>
+    </div>
+  </form>
+
+  <div class="error" *ngIf="error">{{ error }}</div>
+</section>
