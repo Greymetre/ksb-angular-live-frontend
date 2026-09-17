@@ -11,6 +11,8 @@ import { App } from './app';
 import { HeaderComponent } from './shared/components/header/header.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
 import { SearchableSelectComponent } from './shared/components/searchable-select/searchable-select.component';
+import { KycNameCheckComponent } from './shared/components/kyc-name-check/kyc-name-check.component';
+import { HoverMagnifierDirective } from './shared/directives/hover-magnifier.directive';
 import { PaginationComponent } from './shared/components/pagination/pagination.component';
 import { FirstCapsPipe } from './shared/pipes/first-caps.pipe';
 
@@ -57,6 +59,8 @@ import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.compo
     HeaderComponent,
     SidebarComponent,
     SearchableSelectComponent,
+    KycNameCheckComponent,
+    HoverMagnifierDirective,
     PaginationComponent,
     FirstCapsPipe,
     MainLayoutComponent,

@@ -79,6 +79,32 @@ export interface KycListResult {
   pageSize: number;
 }
 
+/** The shop and owner name as the customer master holds them. */
+export interface KycNames {
+  customerId: number;
+  shopName: string | null;
+  ownerName: string | null;
+}
+
+/** What the GST register says about the customer's GSTIN. Trade name is the shop; legal
+ *  name is the registered owner (for a proprietorship, the person). */
+export interface KycGstRecord {
+  gstin: string;
+  tradeName: string | null;
+  legalName: string | null;
+  status: string | null;
+  constitution: string | null;
+  lookedUpAt: string | null;
+  source: 'live' | 'saved';
+}
+
+export interface KycGstLookup {
+  configured: boolean;
+  ok: boolean;
+  gst: KycGstRecord | null;
+  message: string | null;
+}
+
 export interface KycFilter {
   page?: number;
   page_size?: number;
@@ -121,6 +147,64 @@ export class CustomerKycService {
       })),
       catchError(error => this.handleError(error))
     );
+  }
+
+  names(customerId: number): Observable<KycNames> {
+    return this.http.get<ApiResponse>(`${this.baseUrl}/customer-kyc/${customerId}/names`, { headers: this.authHeaders() }).pipe(
+      map(response => this.toNames(response['names'], customerId)),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  updateNames(customerId: number, shopName: string, ownerName: string): Observable<KycNames> {
+    return this.http.put<ApiResponse>(`${this.baseUrl}/customer-kyc/${customerId}/names`,
+      { shop_name: shopName, owner_name: ownerName }, { headers: this.authHeaders() }).pipe(
+      map(response => this.toNames(response['names'], customerId)),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  /** The register details saved from the last check. Never spends a lookup credit. */
+  savedGst(customerId: number): Observable<KycGstLookup> {
+    return this.http.get<ApiResponse>(`${this.baseUrl}/customer-kyc/${customerId}/gst-lookup`, { headers: this.authHeaders() }).pipe(
+      map(response => this.toGstLookup(response)),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  /** Checks the GST register now - a paid call, behind customer_kyc.gst_lookup. */
+  checkGst(customerId: number): Observable<KycGstLookup> {
+    return this.http.post<ApiResponse>(`${this.baseUrl}/customer-kyc/${customerId}/gst-lookup`, {}, { headers: this.authHeaders() }).pipe(
+      map(response => this.toGstLookup(response)),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  private toGstLookup(response: ApiResponse): KycGstLookup {
+    const gst = response['gst'] ? this.asRecord(response['gst']) : null;
+    return {
+      configured: response['configured'] !== false,
+      ok: this.str(response['status']) !== 'error',
+      message: this.str(response['message']) || null,
+      gst: gst ? {
+        gstin: this.str(gst['gstin']),
+        tradeName: this.str(gst['trade_name']) || null,
+        legalName: this.str(gst['legal_name']) || null,
+        status: this.str(gst['status']) || null,
+        constitution: this.str(gst['constitution']) || null,
+        lookedUpAt: this.str(gst['looked_up_at']) || null,
+        source: this.str(gst['source']) === 'live' ? 'live' : 'saved'
+      } : null
+    };
+  }
+
+  private toNames(raw: unknown, customerId: number): KycNames {
+    const names = this.asRecord(raw);
+    return {
+      customerId: this.num(names['customer_id']) || customerId,
+      shopName: this.str(names['shop_name']) || null,
+      ownerName: this.str(names['owner_name']) || null
+    };
   }
 
   private params(filter: KycFilter): HttpParams {

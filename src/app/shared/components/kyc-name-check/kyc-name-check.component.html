@@ -1,0 +1,74 @@
+<div class="name-check">
+  <section class="nc-block nc-gst" *ngIf="isGst">
+    <div class="nc-head">
+      <h5><span class="material-icons">verified</span> GST register</h5>
+      <span class="nc-pill" *ngIf="gst?.status && !gstLoading" [class.ok]="gstActive" [class.bad]="!gstActive">{{ gst?.status }}</span>
+      <button type="button" class="nc-eye" *ngIf="canCheckGst" (click)="checkGst()" [disabled]="gstLoading"
+        [title]="gst ? 'Check the GST register again' : 'Check the GST register'">
+        <span class="material-icons">{{ gstLoading ? 'hourglass_top' : 'visibility' }}</span>
+        {{ gstLoading ? 'Checking...' : (gst ? 'Check again' : 'View GST details') }}
+      </button>
+    </div>
+
+    <p class="nc-msg" *ngIf="!gst && !gstLoading && !gstMessage">
+      {{ canCheckGst ? 'Click View GST details to see the shop and owner name on the GST register.' : 'GST register details have not been checked yet.' }}
+    </p>
+    <p class="nc-msg" *ngIf="!gstLoading && gstMessage" [class.error]="gstError">{{ gstMessage }}</p>
+
+    <ng-container *ngIf="gst && !gstLoading">
+      <div class="nc-row">
+        <span>GST Shop Name</span>
+        <strong [class.missing]="!gst.tradeName">{{ gst.tradeName || 'Not on record' }}</strong>
+      </div>
+      <div class="nc-row">
+        <span>GST Owner Name</span>
+        <strong [class.missing]="!gst.legalName">{{ gst.legalName || 'Not on record' }}</strong>
+      </div>
+      <div class="nc-foot">
+        <small>{{ gst.gstin }}<span *ngIf="gst.constitution"> · {{ gst.constitution }}</span><span *ngIf="gst.lookedUpAt"> · checked {{ checkedOn(gst.lookedUpAt) }}</span></small>
+        <button type="button" class="nc-link" *ngIf="canEdit" (click)="useGstNames()">
+          <span class="material-icons">south</span> Use for system names
+        </button>
+      </div>
+    </ng-container>
+  </section>
+
+  <section class="nc-block">
+    <div class="nc-head">
+      <h5><span class="material-icons">storefront</span> System names</h5>
+      <button type="button" class="nc-link" *ngIf="canEdit && !editing && names" (click)="startEdit()">
+        <span class="material-icons">edit</span> Edit
+      </button>
+    </div>
+
+    <p class="nc-msg" *ngIf="namesLoading">Loading names...</p>
+    <p class="nc-msg error" *ngIf="namesError">{{ namesError }}</p>
+
+    <ng-container *ngIf="names && !editing && !namesLoading">
+      <div class="nc-row">
+        <span>System Shop Name</span>
+        <strong [class.missing]="!names.shopName">{{ names.shopName || 'Not entered' }}</strong>
+      </div>
+      <div class="nc-row">
+        <span>System Owner Name</span>
+        <strong [class.missing]="!names.ownerName">{{ names.ownerName || 'Not entered' }}</strong>
+      </div>
+    </ng-container>
+
+    <div class="nc-form" *ngIf="editing">
+      <label>
+        <span>System Shop Name</span>
+        <input type="text" [(ngModel)]="shopEdit" maxlength="200" placeholder="Shop name" [disabled]="saving"/>
+      </label>
+      <label>
+        <span>System Owner Name</span>
+        <input type="text" [(ngModel)]="ownerEdit" maxlength="200" placeholder="Owner name" [disabled]="saving"/>
+      </label>
+      <p class="nc-msg error" *ngIf="saveError">{{ saveError }}</p>
+      <div class="nc-actions">
+        <button type="button" class="nc-btn secondary" (click)="cancelEdit()" [disabled]="saving">Cancel</button>
+        <button type="button" class="nc-btn primary" (click)="save()" [disabled]="saving">{{ saving ? 'Saving...' : 'Save Names' }}</button>
+      </div>
+    </div>
+  </section>
+</div>

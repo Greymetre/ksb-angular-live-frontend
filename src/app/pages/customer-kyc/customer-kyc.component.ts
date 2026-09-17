@@ -5,13 +5,7 @@ import { API_ORIGIN } from '../../config/api.config';
 import { AuthService } from '../../services/auth.service';
 import { CustomerService } from '../../services/customer.service';
 import { SearchableSelectOption } from '../../shared/components/searchable-select/searchable-select.component';
-import {
-  CustomerKycService,
-  KycCustomerItem,
-  KycDocumentState,
-  KycStatus,
-  KycSummary
-} from '../../services/customer-kyc.service';
+import { CustomerKycService, KycCustomerItem, KycDocumentState, KycStatus, KycSummary, KycNames } from '../../services/customer-kyc.service';
 
 @Component({
   standalone: false,
@@ -242,6 +236,19 @@ export class CustomerKycComponent implements OnInit, OnDestroy {
     this.docZoom = 1;
     this.docRotation = 0;
     this.refreshView();
+  }
+
+  /** A name corrected in the popup shows at once in its title and in the list behind it. */
+  onNamesSaved(names: KycNames): void {
+    const customer = this.viewer.customer;
+    if (customer && customer.id === names.customerId) {
+      this.viewer = {
+        ...this.viewer,
+        customer: { ...customer, firmName: names.shopName || customer.firmName, ownerName: names.ownerName || customer.ownerName }
+      };
+    }
+    this.showToast('Names updated successfully', 'success');
+    this.load();
   }
 
   closeDocument(): void {

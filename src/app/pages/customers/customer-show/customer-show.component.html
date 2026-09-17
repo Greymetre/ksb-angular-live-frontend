@@ -485,7 +485,8 @@
                 [src]="safeDocumentUrl(document.url)" title="KYC document"></iframe>
               <ng-template #kycImage>
                 <img [src]="document.url" [alt]="document.label" [style.height]="documentSize()"
-                  [style.transform]="documentTransform()"/>
+                  [style.transform]="documentTransform()"
+                  appHoverMagnifier [magnifierRotation]="docRotation" title="Move the mouse over the document to magnify it"/>
               </ng-template>
             </div>
           </ng-container>
@@ -498,6 +499,9 @@
         </div>
 
         <div class="kyc-doc-side">
+          <app-kyc-name-check [customerId]="customer?.id ?? null" [documentKey]="document.key"
+            [canEdit]="canEditCustomer" (namesSaved)="onKycNamesSaved()"></app-kyc-name-check>
+
           <div class="kyc-doc-detail-head">
             <h4>Details</h4>
             <button type="button" class="btn-link" *ngIf="canEditCustomer && !editingKycDetails"

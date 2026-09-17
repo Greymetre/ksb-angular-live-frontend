@@ -414,6 +414,11 @@ export class CustomerShowComponent implements OnInit {
     this.refreshView();
   }
 
+  /** The page header and the details tab read the same names, so they are reloaded. */
+  onKycNamesSaved(): void {
+    if (this.customer?.id) this.loadCustomer(this.customer.id);
+  }
+
   loadCustomer(id: number): void {
     this.loading = true;
     this.errorMessage = '';
