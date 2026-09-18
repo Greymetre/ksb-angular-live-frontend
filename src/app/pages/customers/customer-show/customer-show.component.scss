@@ -640,7 +640,8 @@
 
 .kyc-doc-body {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr);
+  /* Details on the left, the document on the right. */
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 1.4fr);
   gap: 16px;
   padding: 16px;
   overflow: auto;
@@ -668,6 +669,7 @@
 }
 
 .kyc-doc-side {
+  order: -1;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -821,6 +823,7 @@
 
 @media (max-width: 860px) {
   .kyc-doc-body { grid-template-columns: 1fr; }
+  .kyc-doc-side { order: 0; }
   .kyc-doc-file iframe,
   .kyc-doc-file img { max-height: 40vh; height: 40vh; }
 }
@@ -958,3 +961,15 @@
 
   .open-tab { margin-left: auto; }
 }
+
+/* The zoom and rotate buttons work on the document, which is on the right, so they sit on
+   the right too - above it - with "open in a new tab" at the end. */
+.kyc-doc-tools {
+  justify-content: flex-end;
+
+  .open-tab { margin-left: 6px; }
+}
+
+/* The document's own details (GST number, account number...) are what the reviewer compares
+   with the document, so their values read 3px larger than the 13px row: 16px. */
+.kyc-doc-details .kyc-doc-detail strong { font-size: 16px; }

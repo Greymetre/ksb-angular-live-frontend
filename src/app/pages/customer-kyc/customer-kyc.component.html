@@ -281,6 +281,8 @@
         </ng-template>
       </div>
 
+      <!-- Everything but the document sits in one column, shown to its left. -->
+      <div class="doc-side">
       <app-kyc-name-check [customerId]="viewer.customer?.id ?? null" [documentKey]="document.key"
         [canEdit]="canEditCustomer" (namesSaved)="onNamesSaved($event)"></app-kyc-name-check>
 
@@ -325,6 +327,7 @@
         <label>Remark <span class="required" *ngIf="viewer.action === 'reject'">*</span></label>
         <textarea rows="3" [(ngModel)]="viewer.remark"
           [placeholder]="viewer.action === 'reject' ? 'Tell the dealer what to correct' : 'Optional note'"></textarea>
+      </div>
       </div>
     </div>
 

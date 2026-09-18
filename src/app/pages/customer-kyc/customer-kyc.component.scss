@@ -1483,3 +1483,35 @@ yc-page { padding: 4px; }
     background: #fff;
   }
 }
+
+/* Details on the left, the document on the right - the same as the customer page's KYC
+   popup. On a narrow screen it goes back to one column with the document on top. */
+.doc-modal { width: min(1040px, 100%); }
+
+.doc-modal-body {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 1.4fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.doc-side { order: 1; min-width: 0; }
+
+.doc-attachment { order: 2; margin-bottom: 0; }
+
+@media (max-width: 820px) {
+  .doc-modal-body { grid-template-columns: 1fr; }
+  .doc-attachment { order: 0; }
+}
+
+/* The zoom and rotate buttons work on the document, which is on the right, so they sit on
+   the right too - above it - with "open in a new tab" at the end. */
+.kyc-doc-tools {
+  justify-content: flex-end;
+
+  .open-tab { margin-left: 6px; }
+}
+
+/* The document's own details (GST number, account number...) are what the reviewer compares
+   with the document, so their values read 3px larger than the 13px row: 16px. */
+.doc-detail-row strong { font-size: 16px; }
