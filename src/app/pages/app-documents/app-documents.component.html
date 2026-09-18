@@ -1,0 +1,195 @@
+<div class="app-documents-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">
+    {{ toast.message }}
+  </div>
+
+  <div class="page-heading">
+    <div class="page-icon">
+      <span class="material-icons">description</span>
+    </div>
+    <h2 class="page-title">App Document Settings</h2>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <label>Show <select [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input"><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option></select> entries</label>
+    </div>
+    <div class="toolbar-right">
+      <div class="icon-action-group">
+        <button class="btn-icon-round add-btn" title="Add Document" (click)="openCreateModal()" *ngIf="canCreate">
+          <span class="material-icons">add</span>
+        </button>
+      </div>
+      <div class="search-group">
+        <label>Search:</label>
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="scheduleSearch()" class="table-search" placeholder="Document name"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading documents...</div>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th *ngIf="hasActions">Action</th>
+            <th>Document Name</th>
+            <th>Attachment</th>
+            <th>Apps</th>
+            <th>Created By</th>
+            <th>Created At</th>
+            <th>Updated At</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; let index = index">
+            <td>{{ pageStart + index + 1 }}</td>
+            <td *ngIf="hasActions">
+              <div class="action-btns">
+                <button class="btn-view" title="View Document" (click)="view(row)" *ngIf="canView">
+                  <span class="material-icons">visibility</span>
+                </button>
+                <button class="btn-edit" title="Edit Document" (click)="openEditModal(row)" *ngIf="canEdit">
+                  <span class="material-icons">edit</span>
+                </button>
+                <button class="btn-danger" title="Delete Document" (click)="delete(row)" *ngIf="canDelete">
+                  <span class="material-icons">delete</span>
+                </button>
+              </div>
+            </td>
+            <td class="name-cell">{{ row.documentName }}</td>
+            <td>
+              <a class="file-link" [href]="fileUrl(row)" target="_blank" rel="noopener">
+                <span class="material-icons">picture_as_pdf</span>
+                <span class="file-link-name">{{ fileLabel(row) }}</span>
+              </a>
+            </td>
+            <td>
+              <div class="app-tags">
+                <span class="app-tag sfa" *ngIf="row.showInSfa">SFA</span>
+                <span class="app-tag vriddhi" *ngIf="row.showInVriddhi">VRiDDHi</span>
+                <span class="no-app" *ngIf="!row.showInSfa && !row.showInVriddhi">-</span>
+              </div>
+            </td>
+            <td>{{ row.createdByName || '-' }}</td>
+            <td>{{ dateTime(row.createdAt) }}</td>
+            <td>{{ dateTime(row.updatedAt) }}</td>
+          </tr>
+          <tr *ngIf="!loading && rows.length === 0">
+            <td [attr.colspan]="hasActions ? 8 : 7" class="empty-row">No documents found</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <app-pagination [total]="totalRows" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<!-- Create / edit -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box app-documents-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <span class="material-icons">description</span>
+    </div>
+    <div class="modal-header-row">
+      <h3>{{ editing ? 'Edit Document' : 'Add Document' }}</h3>
+      <button class="modal-close-btn" (click)="closeModal()" [disabled]="saving">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-field">
+        <label>Document Name <span class="req">*</span></label>
+        <input type="text" [(ngModel)]="formName" maxlength="200" placeholder="Enter document name"/>
+      </div>
+
+      <div class="modal-field">
+        <label>Attachment (PDF only) <span class="req">*</span></label>
+
+        <div class="file-chip" *ngIf="editing && keepExistingFile && !newFile">
+          <span class="material-icons pdf-icon">picture_as_pdf</span>
+          <a class="file-chip-name" [href]="fileUrl(editing)" target="_blank" rel="noopener">{{ fileLabel(editing) }}</a>
+          <span class="file-chip-size">{{ fileSize(editing.fileSize) }}</span>
+          <button type="button" class="file-chip-remove" title="Remove attachment" (click)="removeExistingFile()" [disabled]="saving">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+
+        <div class="file-chip new" *ngIf="newFile">
+          <span class="material-icons pdf-icon">picture_as_pdf</span>
+          <span class="file-chip-name">{{ newFile.name }}</span>
+          <span class="file-chip-size">{{ fileSize(newFile.size) }}</span>
+          <button type="button" class="file-chip-remove" title="Remove attachment" (click)="removeNewFile()" [disabled]="saving">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+
+        <button type="button" class="file-drop" *ngIf="!newFile && !(editing && keepExistingFile)" (click)="chooseFile()" [disabled]="saving">
+          <span class="material-icons">upload_file</span>
+          <span>Choose a PDF file</span>
+          <small>Up to 20 MB</small>
+        </button>
+        <input #fileInput type="file" accept="application/pdf,.pdf" hidden (change)="onFileSelected($event)"/>
+      </div>
+
+      <div class="modal-field">
+        <label>Show In App</label>
+        <div class="app-checks">
+          <label class="app-check">
+            <input type="checkbox" [(ngModel)]="formApps.sfa" [disabled]="saving"/>
+            <span>SFA</span>
+          </label>
+          <label class="app-check">
+            <input type="checkbox" [(ngModel)]="formApps.vriddhi" [disabled]="saving"/>
+            <span>VRiDDHi</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-submit-modal" (click)="submit()" [disabled]="saving">
+          {{ saving ? 'Saving...' : (editing ? 'UPDATE' : 'SUBMIT') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Show -->
+<div class="modal-overlay" *ngIf="viewing" (click)="closeView()">
+  <div class="modal-box app-documents-modal view-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <span class="material-icons">visibility</span>
+    </div>
+    <div class="modal-header-row">
+      <h3>{{ viewing.documentName }}</h3>
+      <button class="modal-close-btn" (click)="closeView()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="view-meta">
+        <div><span>Attachment</span><a [href]="fileUrl(viewing)" target="_blank" rel="noopener">{{ fileLabel(viewing) }}</a></div>
+        <div><span>Size</span>{{ fileSize(viewing.fileSize) || '-' }}</div>
+        <div><span>Show In App</span>{{ appsLabel(viewing) }}</div>
+        <div><span>Created By</span>{{ viewing.createdByName || '-' }}</div>
+        <div><span>Created At</span>{{ dateTime(viewing.createdAt) }}</div>
+        <div><span>Updated By</span>{{ viewing.updatedByName || '-' }}</div>
+        <div><span>Updated At</span>{{ dateTime(viewing.updatedAt) }}</div>
+      </div>
+      <iframe class="pdf-frame" *ngIf="viewingUrl" [src]="viewingUrl" title="Document preview"></iframe>
+      <div class="modal-actions">
+        <a class="btn-submit-modal open-link" [href]="fileUrl(viewing)" target="_blank" rel="noopener">
+          <span class="material-icons">open_in_new</span> OPEN IN NEW TAB
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

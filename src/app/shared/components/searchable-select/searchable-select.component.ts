@@ -21,6 +21,9 @@ export class SearchableSelectComponent {
   @Input() multiple = false;
   @Input() disabled = false;
   @Input() allowClear = true;
+  /** Show labels exactly as given instead of first-letter caps - for labels such as "OD"
+   *  that firstCaps would turn into "Od". */
+  @Input() keepCase = false;
   @Input() loading = false;
   @Input() loadingText = 'Loading...';
   @Input() pageSize = 0;
@@ -50,8 +53,8 @@ export class SearchableSelectComponent {
   get selectedText(): string {
     const selectedOptions = this.options.filter(option => this.isSelected(option.id));
     if (selectedOptions.length === 0) return this.placeholder;
-    if (!this.multiple) return firstCaps(this.optionLabel(selectedOptions[0]));
-    return selectedOptions.length === 1 ? firstCaps(this.optionLabel(selectedOptions[0])) : `${selectedOptions.length} selected`;
+    if (!this.multiple) return this.displayLabel(this.optionLabel(selectedOptions[0]));
+    return selectedOptions.length === 1 ? this.displayLabel(this.optionLabel(selectedOptions[0])) : `${selectedOptions.length} selected`;
   }
 
   get filteredOptions(): SearchableSelectOption[] {
@@ -93,7 +96,7 @@ export class SearchableSelectComponent {
   }
 
   displayLabel(value: string): string {
-    return firstCaps(value);
+    return this.keepCase ? value : firstCaps(value);
   }
 
   optionLabel(option: SearchableSelectOption): string {

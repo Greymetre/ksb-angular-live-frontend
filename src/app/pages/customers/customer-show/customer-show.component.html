@@ -521,7 +521,11 @@
           <div class="kyc-doc-form" *ngIf="editingKycDetails">
             <label *ngFor="let detail of document.rows">
               <span>{{ detail.label }}</span>
-              <input type="text" [(ngModel)]="kycEdit[detail.key!]" *ngIf="detail.key"
+              <select *ngIf="detail.key === 'bank_account_type'" [(ngModel)]="kycEdit[detail.key!]" [disabled]="savingKycDetails">
+                <option value="">Select Account Type</option>
+                <option *ngFor="let type of bankAccountTypes" [value]="type.id">{{ type.label }}</option>
+              </select>
+              <input type="text" [(ngModel)]="kycEdit[detail.key!]" *ngIf="detail.key && detail.key !== 'bank_account_type'"
                 [placeholder]="detail.label" [disabled]="savingKycDetails"/>
             </label>
             <div class="kyc-doc-form-actions">

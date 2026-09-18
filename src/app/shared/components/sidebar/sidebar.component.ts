@@ -235,6 +235,7 @@ export class SidebarComponent {
         { label: 'Loyalty App Setting', icon: 'manage_accounts', route: '/loyalty-app-setting', permission: 'app_setting.view' },
         { label: 'FieldKonnect App Setting', icon: 'admin_panel_settings', route: '/field-konnect-app-setting', permission: 'app_setting.view' },
         { label: 'Dealer portal Setting', icon: 'settings_applications', permission: 'dealer_portal_setting.view' },
+        { label: 'App Document Settings', icon: 'description', route: '/app-documents', permission: 'app_document.view' },
         // { label: 'Status', icon: 'format_paint', permission: 'status_access' },
         { label: 'Roles', icon: 'vertical_shades_closed', route: '/roles', permission: 'role.view' },
         // { label: 'Permissions', icon: 'workspace_premium', permission: 'permission_access' }

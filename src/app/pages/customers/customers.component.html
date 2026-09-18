@@ -410,7 +410,7 @@
         <div class="form-grid">
           <div class="modal-field">
             <label>Bank Account Type</label>
-            <app-searchable-select [options]="bankAccountTypeOptions" [selected]="field('bank_account_type')" placeholder="Select Account Type" (selectedChange)="setField('bank_account_type', $event)"></app-searchable-select>
+            <app-searchable-select [options]="bankAccountTypeOptions" [keepCase]="true" [selected]="field('bank_account_type')" placeholder="Select Account Type" (selectedChange)="setField('bank_account_type', $event)"></app-searchable-select>
           </div>
           <div class="modal-field">
             <label>Bank Name</label>

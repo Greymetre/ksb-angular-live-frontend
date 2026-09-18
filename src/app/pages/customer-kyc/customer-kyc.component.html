@@ -42,38 +42,78 @@
   <!-- The tiles are a filter of their own, and they count whatever the filters above have
        narrowed the list to - pick a dealer and every number is that dealer's. -->
   <div class="summary-row">
-    <button type="button" class="summary-tile total" [class.selected]="!filter.kyc_status" (click)="applyStatusTile(null)">
+    <button type="button" class="summary-tile total" [class.selected]="isTileSelected(null)" (click)="applyStatusTile(null)">
       <span class="tile-icon material-icons">groups</span>
       <span class="tile-body">
         <span class="tile-value">{{ summary.totalCustomers | number }}</span>
         <span class="tile-label">{{ selectedDealerName ? 'Retailers of ' + selectedDealerName : 'Customers' }}</span>
       </span>
     </button>
-    <button type="button" class="summary-tile approved" [class.selected]="filter.kyc_status === 'approved'" (click)="applyStatusTile('approved')">
+    <button type="button" class="summary-tile approved" [class.selected]="isTileSelected('approved')" (click)="applyStatusTile('approved')">
       <span class="tile-icon material-icons">verified</span>
       <span class="tile-body">
         <span class="tile-value">{{ summary.approved | number }}</span>
         <span class="tile-label">Fully Approved</span>
       </span>
     </button>
-    <button type="button" class="summary-tile pending" [class.selected]="filter.kyc_status === 'complete_pending'" (click)="applyStatusTile('complete_pending')">
+    <button type="button" class="summary-tile pending" [class.selected]="isTileSelected('complete_pending')" (click)="applyStatusTile('complete_pending')">
       <span class="tile-icon material-icons">pending_actions</span>
       <span class="tile-body">
         <span class="tile-value">{{ summary.completePending | number }}</span>
         <span class="tile-label">Awaiting Review</span>
       </span>
     </button>
-    <button type="button" class="summary-tile partial" [class.selected]="filter.kyc_status === 'partial'" (click)="applyStatusTile('partial')">
+    <button type="button" class="summary-tile partial" [class.selected]="isTileSelected('partial')" (click)="applyStatusTile('partial')">
       <span class="tile-icon material-icons">hourglass_bottom</span>
       <span class="tile-body">
         <span class="tile-value">{{ summary.partial | number }}</span>
         <span class="tile-label">Partly Submitted</span>
       </span>
     </button>
-    <button type="button" class="summary-tile none" [class.selected]="filter.kyc_status === 'none'" (click)="applyStatusTile('none')">
+    <button type="button" class="summary-tile none" [class.selected]="isTileSelected('none')" (click)="applyStatusTile('none')">
       <span class="tile-icon material-icons">do_not_disturb_on</span>
       <span class="tile-body">
         <span class="tile-value">{{ summary.notStarted | number }}</span>
+        <span class="tile-label">Not Started</span>
+      </span>
+    </button>
+  </div>
+
+  <!-- The same tiles again, counting only active customers: retailers who have submitted at
+       least one loyalty invoice, at any approval stage. -->
+  <div class="summary-row active-row">
+    <button type="button" title="Retailers who have submitted at least one invoice" class="summary-tile total" [class.selected]="isTileSelected(null, true)" (click)="applyStatusTile(null, true)">
+      <span class="tile-icon material-icons">receipt_long</span>
+      <span class="tile-body">
+        <span class="tile-value">{{ activeSummary.totalCustomers | number }}</span>
+        <span class="tile-label">{{ selectedDealerName ? 'Active Retailers of ' + selectedDealerName : 'Active Customers' }}</span>
+      </span>
+    </button>
+    <button type="button" title="Retailers who have submitted at least one invoice" class="summary-tile approved" [class.selected]="isTileSelected('approved', true)" (click)="applyStatusTile('approved', true)">
+      <span class="tile-icon material-icons">verified</span>
+      <span class="tile-body">
+        <span class="tile-value">{{ activeSummary.approved | number }}</span>
+        <span class="tile-label">Fully Approved</span>
+      </span>
+    </button>
+    <button type="button" title="Retailers who have submitted at least one invoice" class="summary-tile pending" [class.selected]="isTileSelected('complete_pending', true)" (click)="applyStatusTile('complete_pending', true)">
+      <span class="tile-icon material-icons">pending_actions</span>
+      <span class="tile-body">
+        <span class="tile-value">{{ activeSummary.completePending | number }}</span>
+        <span class="tile-label">Awaiting Review</span>
+      </span>
+    </button>
+    <button type="button" title="Retailers who have submitted at least one invoice" class="summary-tile partial" [class.selected]="isTileSelected('partial', true)" (click)="applyStatusTile('partial', true)">
+      <span class="tile-icon material-icons">hourglass_bottom</span>
+      <span class="tile-body">
+        <span class="tile-value">{{ activeSummary.partial | number }}</span>
+        <span class="tile-label">Partly Submitted</span>
+      </span>
+    </button>
+    <button type="button" title="Retailers who have submitted at least one invoice" class="summary-tile none" [class.selected]="isTileSelected('none', true)" (click)="applyStatusTile('none', true)">
+      <span class="tile-icon material-icons">do_not_disturb_on</span>
+      <span class="tile-body">
+        <span class="tile-value">{{ activeSummary.notStarted | number }}</span>
         <span class="tile-label">Not Started</span>
       </span>
     </button>

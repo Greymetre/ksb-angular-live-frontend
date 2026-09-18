@@ -74,6 +74,8 @@ export interface KycDealerOption {
 export interface KycListResult {
   items: KycCustomerItem[];
   summary: KycSummary;
+  /** The same tiles, counted over the active customers only. */
+  activeSummary: KycSummary;
   total: number;
   page: number;
   pageSize: number;
@@ -113,6 +115,8 @@ export interface KycFilter {
   kyc_status?: string | null;
   dealer_id?: number | null;
   active?: string | null;
+  /** Only retailers who have submitted at least one loyalty invoice. */
+  invoice_active?: boolean | null;
 }
 
 type ApiResponse = Record<string, unknown>;
@@ -131,6 +135,7 @@ export class CustomerKycService {
       map(response => ({
         items: this.readArray(response['customers']).map(row => this.toItem(row)),
         summary: this.toSummary(response['summary']),
+        activeSummary: this.toSummary(this.pick(response, 'active_summary', 'activeSummary')),
         total: this.num(response['total']),
         page: this.num(response['page']) || filter.page || 1,
         pageSize: this.num(response['page_size']) || filter.page_size || 10

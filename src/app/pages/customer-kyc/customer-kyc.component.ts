@@ -16,6 +16,7 @@ import { CustomerKycService, KycCustomerItem, KycDocumentState, KycStatus, KycSu
 export class CustomerKycComponent implements OnInit, OnDestroy {
   customers: KycCustomerItem[] = [];
   summary: KycSummary = { totalCustomers: 0, approved: 0, completePending: 0, partial: 0, notStarted: 0, rejected: 0 };
+  activeSummary: KycSummary = { totalCustomers: 0, approved: 0, completePending: 0, partial: 0, notStarted: 0, rejected: 0 };
   dealerOptions: SearchableSelectOption[] = [];
   loading = false;
   errorMessage = '';
@@ -25,11 +26,12 @@ export class CustomerKycComponent implements OnInit, OnDestroy {
   currentPage = 1;
   showEntries = 10;
 
-  filter: { search: string; customer_type: number | null; kyc_status: string | null; dealer_id: number | null } = {
+  filter: { search: string; customer_type: number | null; kyc_status: string | null; dealer_id: number | null; invoice_active: boolean } = {
     search: '',
     customer_type: null,
     kyc_status: null,
-    dealer_id: null
+    dealer_id: null,
+    invoice_active: false
   };
 
   readonly customerTypeOptions: SearchableSelectOption[] = [
@@ -345,11 +347,13 @@ export class CustomerKycComponent implements OnInit, OnDestroy {
       search: this.filter.search || null,
       customer_type: this.filter.customer_type,
       kyc_status: this.filter.kyc_status,
-      dealer_id: this.filter.dealer_id
+      dealer_id: this.filter.dealer_id,
+      invoice_active: this.filter.invoice_active || null
     }).subscribe({
       next: result => {
         this.customers = result.items;
         this.summary = result.summary;
+        this.activeSummary = result.activeSummary;
         this.total = result.total;
         this.loading = false;
         onLoaded?.();
@@ -382,14 +386,26 @@ export class CustomerKycComponent implements OnInit, OnDestroy {
   }
 
   clearFilters(): void {
-    this.filter = { search: '', customer_type: null, kyc_status: null, dealer_id: null };
+    this.filter = { search: '', customer_type: null, kyc_status: null, dealer_id: null, invoice_active: false };
     this.resetPage();
   }
 
-  /** The tiles double as filters: the count you are looking at is the list you get. */
-  applyStatusTile(status: string | null): void {
-    this.filter.kyc_status = this.filter.kyc_status === status ? null : status;
+  /** The tiles double as filters: the count you are looking at is the list you get. The top
+   *  row counts every customer, the second row only the active ones; clicking the selected
+   *  tile again goes back to the full list. */
+  applyStatusTile(status: string | null, invoiceActive = false): void {
+    if (this.isTileSelected(status, invoiceActive)) {
+      this.filter.kyc_status = null;
+      this.filter.invoice_active = false;
+    } else {
+      this.filter.kyc_status = status;
+      this.filter.invoice_active = invoiceActive;
+    }
     this.resetPage();
+  }
+
+  isTileSelected(status: string | null, invoiceActive = false): boolean {
+    return this.filter.invoice_active === invoiceActive && (this.filter.kyc_status || null) === status;
   }
 
   get selectedDealerName(): string {

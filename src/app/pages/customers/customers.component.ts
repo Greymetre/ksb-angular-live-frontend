@@ -9,6 +9,7 @@ import { BeatRow, BeatService } from '../../services/beat.service';
 import { hasOnlyPdfOrImageFiles } from '../../shared/utils/file-validation';
 import { formatKolkataDateTime } from '../../shared/utils/date-time';
 import { onlyMobileDigits } from '../../shared/utils/mobile-number';
+import { BANK_ACCOUNT_TYPES, normalizeBankAccountType } from '../../shared/utils/bank-account-type';
 
 interface CustomerTypeOption {
   id: number;
@@ -84,10 +85,9 @@ export class CustomersComponent implements OnInit {
   ];
   readonly registrationTypes = ['Proprietorship', 'Partnership', 'Pvt Ltd', 'LLP'];
   readonly customerSegments = ['AGRI', 'DOMESTIC'];
-  readonly bankAccountTypes = ['Savings', 'Current'];
   readonly registrationTypeOptions: SelectOption[] = this.registrationTypes.map(type => ({ id: type, label: type }));
   readonly customerSegmentOptions: SelectOption[] = this.customerSegments.map(segment => ({ id: segment, label: segment }));
-  readonly bankAccountTypeOptions: SelectOption[] = this.bankAccountTypes.map(type => ({ id: type, label: type }));
+  readonly bankAccountTypeOptions: SelectOption[] = BANK_ACCOUNT_TYPES.map(type => ({ id: type.id, label: type.label }));
 
   customers: CustomerItem[] = [];
   totalCustomers = 0;
@@ -377,6 +377,8 @@ export class CustomersComponent implements OnInit {
     customFields['district_id'] = customFields['district_id'] || this.idText(customer.districtId);
     customFields['city_id'] = customFields['city_id'] || this.idText(customer.cityId);
     customFields['pincode_id'] = customFields['pincode_id'] || this.idText(customer.pincodeId);
+    // A record saved as "Savings" or "saving" still shows selected in the dropdown.
+    if (customFields['bank_account_type']) customFields['bank_account_type'] = normalizeBankAccountType(customFields['bank_account_type']);
     if (customer.customerType === 1) {
       delete customFields['distributor_name'];
       delete customFields['agri_distributor'];

@@ -729,11 +729,13 @@
 
     span { color: var(--text-muted); }
 
-    input {
+    input,
+    select {
       padding: 8px 10px;
       border: 1px solid var(--border-color);
       border-radius: 6px;
       font: inherit;
+      background: white;
     }
   }
 }

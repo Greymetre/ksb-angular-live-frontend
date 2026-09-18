@@ -12,6 +12,7 @@ import { RedemptionItem, RedemptionService } from '../../../services/redemption.
 import { UserService } from '../../../services/user.service';
 import { API_ORIGIN } from '../../../config/api.config';
 import { formatKolkataDate, formatKolkataDateTime } from '../../../shared/utils/date-time';
+import { BANK_ACCOUNT_TYPES, bankAccountTypeLabel, normalizeBankAccountType } from '../../../shared/utils/bank-account-type';
 
 interface InfoRow {
   label: string;
@@ -275,7 +276,7 @@ export class CustomerShowComponent implements OnInit {
 
   get bankRows(): InfoRow[] {
     return this.presentRows([
-      { label: 'Bank Account Type', value: this.field('bank_account_type') },
+      { label: 'Bank Account Type', value: bankAccountTypeLabel(this.field('bank_account_type')) },
       { label: 'Bank Name', value: this.field('bank_name') },
       { label: 'Account Number', value: this.field('bank_account_number') },
       { label: 'IFSC Code', value: this.field('ifsc_code') },
@@ -333,7 +334,7 @@ export class CustomerShowComponent implements OnInit {
    *  because a blank field is exactly what someone opens the popup to fill in. */
   get bankKycRows(): InfoRow[] {
     return [
-      { label: 'Bank Account Type', key: 'bank_account_type', value: this.field('bank_account_type') },
+      { label: 'Bank Account Type', key: 'bank_account_type', value: bankAccountTypeLabel(this.field('bank_account_type')) },
       { label: 'Bank Name', key: 'bank_name', value: this.field('bank_name') },
       { label: 'Account Number', key: 'bank_account_number', value: this.field('bank_account_number') },
       { label: 'IFSC Code', key: 'ifsc_code', value: this.field('ifsc_code') },
@@ -624,7 +625,9 @@ export class CustomerShowComponent implements OnInit {
     if (!this.selectedKycDocument) return;
     this.kycEdit = {};
     for (const row of this.selectedKycDocument.rows) {
-      if (row.key) this.kycEdit[row.key] = String(row.value ?? '');
+      if (row.key) this.kycEdit[row.key] = row.key === 'bank_account_type'
+        ? normalizeBankAccountType(this.field('bank_account_type'))
+        : String(row.value ?? '');
     }
     this.editingKycDetails = true;
     this.refreshView();
@@ -726,6 +729,9 @@ export class CustomerShowComponent implements OnInit {
   field(key: string): string {
     return this.customer?.customFields?.[key] || '';
   }
+
+  /** The KYC tab's bank popup edits the account type from the same three options as the form. */
+  readonly bankAccountTypes = BANK_ACCOUNT_TYPES;
 
   firstField(...keys: string[]): string {
     return keys.map(key => this.field(key)).find(value => !!value) || '';
