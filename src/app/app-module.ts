@@ -31,6 +31,7 @@ import { CustomersComponent } from './pages/customers/customers.component';
 import { CustomerShowComponent } from './pages/customers/customer-show/customer-show.component';
 import { CustomerKycComponent } from './pages/customer-kyc/customer-kyc.component';
 import { AppDocumentsComponent } from './pages/app-documents/app-documents.component';
+import { PromotionalActivitiesComponent } from './pages/promotional-activities/promotional-activities.component';
 import { LoyaltySchemesComponent } from './pages/loyalty-schemes/loyalty-schemes.component';
 import { NewInvoicesComponent } from './pages/new-invoices/new-invoices.component';
 import { RedemptionsComponent } from './pages/redemptions/redemptions.component';
@@ -57,6 +58,7 @@ import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.compo
 @NgModule({
   declarations: [
     AppDocumentsComponent,
+    PromotionalActivitiesComponent,
     App,
     HeaderComponent,
     SidebarComponent,

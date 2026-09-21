@@ -133,6 +133,7 @@ export class SidebarComponent {
         { label: 'User Target', icon: 'loupe', route: '/user-targets', permission: 'user_target.view' },
         { label: 'User Live Activity', icon: 'share_location', route: '/user-live-activity', permission: 'user_activity.view' },
         { label: 'Tours', icon: 'tour', route: '/tours', permission: 'tour.view' },
+        { label: 'Promotional Activities', icon: 'campaign', route: '/promotional-activities', permission: 'promotional_activity.view' },
       ]
     },
     {

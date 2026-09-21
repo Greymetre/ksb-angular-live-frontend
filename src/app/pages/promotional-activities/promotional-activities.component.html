@@ -1,0 +1,424 @@
+<div class="app-documents-page promotional-activities-page">
+  <div class="toast-message" [class.show]="toast.visible" [class.error]="toast.type === 'error'">
+    {{ toast.message }}
+  </div>
+
+  <div class="page-heading">
+    <div class="page-icon">
+      <span class="material-icons">campaign</span>
+    </div>
+    <h2 class="page-title">Promotional Activities</h2>
+    <button type="button" class="filter-toggle-btn" [class.active]="showFilters || hasActiveFilters" title="Filters" (click)="showFilters = !showFilters">
+      <span class="material-icons">filter_alt</span>
+    </button>
+  </div>
+
+  <div class="filter-panel" *ngIf="showFilters">
+    <div class="filter-field">
+      <label>ASR / DSR</label>
+      <app-searchable-select [options]="options.users" labelKey="name" [keepCase]="true" [selected]="userId" placeholder="All" (selectedChange)="userId = $event; applyFilters()"></app-searchable-select>
+    </div>
+    <div class="filter-field">
+      <label>Zone</label>
+      <select [(ngModel)]="zoneId" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">All</option>
+        <option *ngFor="let zone of options.zones" [ngValue]="zone.id">{{ zone.name }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Branch</label>
+      <select [(ngModel)]="branchId" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">All</option>
+        <option *ngFor="let branch of options.branches" [ngValue]="branch.id">{{ branch.name }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Status</label>
+      <select [(ngModel)]="status" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">All</option>
+        <option *ngFor="let item of options.statuses" [ngValue]="item.id">{{ item.name }}</option>
+      </select>
+    </div>
+    <div class="filter-field">
+      <label>Start Date</label>
+      <input type="date" [(ngModel)]="startDate" (ngModelChange)="applyFilters()"/>
+    </div>
+    <div class="filter-field">
+      <label>End Date</label>
+      <input type="date" [(ngModel)]="endDate" (ngModelChange)="applyFilters()"/>
+    </div>
+    <div class="filter-actions">
+      <button type="button" class="mini-btn light" (click)="clearFilters()">Clear</button>
+    </div>
+  </div>
+
+  <div class="alert error-alert" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="type-tiles">
+    <button type="button" class="type-tile" *ngFor="let tile of typeTiles" [ngClass]="tile.tone" [class.active]="activityType === tile.key" (click)="pickType(tile.key)">
+      <span>{{ tile.label }}</span>
+      <strong>{{ tile.count }}</strong>
+    </button>
+  </div>
+
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <label>Show <select [(ngModel)]="showEntries" (ngModelChange)="resetPage()" class="entries-input"><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option></select> entries</label>
+    </div>
+    <div class="toolbar-right">
+      <div class="icon-action-group">
+        <button class="btn-icon-round export-btn" title="Export" (click)="exportRows()" [disabled]="exporting" *ngIf="canExport">
+          <span class="material-icons">{{ exporting ? 'hourglass_top' : 'download' }}</span>
+        </button>
+      </div>
+      <div class="search-group">
+        <label>Search:</label>
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="scheduleSearch()" class="table-search" placeholder="Activity Id, name, ASR, distributor"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading || detailLoading">{{ detailLoading ? 'Opening activity...' : 'Loading activities...' }}</div>
+    <div class="table-scroll">
+      <table class="data-table activities-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th *ngIf="hasActions">Action</th>
+            <th>Activity Id</th>
+            <th>Activity Type</th>
+            <th>Activity Date</th>
+            <th>Status</th>
+            <th>ASR / DSR</th>
+            <th>Zone</th>
+            <th>Branch</th>
+            <th>Distributor</th>
+            <th>Location</th>
+            <th>Participants</th>
+            <th>Gifts</th>
+            <th>Total Expense</th>
+            <th>Recorded By</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; let index = index">
+            <td>{{ pageStart + index + 1 }}</td>
+            <td *ngIf="hasActions">
+              <div class="action-btns">
+                <button class="btn-view" title="View Activity" (click)="view(row)" *ngIf="canView">
+                  <span class="material-icons">visibility</span>
+                </button>
+                <button class="btn-edit" title="Edit Activity" (click)="openEdit(row)" *ngIf="canEdit">
+                  <span class="material-icons">edit</span>
+                </button>
+                <button class="btn-danger" title="Delete Activity" (click)="delete(row)" *ngIf="canDelete">
+                  <span class="material-icons">delete</span>
+                </button>
+              </div>
+            </td>
+            <td class="name-cell">{{ row.activityCode || '-' }}</td>
+            <td>
+              <span class="type-pill" [ngClass]="row.activityType">{{ row.typeLabel }}</span>
+              <div class="sub-text" *ngIf="row.activityName && row.activityName !== row.typeLabel">{{ row.activityName }}</div>
+            </td>
+            <td>{{ date(row.activityDate) }}</td>
+            <td><span class="status-pill" [ngClass]="row.status">{{ row.statusLabel }}</span></td>
+            <td>
+              {{ row.userName || '-' }}
+              <div class="sub-text" *ngIf="row.userCode">{{ row.userCode }}</div>
+            </td>
+            <td>{{ row.zoneName || '-' }}</td>
+            <td>{{ row.branchName || '-' }}</td>
+            <td>{{ row.distributorName || '-' }}</td>
+            <td class="wrap-cell">{{ row.locationText || '-' }}</td>
+            <td>{{ row.participantCount }}</td>
+            <td>{{ row.giftCount }}</td>
+            <td>{{ money(row.totalExpense) }}</td>
+            <td>{{ row.createdByName || '-' }}</td>
+            <td>{{ dateTime(row.createdAt) }}</td>
+          </tr>
+          <tr *ngIf="!loading && rows.length === 0">
+            <td [attr.colspan]="hasActions ? 16 : 15" class="empty-row">No promotional activities found</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <app-pagination [total]="totalRows" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<!-- Show -->
+<div class="modal-overlay" *ngIf="viewing as detail" (click)="closeView()">
+  <div class="modal-box app-documents-modal activity-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <span class="material-icons">visibility</span>
+    </div>
+    <div class="modal-header-row">
+      <h3>{{ detail.activity.activityCode || ('Activity #' + detail.activity.id) }} · {{ detail.activity.typeLabel }}</h3>
+      <button class="modal-close-btn" (click)="closeView()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="view-meta">
+        <div><span>Activity Name</span>{{ detail.activity.activityName || '-' }}</div>
+        <div><span>Activity Date</span>{{ date(detail.activity.activityDate) }}</div>
+        <div><span>Status</span><em class="status-pill" [ngClass]="detail.activity.status">{{ detail.activity.statusLabel }}</em></div>
+        <div><span>ASR / DSR</span>{{ detail.activity.userName || '-' }}</div>
+        <div><span>Reporting Manager</span>{{ detail.activity.reportingManagerName || '-' }}</div>
+        <div><span>Recorded By</span>{{ detail.activity.createdByName || '-' }}</div>
+        <div><span>Zone</span>{{ detail.activity.zoneName || '-' }}</div>
+        <div><span>Branch</span>{{ detail.activity.branchName || '-' }}</div>
+        <div><span>Distributor</span>{{ detail.activity.distributorName || '-' }}</div>
+        <div><span>{{ detail.activity.activityType === 'nukkad' ? 'Retailer' : 'Sub Dealer' }}</span>{{ detail.activity.dealerName || '-' }}</div>
+        <div *ngIf="hasHotel(detail.activity.activityType)"><span>Hotel Name</span>{{ detail.activity.hotelName || '-' }}</div>
+        <div><span>Activity Location</span>{{ detail.activity.locationText || '-' }}</div>
+        <div><span>Gift Count</span>{{ detail.activity.giftCount }}</div>
+        <div><span>Total Expense</span>{{ money(detail.activity.totalExpense) }}</div>
+        <div><span>Dealer Share</span>{{ money(detail.activity.dealerShareAmount) }}</div>
+        <div><span>Created At</span>{{ dateTime(detail.activity.createdAt) }}</div>
+      </div>
+
+      <div class="section-title">Participants ({{ detail.participants.length }})</div>
+      <div class="table-wrap">
+        <table class="mini-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>{{ participantTitle(detail.activity.activityType) }}</th>
+              <th *ngIf="detail.activity.activityType === 'retailer'">Proprietor</th>
+              <th *ngIf="detail.activity.activityType !== 'retailer'">Profession</th>
+              <th>Type</th>
+              <th>Mobile</th>
+              <th>Gift</th>
+              <th>Influencer</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of detail.participants; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td>{{ (detail.activity.activityType === 'retailer' ? p.shopName : p.name) || '-' }}</td>
+              <td *ngIf="detail.activity.activityType === 'retailer'">{{ p.proprietorName || '-' }}</td>
+              <td *ngIf="detail.activity.activityType !== 'retailer'">{{ p.profession || '-' }}</td>
+              <td>{{ p.participantType || '-' }}</td>
+              <td>{{ p.mobile || '-' }}</td>
+              <td>{{ p.giftName || '-' }}</td>
+              <td>
+                <ng-container *ngIf="p.isInfluencer; else noInfluencer">
+                  {{ p.socialType }}
+                  <a *ngIf="p.socialLink" [href]="p.socialLink" target="_blank" rel="noopener">Profile</a>
+                </ng-container>
+                <ng-template #noInfluencer>No</ng-template>
+              </td>
+              <td>{{ p.remarks || '-' }}</td>
+            </tr>
+            <tr *ngIf="detail.participants.length === 0"><td colspan="8" class="empty-row">No participants</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title">Expenses</div>
+      <div class="table-wrap">
+        <table class="mini-table">
+          <thead><tr><th>Expense</th><th>Amount</th><th>Dealer Share</th><th>Remarks</th><th>Invoice</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let e of detail.expenses">
+              <td>{{ expenseLabel(e.expenseType) }}</td>
+              <td>{{ money(e.totalAmount) }}</td>
+              <td>{{ money(e.dealerShareAmount) }}</td>
+              <td>{{ e.remarks || '-' }}</td>
+              <td><a *ngIf="e.invoiceUrl; else noInvoice" [href]="photoUrl(e.invoiceUrl)" target="_blank" rel="noopener">View</a><ng-template #noInvoice>-</ng-template></td>
+            </tr>
+            <tr *ngIf="detail.expenses.length === 0"><td colspan="5" class="empty-row">No expenses</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title">Photos ({{ detail.photos.length }})</div>
+      <div class="photo-grid" *ngIf="detail.photos.length; else noPhotos">
+        <button type="button" class="photo-tile" *ngFor="let photo of detail.photos" (click)="photoPreview = photoUrl(photo.photoUrl)">
+          <img [src]="photoUrl(photo.photoUrl)" alt="Activity photo" loading="lazy"/>
+          <span class="photo-meta" *ngIf="photo.latitude || photo.longitude">{{ photo.latitude | number:'1.4-4' }}, {{ photo.longitude | number:'1.4-4' }}</span>
+        </button>
+      </div>
+      <ng-template #noPhotos><div class="empty-note">No photos</div></ng-template>
+
+      <div class="section-title">Feedback from Participants</div>
+      <div class="feedback-box">{{ detail.activity.feedback || '-' }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Photo preview -->
+<div class="modal-overlay photo-overlay" *ngIf="photoPreview" (click)="photoPreview = null">
+  <img class="photo-large" [src]="photoPreview" alt="Activity photo" (click)="$event.stopPropagation()"/>
+  <button class="modal-close-btn photo-close" (click)="photoPreview = null"><span class="material-icons">close</span></button>
+</div>
+
+<!-- Edit -->
+<div class="modal-overlay" *ngIf="editing as detail" (click)="closeEdit()">
+  <div class="modal-box app-documents-modal activity-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <span class="material-icons">edit</span>
+    </div>
+    <div class="modal-header-row">
+      <h3>Edit {{ detail.activity.activityCode || ('Activity #' + detail.activity.id) }} · {{ detail.activity.typeLabel }}</h3>
+      <button class="modal-close-btn" (click)="closeEdit()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="edit-note" *ngIf="detail.activity.status === 'submitted'">
+        This activity is submitted. It must still be complete after the edit, as the field app requires on submit.
+      </div>
+
+      <div class="edit-grid">
+        <div class="modal-field">
+          <label>Activity Date <span class="req">*</span></label>
+          <input type="date" [(ngModel)]="form.activityDate" [disabled]="saving"/>
+        </div>
+        <div class="modal-field">
+          <label>Activity Name <span class="req">*</span></label>
+          <select *ngIf="detail.activity.activityType === 'farmer'; else nameText" [(ngModel)]="form.activityName" [disabled]="saving">
+            <option value="Farmer Meet">Farmer Meet</option>
+            <option value="Field Demo">Field Demo</option>
+          </select>
+          <ng-template #nameText><input type="text" [(ngModel)]="form.activityName" [disabled]="saving"/></ng-template>
+        </div>
+        <div class="modal-field">
+          <label>ASR / DSR Name <span class="req">*</span></label>
+          <app-searchable-select [options]="options.users" labelKey="name" [keepCase]="true" [selected]="form.userId" [allowClear]="false" placeholder="Select ASR / DSR" [disabled]="saving" (selectedChange)="onUserChange($event)"></app-searchable-select>
+        </div>
+        <div class="modal-field">
+          <label>Distributor <span class="req">*</span></label>
+          <app-searchable-select [options]="distributors" labelKey="name" [keepCase]="true" [selected]="form.distributorId" [allowClear]="false" placeholder="Select distributor" [loading]="distributorsLoading" [disabled]="saving || !form.userId" (selectedChange)="onDistributorChange($event)"></app-searchable-select>
+        </div>
+        <div class="modal-field">
+          <label>{{ detail.activity.activityType === 'nukkad' ? 'Retailer Name' : 'Sub Dealer' }}</label>
+          <input type="text" [(ngModel)]="form.dealerName" [disabled]="saving"/>
+        </div>
+        <div class="modal-field" *ngIf="hasHotel(detail.activity.activityType)">
+          <label>Hotel Name <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="form.hotelName" [disabled]="saving"/>
+        </div>
+        <div class="modal-field">
+          <label>Activity Location <span class="req">*</span></label>
+          <input type="text" [(ngModel)]="form.locationText" [disabled]="saving"/>
+        </div>
+        <div class="modal-field">
+          <label>Gift Count (Total)</label>
+          <input type="number" min="0" [(ngModel)]="form.giftCount" [disabled]="saving"/>
+        </div>
+      </div>
+
+      <div class="section-title with-action">
+        <span>Participants ({{ form.participants.length }})</span>
+        <button type="button" class="mini-btn" (click)="addParticipant()" [disabled]="saving"><span class="material-icons">add</span> Add Participant</button>
+      </div>
+      <div class="participant-card" *ngFor="let p of form.participants; let i = index; trackBy: trackByIndex">
+        <div class="participant-head">
+          <strong>#{{ i + 1 }}</strong>
+          <button type="button" class="btn-danger small" title="Remove participant" (click)="removeParticipant(i)" [disabled]="saving"><span class="material-icons">delete</span></button>
+        </div>
+        <div class="participant-grid">
+          <div class="modal-field" *ngIf="detail.activity.activityType === 'retailer'">
+            <label>Retailer Shop Name <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="p.shopName" [disabled]="saving"/>
+          </div>
+          <div class="modal-field" *ngIf="detail.activity.activityType === 'retailer'">
+            <label>Proprietor Name</label>
+            <input type="text" [(ngModel)]="p.proprietorName" [disabled]="saving"/>
+          </div>
+          <div class="modal-field" *ngIf="detail.activity.activityType !== 'retailer'">
+            <label>Participant Name <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="p.name" [disabled]="saving"/>
+          </div>
+          <div class="modal-field" *ngIf="detail.activity.activityType !== 'retailer'">
+            <label>Profession</label>
+            <select [(ngModel)]="p.profession" [disabled]="saving">
+              <option value="">-</option>
+              <option *ngFor="let item of professions" [value]="item">{{ item }}</option>
+            </select>
+          </div>
+          <div class="modal-field">
+            <label>Participant Type</label>
+            <select [(ngModel)]="p.participantType" [disabled]="saving">
+              <option value="">-</option>
+              <option *ngFor="let item of participantTypes" [value]="item">{{ item }}</option>
+            </select>
+          </div>
+          <div class="modal-field">
+            <label>Mobile</label>
+            <input type="text" maxlength="10" [(ngModel)]="p.mobile" [disabled]="saving"/>
+          </div>
+          <div class="modal-field">
+            <label>Gift Name</label>
+            <input type="text" [(ngModel)]="p.giftName" [disabled]="saving"/>
+          </div>
+          <div class="modal-field">
+            <label>Remarks</label>
+            <input type="text" [(ngModel)]="p.remarks" [disabled]="saving"/>
+          </div>
+          <div class="modal-field">
+            <label>Social Media Influencer?</label>
+            <select [(ngModel)]="p.isInfluencer" [disabled]="saving">
+              <option [ngValue]="false">No</option>
+              <option [ngValue]="true">Yes</option>
+            </select>
+          </div>
+          <div class="modal-field" *ngIf="p.isInfluencer">
+            <label>Social Media Type <span class="req">*</span></label>
+            <select [(ngModel)]="p.socialType" [disabled]="saving">
+              <option value="">Select</option>
+              <option *ngFor="let item of socialTypes" [value]="item">{{ item }}</option>
+            </select>
+          </div>
+          <div class="modal-field" *ngIf="p.isInfluencer">
+            <label>Profile Link</label>
+            <input type="text" [(ngModel)]="p.socialLink" [disabled]="saving"/>
+          </div>
+        </div>
+      </div>
+      <div class="empty-note" *ngIf="form.participants.length === 0">No participants. A submitted activity needs at least one.</div>
+
+      <div class="section-title">Expenses · Total {{ money(formTotal) }}</div>
+      <div class="table-wrap">
+        <table class="mini-table edit-table">
+          <thead><tr><th>Expense</th><th>Amount (₹)</th><th>Dealer Share (₹)</th><th>Remarks</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let e of form.expenses; trackBy: trackByIndex">
+              <td>{{ expenseLabel(e.expenseType) }}</td>
+              <td><input type="number" min="0" [(ngModel)]="e.totalAmount" [disabled]="saving"/></td>
+              <td><input type="number" min="0" [(ngModel)]="e.dealerShareAmount" [disabled]="saving"/></td>
+              <td><input type="text" [(ngModel)]="e.remarks" [disabled]="saving" [placeholder]="['hotel','other','other1','other2'].includes(e.expenseType) ? 'Required' : ''"/></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-title">Photos ({{ form.keepPhotoIds.length }} of {{ detail.photos.length }} kept)</div>
+      <div class="photo-grid" *ngIf="detail.photos.length; else noEditPhotos">
+        <div class="photo-tile" *ngFor="let photo of detail.photos" [class.removed]="!keepsPhoto(photo)">
+          <img [src]="photoUrl(photo.photoUrl)" alt="Activity photo" loading="lazy" (click)="photoPreview = photoUrl(photo.photoUrl)"/>
+          <button type="button" class="photo-action" *ngIf="keepsPhoto(photo)" title="Remove photo" (click)="removePhoto(photo)" [disabled]="saving"><span class="material-icons">delete</span></button>
+          <button type="button" class="photo-action restore" *ngIf="!keepsPhoto(photo)" title="Keep photo" (click)="restorePhoto(photo)" [disabled]="saving"><span class="material-icons">undo</span></button>
+        </div>
+      </div>
+      <ng-template #noEditPhotos><div class="empty-note">No photos</div></ng-template>
+
+      <div class="modal-field feedback-field">
+        <label>Feedback from Participants</label>
+        <textarea rows="3" [(ngModel)]="form.feedback" [disabled]="saving"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-submit-modal" (click)="save()" [disabled]="saving">{{ saving ? 'Saving...' : 'UPDATE' }}</button>
+      </div>
+    </div>
+  </div>
+</div>
