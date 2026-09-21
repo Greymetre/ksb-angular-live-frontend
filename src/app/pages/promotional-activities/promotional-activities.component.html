@@ -67,8 +67,8 @@
     </div>
     <div class="toolbar-right">
       <div class="icon-action-group">
-        <button class="btn-icon-round export-btn" title="Export" (click)="exportRows()" [disabled]="exporting" *ngIf="canExport">
-          <span class="material-icons">{{ exporting ? 'hourglass_top' : 'download' }}</span>
+        <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download'" (click)="exportRows()" [disabled]="exporting" *ngIf="canExport">
+          <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
         </button>
       </div>
       <div class="search-group">
