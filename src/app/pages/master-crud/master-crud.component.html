@@ -42,6 +42,7 @@
           <th>Active</th>
           <th>{{ config.nameLabel }}</th>
           <th *ngIf="config.hasBranchCode">Branch Code</th>
+          <th *ngIf="config.hasZone">Zone</th>
           <th>Created By</th>
           <th>Created At</th>
         </tr>
@@ -67,11 +68,12 @@
           </td>
           <td class="name-cell">{{ displayName(item) | firstCaps }}</td>
           <td *ngIf="config.hasBranchCode">{{ item.branchCode }}</td>
+          <td *ngIf="config.hasZone">{{ item.zoneName || '' }}</td>
           <td>{{ item.createdByName || item.createdBy }}</td>
           <td>{{ formatDate(item.createdAt) }}</td>
         </tr>
         <tr *ngIf="!loading && pagedItems.length === 0">
-          <td [attr.colspan]="config.hasBranchCode ? 7 : 6" class="empty-row">No {{ config.singular.toLowerCase() }} found</td>
+          <td [attr.colspan]="(config.hasBranchCode || config.hasZone) ? 7 : 6" class="empty-row">No {{ config.singular.toLowerCase() }} found</td>
         </tr>
       </tbody>
     </table>
@@ -110,6 +112,13 @@
         <div class="modal-field" *ngIf="config.nameField === 'name'">
           <label>{{ config.nameLabel }} <span class="req">*</span></label>
           <input type="text" [(ngModel)]="form.name" maxlength="200"/>
+        </div>
+        <div class="modal-field" *ngIf="config.hasZone">
+          <label>Zone <span class="req">*</span></label>
+          <select [(ngModel)]="form.zoneId">
+            <option [ngValue]="null">Select Zone</option>
+            <option *ngFor="let zone of zoneOptions" [ngValue]="zone.id">{{ zone.divisionName }}</option>
+          </select>
         </div>
         <div class="modal-field" *ngIf="config.hasBranchCode">
           <label>Branch Code <span class="req">*</span></label>

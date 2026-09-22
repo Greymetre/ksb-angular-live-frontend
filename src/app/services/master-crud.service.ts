@@ -11,6 +11,8 @@ export interface MasterItem {
   active: string;
   branchName?: string;
   branchCode?: string | null;
+  zoneId?: number | null;
+  zoneName?: string | null;
   divisionName?: string;
   designationName?: string;
   name?: string;
@@ -23,6 +25,7 @@ export interface MasterPayload {
   active?: string;
   branch_name?: string;
   branch_code?: string;
+  zone_id?: number | null;
   division_name?: string;
   designation_name?: string;
   branchName?: string;
@@ -140,6 +143,8 @@ export class MasterCrudService {
       active: this.readString(row['active'] ?? row['Active']) || 'Y',
       branchName: this.readString(row['branchName'] ?? row['BranchName'] ?? row['branch_name']),
       branchCode: this.readNullableString(row['branchCode'] ?? row['BranchCode'] ?? row['branch_code']),
+      zoneId: this.readNullableNumber(row['zoneId'] ?? row['ZoneId'] ?? row['zone_id']),
+      zoneName: this.readNullableString(row['zoneName'] ?? row['ZoneName'] ?? row['zone_name']),
       divisionName: this.readString(row['divisionName'] ?? row['DivisionName'] ?? row['division_name']),
       designationName: this.readString(row['designationName'] ?? row['DesignationName'] ?? row['designation_name']),
       name: this.readString(row['name'] ?? row['Name']),

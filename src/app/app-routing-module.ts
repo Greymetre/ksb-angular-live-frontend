@@ -293,7 +293,8 @@ const routes: Routes = [
             nameField: 'branchName',
             nameLabel: 'Branch Name',
             fileName: 'branch.xlsx',
-            hasBranchCode: true
+            // Branch codes were never used; the form asks for the zone instead (stored in branch_code).
+            hasZone: true
           }
         }
       },

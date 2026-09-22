@@ -16,6 +16,8 @@ interface MasterRouteConfig extends MasterConfig {
   nameLabel: string;
   fileName: string;
   hasBranchCode?: boolean;
+  /** A required Zone dropdown on the form, and a Zone column. Used by Branch. */
+  hasZone?: boolean;
 }
 
 interface MasterFormModel {
@@ -23,6 +25,7 @@ interface MasterFormModel {
   active: string;
   branchName: string;
   branchCode: string;
+  zoneId: number | null;
   divisionName: string;
   designationName: string;
   name: string;
@@ -55,6 +58,7 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
   toast: ToastModel = { visible: false, message: '', type: 'success' };
   form: MasterFormModel = this.emptyForm();
   config!: MasterRouteConfig;
+  zones: MasterItem[] = [];
 
   private routeSub?: Subscription;
   private toastTimeoutId?: number;
@@ -76,7 +80,24 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
       this.currentPage = 1;
       this.closeModal();
       this.loadItems();
+      if (this.config.hasZone) this.loadZones();
     });
+  }
+
+  /** The Zone dropdown's options, from the permission-free zone feed, already in NEWS order. */
+  private loadZones(): void {
+    this.masterService.list({ path: 'getdivisions', listKey: 'divisions', itemKey: 'division' }, '', 1, 0).subscribe({
+      next: zones => {
+        this.zones = zones;
+        this.refreshView();
+      },
+      error: () => undefined
+    });
+  }
+
+  /** Active zones, plus the branch's own zone if it has since been made inactive. */
+  get zoneOptions(): MasterItem[] {
+    return this.zones.filter(zone => zone.active === 'Y' || zone.id === this.form.zoneId);
   }
 
   ngOnDestroy(): void {
@@ -182,6 +203,7 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
       active: item.active || 'Y',
       branchName: item.branchName || '',
       branchCode: item.branchCode || '',
+      zoneId: item.zoneId ?? null,
       divisionName: item.divisionName || '',
       designationName: item.designationName || '',
       name: item.name || ''
@@ -201,6 +223,11 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
     const payload = this.buildPayload();
     if (!this.displayFormName().trim()) {
       this.showToast(`${this.config.nameLabel} is required.`, 'error');
+      return;
+    }
+
+    if (this.config.hasZone && !this.form.zoneId) {
+      this.showToast('Zone is required.', 'error');
       return;
     }
 
@@ -287,11 +314,9 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
 
   private buildPayload(): MasterPayload {
     if (this.config.nameField === 'branchName') {
-      return {
-        active: this.form.active,
-        branch_name: this.form.branchName.trim(),
-        branch_code: this.form.branchCode.trim()
-      };
+      return this.config.hasZone
+        ? { active: this.form.active, branch_name: this.form.branchName.trim(), zone_id: this.form.zoneId }
+        : { active: this.form.active, branch_name: this.form.branchName.trim(), branch_code: this.form.branchCode.trim() };
     }
 
     if (this.config.nameField === 'divisionName') {
@@ -346,6 +371,7 @@ export class MasterCrudComponent implements OnInit, OnDestroy {
       active: 'Y',
       branchName: '',
       branchCode: '',
+      zoneId: null,
       divisionName: '',
       designationName: '',
       name: ''
