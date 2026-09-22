@@ -3,6 +3,7 @@ import { finalize, timeout } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { UserOption } from '../../services/user.service';
 import { Order, OrderDetail, OrderDetailPayload, OrderFilters, OrderProductOption, OrderService } from '../../services/order.service';
+import { ProductSegment, ProductService } from '../../services/product.service';
 import { kolkataTodayInput } from '../../shared/utils/date-time';
 import { Router } from '@angular/router';
 
@@ -47,6 +48,7 @@ export class OrdersComponent implements OnInit {
   retailers: UserOption[] = [];
   distributors: UserOption[] = [];
   families: UserOption[] = [];
+  segments: ProductSegment[] = [];
 
   showEntries = 10;
   currentPage = 1;
@@ -57,6 +59,7 @@ export class OrdersComponent implements OnInit {
   selectedDistributorId: number | null = null;
   selectedUserId: number | null = null;
   selectedDivisionId: number | null = null;
+  selectedSegmentId: number | null = null;
   selectedDesignationIds: number[] = [];
   selectedStatus: number | null = null;
   startDate = '';
@@ -83,6 +86,7 @@ export class OrdersComponent implements OnInit {
 
   constructor(
     private orderService: OrderService,
+    private productService: ProductService,
     private authService: AuthService,
     private cdr: ChangeDetectorRef,
     private router: Router
@@ -180,6 +184,13 @@ export class OrdersComponent implements OnInit {
   }
 
   loadOptions(): void {
+    this.productService.listSegmentOptions().pipe(timeout(20000)).subscribe({
+      next: segments => {
+        this.segments = segments;
+        this.refreshView();
+      },
+      error: () => {}
+    });
     this.orderService.getOptions().pipe(timeout(20000)).subscribe({
       next: options => {
         this.users = options.users;
@@ -223,6 +234,7 @@ export class OrdersComponent implements OnInit {
     this.selectedDistributorId = null;
     this.selectedUserId = null;
     this.selectedDivisionId = null;
+    this.selectedSegmentId = null;
     this.selectedDesignationIds = [];
     this.selectedStatus = null;
     this.startDate = '';
@@ -544,6 +556,7 @@ export class OrdersComponent implements OnInit {
       distributorId: this.selectedDistributorId,
       userId: this.selectedUserId,
       divisionId: this.selectedDivisionId,
+      segmentId: this.selectedSegmentId,
       designationIds: this.selectedDesignationIds,
       pendingStatus: this.selectedStatus,
       startDate: this.startDate || null,

@@ -19,6 +19,10 @@
       <app-searchable-select [options]="divisions" labelKey="name" [selected]="selectedDivisionId" placeholder="Select Division" (selectedChange)="selectedDivisionId=$event; applyFilters()"></app-searchable-select>
     </div>
     <div class="filter-field">
+      <label>Segment</label>
+      <app-searchable-select [options]="segments" labelKey="name" [selected]="selectedSegmentId" placeholder="Select Segment" (selectedChange)="selectedSegmentId=$event; applyFilters()"></app-searchable-select>
+    </div>
+    <div class="filter-field">
       <label>Retailer</label>
       <app-searchable-select [options]="retailers" labelKey="name" [selected]="selectedRetailerId" placeholder="Select Retailer" (selectedChange)="selectedRetailerId=$event; applyFilters()"></app-searchable-select>
     </div>
