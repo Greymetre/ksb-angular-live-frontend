@@ -109,6 +109,8 @@ export interface NewInvoiceFilter {
   approval_status?: number | 'in_process' | null;
   zone_id?: number | null;
   branch_id?: number | null;
+  /** One employee: the invoices of the retailers assigned to them. */
+  user_id?: number | null;
   dealer_id?: number | null;
   from_date?: string;
   to_date?: string;
@@ -252,6 +254,17 @@ export class NewInvoiceService {
   filterDealers(): Observable<DealerOption[]> {
     return this.http.get<ApiResponse>(`${this.baseUrl}/dealers`, { headers: this.authHeaders() }).pipe(
       map(response => this.pickArray(response, ['dealers', 'data.dealers', 'data']).map(value => {
+        const row = this.asRecord(value);
+        return { id: this.readNumber(row['id']), name: this.readString(row['name']) };
+      })),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  /** The User filter's options: the employees inside the caller's own hierarchy. */
+  filterUsers(): Observable<DealerOption[]> {
+    return this.http.get<ApiResponse>(`${this.baseUrl}/users`, { headers: this.authHeaders() }).pipe(
+      map(response => this.pickArray(response, ['users', 'data.users', 'data']).map(value => {
         const row = this.asRecord(value);
         return { id: this.readNumber(row['id']), name: this.readString(row['name']) };
       })),

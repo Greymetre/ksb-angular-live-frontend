@@ -18,17 +18,37 @@
 .logo-area {
   width: 280px;
   height: 100%;
-  background: #1a3a6b;
+  // White behind the logo: the AAROH mark is navy on a transparent background, so it is
+  // shown as it was given rather than recoloured to sit on a dark strip.
+  background: #ffffff;
+  border-right: 1px solid #e0e0e0;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 18px;
+}
+
+// Both field apps, small and side by side, the way the apps themselves show KSB beside
+// their own mark. Each logo is the file as it was given - only its size is set here.
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .brand-logo {
-  width: 198px;
-  max-width: 100%;
-  height: auto;
+  height: 44px;
+  width: auto;
   display: block;
+
+  // VRiDDHi's mark is taller than it is wide, so it is set a little shorter to weigh
+  // the same as AAROH beside it.
+  &.vriddhi { height: 40px; }
+}
+
+.brand-divider {
+  width: 1px;
+  height: 34px;
+  background: #d9dee6;
 }
 
 .client-logo {

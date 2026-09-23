@@ -94,9 +94,6 @@
         <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Download'" (click)="exportCustomers()" *ngIf="canDownload" [disabled]="exporting">
           <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
         </button>
-        <button class="btn-icon-round" [title]="templating ? 'Preparing template...' : 'Template'" (click)="downloadTemplate()" *ngIf="canTemplate" [disabled]="templating">
-          <span class="material-icons">{{ templating ? 'hourglass_top' : 'description' }}</span>
-        </button>
         <button class="btn-icon-round add-btn" title="Add Customer" (click)="openCreateModal()" *ngIf="canCreate">
           <span class="material-icons">add</span>
         </button>

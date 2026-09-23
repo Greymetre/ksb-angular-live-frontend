@@ -7,15 +7,45 @@
 
 .login-left {
   min-height: 100vh;
-  background: #f4f4f4;
+  // The backdrop both field apps paint behind every screen, so signing in to the CRM
+  // looks like the apps it belongs to.
+  background: #fdf3e2 url('/assets/img/app-backdrop.jpg') center / cover no-repeat;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
 }
 
-.login-visual {
+.login-brands {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 48px;
   width: 100%;
-  height: 100%;
+  max-width: 520px;
+}
+
+.ksb-hero {
+  width: min(360px, 70%);
+  height: auto;
   display: block;
-  object-fit: cover;
+}
+
+.app-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 44px;
+  flex-wrap: wrap;
+}
+
+.app-logo {
+  height: 96px;
+  width: auto;
+  display: block;
+
+  &.vriddhi { height: 104px; }
 }
 
 .login-right {
@@ -30,10 +60,24 @@
   background: #ffffff;
 }
 
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
 .brand-logo {
-  width: min(300px, 82vw);
-  height: auto;
+  height: 64px;
+  width: auto;
   display: block;
+
+  &.vriddhi { height: 58px; }
+}
+
+.brand-divider {
+  width: 1px;
+  height: 46px;
+  background: #d9dee6;
 }
 
 .login-card {

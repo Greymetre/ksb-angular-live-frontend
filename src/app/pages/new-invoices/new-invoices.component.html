@@ -313,6 +313,11 @@
           <app-searchable-select [options]="zoneBranchOptions" [selected]="filter.branch_id ?? null"
             placeholder="All Branches" allOption="All Branches" (selectedChange)="onBranchFilterChange($event)"></app-searchable-select>
         </div>
+        <div class="filter-field" *ngIf="userFilterOptions.length">
+          <label>User</label>
+          <app-searchable-select [options]="userFilterOptions" [selected]="filter.user_id ?? null"
+            placeholder="All Users" allOption="All Users" [pageSize]="25" (selectedChange)="onUserFilterChange($event)"></app-searchable-select>
+        </div>
         <div class="filter-field" *ngIf="dealerFilterOptions.length > 1">
           <label>Dealer</label>
           <app-searchable-select [options]="dealerFilterOptions" [selected]="filter.dealer_id ?? null"

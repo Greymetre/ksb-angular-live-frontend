@@ -115,7 +115,6 @@ export class CustomersComponent implements OnInit {
   } | null = null;
   uploading = false;
   exporting = false;
-  templating = false;
   showFilters = false;
   showModal = false;
   errorMessage = '';
@@ -243,10 +242,6 @@ export class CustomersComponent implements OnInit {
 
   get canDownload(): boolean {
     return this.authService.hasAnyPermission(['customer.export', 'customer.export']);
-  }
-
-  get canTemplate(): boolean {
-    return this.authService.hasPermission('customer.template');
   }
 
   loadCustomers(): void {
@@ -695,18 +690,6 @@ export class CustomersComponent implements OnInit {
       this.refreshView();
     })).subscribe({
       next: blob => this.downloadBlob(blob, this.exportFileName()),
-      error: error => this.showToast(error.message, 'error')
-    });
-  }
-
-  downloadTemplate(): void {
-    this.templating = true;
-    this.showToast('Preparing template...', 'success');
-    this.customerService.template().pipe(finalize(() => {
-      this.templating = false;
-      this.refreshView();
-    })).subscribe({
-      next: blob => this.downloadBlob(blob, 'customers-template.xlsx'),
       error: error => this.showToast(error.message, 'error')
     });
   }

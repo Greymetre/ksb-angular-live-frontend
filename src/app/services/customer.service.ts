@@ -207,13 +207,6 @@ export class CustomerService {
     }).pipe(catchError(error => this.handleError(error)));
   }
 
-  template(): Observable<Blob> {
-    return this.http.get(`${this.baseUrl}/customers/template`, {
-      headers: this.authHeaders(),
-      responseType: 'blob'
-    }).pipe(catchError(error => this.handleError(error)));
-  }
-
   upload(file: File): Observable<CustomerActionResult> {
     const formData = new FormData();
     formData.append('import_file', file);

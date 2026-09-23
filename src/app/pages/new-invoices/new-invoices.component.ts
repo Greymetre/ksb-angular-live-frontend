@@ -66,6 +66,7 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
   schemeFilterOptions: SelectOption[] = [];
   zoneFilterOptions: SelectOption[] = [];
   branchFilterOptions: SelectOption[] = [];
+  userFilterOptions: SelectOption[] = [];
 
   /** The branches of the zone being filtered on, or every branch while no zone is picked.
    *  A branch whose zone has not been set yet shows only in that unfiltered list. */
@@ -192,6 +193,7 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
     this.loadSchemeFilters();
     this.loadLocationFilters();
     this.loadDealerFilters();
+    this.loadUserFilters();
     this.route.paramMap.subscribe(params => {
       const id = Number(params.get('id') || 0);
       if (id > 0) this.loadInvoice(id);
@@ -229,6 +231,23 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
       },
       error: error => this.showToast(error.message, 'error')
     });
+  }
+
+  loadUserFilters(): void {
+    this.newInvoiceService.filterUsers().subscribe({
+      next: users => {
+        this.userFilterOptions = users.map(user => ({ id: user.id, label: user.name }));
+        this.refreshView();
+      },
+      error: () => undefined
+    });
+  }
+
+  onUserFilterChange(value: number | string | null): void {
+    const id = Number(value || 0);
+    this.filter.user_id = id > 0 ? id : null;
+    this.resetPage();
+    this.loadInvoices();
   }
 
   loadDealerFilters(): void {
