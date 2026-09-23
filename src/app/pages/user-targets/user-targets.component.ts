@@ -142,6 +142,19 @@ export class UserTargetsComponent implements OnInit {
     this.loadTargets();
   }
 
+  /** The branches of the zone being filtered on - every branch while no zone is picked.
+   *  A branch whose zone has not been set yet shows only in that unfiltered list. */
+  get zoneBranches(): UserOption[] {
+    return this.selectedDivisionId
+      ? this.branches.filter(branch => Number(branch.zoneId) === Number(this.selectedDivisionId))
+      : this.branches;
+  }
+
+  onZoneFilterChange(): void {
+    if (this.selectedBranchId && !this.zoneBranches.some(branch => Number(branch.id) === Number(this.selectedBranchId))) this.selectedBranchId = null;
+    this.applyFilters();
+  }
+
   scheduleSearch(): void {
     if (this.searchTimeoutId) window.clearTimeout(this.searchTimeoutId);
     this.searchTimeoutId = window.setTimeout(() => {

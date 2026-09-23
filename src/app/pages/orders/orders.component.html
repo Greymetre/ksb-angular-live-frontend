@@ -20,7 +20,7 @@
     </div>
     <div class="filter-field">
       <label>Segment</label>
-      <app-searchable-select [options]="segments" labelKey="name" [selected]="selectedSegmentId" placeholder="Select Segment" (selectedChange)="selectedSegmentId=$event; applyFilters()"></app-searchable-select>
+      <app-searchable-select [options]="segments" labelKey="name" [selected]="selectedSegmentId" placeholder="All Segments" allOption="All Segments" (selectedChange)="selectedSegmentId=$event; applyFilters()"></app-searchable-select>
     </div>
     <div class="filter-field">
       <label>Retailer</label>

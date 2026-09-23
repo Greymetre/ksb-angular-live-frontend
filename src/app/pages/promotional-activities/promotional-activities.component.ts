@@ -156,6 +156,17 @@ export class PromotionalActivitiesComponent implements OnInit {
     this.loadRows();
   }
 
+  /** The branches of the zone being filtered on - every branch while no zone is picked.
+   *  A branch whose zone has not been set yet shows only in that unfiltered list. */
+  get zoneBranches(): Option[] {
+    return this.zoneId ? this.options.branches.filter(branch => Number(branch.zone_id) === Number(this.zoneId)) : this.options.branches;
+  }
+
+  onZoneFilterChange(): void {
+    if (this.branchId && !this.zoneBranches.some(branch => Number(branch.id) === Number(this.branchId))) this.branchId = null;
+    this.applyFilters();
+  }
+
   resetPage(): void {
     this.applyFilters();
   }

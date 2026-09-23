@@ -14,6 +14,9 @@ export class CheckinReportsComponent implements OnInit {
   ngOnInit(){this.service.options().subscribe({next:x=>{this.users=x.users;this.divisions=x.divisions;this.branches=x.branches;this.designations=x.designations;this.userOptions=x.users.map(u=>({id:u.id,label:`${u.name}${u.mobile?` (${u.mobile})`:''}`}));this.designationOptions=x.designations.map(d=>({id:d.id,label:d.name}));this.filter.designationIds=x.designations.filter(d=>['ASR','DSR'].includes(d.name.trim().toUpperCase())).map(d=>d.id);this.load();this.cdr.detectChanges();},error:e=>{this.error=e.message;this.load();}});}
   load(){this.loading=true;this.error='';this.service.list(this.filter).pipe(finalize(()=>{this.loading=false;this.cdr.detectChanges();})).subscribe({next:r=>{this.rows=r.rows;this.total=r.total;this.filter.page=r.page;},error:e=>this.error=e.message});}
   apply(){this.filter.page=1;this.load();}
+  /** The branches of the zone being filtered on - every branch while no zone is picked. */
+  get zoneBranches():CheckinOption[]{return this.filter.divisionId?this.branches.filter(x=>Number(x.zoneId)===Number(this.filter.divisionId)):this.branches;}
+  onZoneFilterChange(){if(this.filter.branchId&&!this.zoneBranches.some(x=>Number(x.id)===Number(this.filter.branchId)))this.filter.branchId=null;this.apply();}
   search(){if(this.searchTimer)clearTimeout(this.searchTimer);this.searchTimer=window.setTimeout(()=>this.apply(),450);}
   page(p:number){this.filter.page=p;this.load();}
   designationChange(values:Array<number|string>){this.filter.designationIds=(values||[]).map(Number).filter(x=>Number.isFinite(x)&&x>0);this.apply();}

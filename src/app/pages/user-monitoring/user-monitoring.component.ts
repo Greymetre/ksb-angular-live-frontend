@@ -43,7 +43,10 @@ export class UserMonitoringComponent implements OnInit {
       error:e=>{this.optionsLoading=false;this.fail(e);}
     });
   }
+  /** The branches of the zone being filtered on - every branch while no zone is picked. */
+  get zoneBranches(){return this.divisionId?this.branches.filter(b=>String(b.zone_id??'')===String(this.divisionId)):this.branches;}
   filtersChanged(){
+    if(this.branchId&&!this.zoneBranches.some(b=>String(b.id)===String(this.branchId)))this.branchId='';
     this.users=this.allUsers.filter(u=>(!this.branchId||this.hasId(u.branch_id,this.branchId))&&(!this.divisionId||this.hasId(u.division_id,this.divisionId))&&(!this.departmentId||this.hasId(u.department_id,this.departmentId)));
     if(this.userId&&!this.users.some(u=>String(u.id)===String(this.userId)))this.userId='';
   }

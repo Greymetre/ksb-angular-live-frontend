@@ -4,8 +4,8 @@
   </header>
 
   <form class="asr-filter-card" (ngSubmit)="$event.preventDefault()">
-    <label><span class="field-label">Segment <span class="required">*</span></span>
-      <app-searchable-select [options]="options.segments" labelKey="name" [selected]="segmentId" placeholder="Select Segment" [loading]="optionsLoading" loadingText="Loading segments..." (selectedChange)="segmentId=$event"></app-searchable-select>
+    <label><span class="field-label">Segment</span>
+      <app-searchable-select [options]="options.segments" labelKey="name" [selected]="segmentId" placeholder="All Segments" allOption="All Segments" [loading]="optionsLoading" loadingText="Loading segments..." (selectedChange)="segmentId=$event"></app-searchable-select>
     </label>
     <label><span class="field-label">Zone <span class="required">*</span></span>
       <app-searchable-select [options]="options.zones" labelKey="name" [selected]="zoneId" placeholder="Select Zone" [loading]="optionsLoading" loadingText="Loading zones..." (selectedChange)="zoneId=$event"></app-searchable-select>

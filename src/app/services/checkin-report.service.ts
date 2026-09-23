@@ -8,7 +8,7 @@ export interface CheckinRow {[key:string]:any;id:number;checkinDate?:string;chec
 export interface CheckinFilter {page:number;pageSize:number;search:string;startDate:string;endDate:string;userId:number|null;divisionId:number|null;branchId:number|null;designationIds:number[];customerId?:number|null;}
 export interface CheckinResult {rows:CheckinRow[];total:number;page:number;pageSize:number;}
 export interface CheckinUser {id:number;name:string;mobile?:string;}
-export interface CheckinOption {id:number;name:string;}
+export interface CheckinOption {id:number;name:string;/** Branch options only: the branch's zone. */zoneId?:number|null;}
 export interface CheckinOptions {users:CheckinUser[];divisions:CheckinOption[];branches:CheckinOption[];designations:CheckinOption[];}
 
 @Injectable({providedIn:'root'})
@@ -20,7 +20,7 @@ export class CheckinReportService {
   private params(f:CheckinFilter){let p=new HttpParams().set('page',f.page).set('page_size',f.pageSize);if(f.search)p=p.set('search',f.search);if(f.startDate)p=p.set('start_date',f.startDate);if(f.endDate)p=p.set('end_date',f.endDate);if(f.userId)p=p.set('user_id',f.userId);if(f.divisionId)p=p.set('division_id',f.divisionId);if(f.branchId)p=p.set('branch_id',f.branchId);if(f.customerId)p=p.set('customer_id',f.customerId);for(const id of f.designationIds||[])p=p.append('designation_id',id);return p;}
   private row(x:any):CheckinRow{const r:any={};for(const [k,v] of Object.entries(x||{}))r[k.replace(/_([a-z])/g,(_,c)=>c.toUpperCase())]=v;return r as CheckinRow;}
   private array(v:any):any[]{return Array.isArray(v)?v:Array.isArray(v?.$values)?v.$values:[];}
-  private optionsArray(v:any):CheckinOption[]{return this.array(v).map(x=>({id:+x.id,name:String(x.name||'')}));}
+  private optionsArray(v:any):CheckinOption[]{return this.array(v).map(x=>({id:+x.id,name:String(x.name||''),zoneId:Number(x.zone_id||0)||null}));}
   private headers(){const t=this.auth.getToken();return t?new HttpHeaders({Authorization:`Bearer ${t}`}):new HttpHeaders();}
   private error(e:any){return throwError(()=>new Error(e?.error?.message||e?.message||'Checkin report request failed.'));}
 }

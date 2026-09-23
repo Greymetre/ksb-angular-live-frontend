@@ -110,7 +110,7 @@ export interface ActivityCounts {
   influencer: number;
 }
 
-export interface Option { id: any; name: string; }
+export interface Option { id: any; name: string; /** Branch options only: the branch's zone. */ zone_id?: number | null; }
 
 export interface ActivityOptions {
   users: Option[];
@@ -156,7 +156,8 @@ export class PromotionalActivityService {
         const list = (key: string) => this.array(data[key]).map(item => {
           const row = this.record(item);
           const code = this.text(row['employee_code']);
-          return { id: row['id'], name: code ? `${this.text(row['name'])} (${code})` : this.text(row['name']) };
+          const zoneId = Number(row['zone_id'] ?? 0);
+          return { id: row['id'], name: code ? `${this.text(row['name'])} (${code})` : this.text(row['name']), zone_id: zoneId > 0 ? zoneId : null };
         });
         return { users: list('users'), branches: list('branches'), zones: list('zones'), types: list('types'), statuses: list('statuses') };
       }),

@@ -19,6 +19,8 @@ import { ProductItem, ProductService } from '../../services/product.service';
 interface SelectOption {
   id: number | string;
   label: string;
+  /** Branch options only: the branch's zone, so the Branch filter follows the Zone one. */
+  zoneId?: number | null;
 }
 
 interface ToastModel {
@@ -64,6 +66,13 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
   schemeFilterOptions: SelectOption[] = [];
   zoneFilterOptions: SelectOption[] = [];
   branchFilterOptions: SelectOption[] = [];
+
+  /** The branches of the zone being filtered on, or every branch while no zone is picked.
+   *  A branch whose zone has not been set yet shows only in that unfiltered list. */
+  get zoneBranchOptions(): SelectOption[] {
+    const zoneId = Number(this.filter.zone_id || 0);
+    return zoneId > 0 ? this.branchFilterOptions.filter(option => Number(option.zoneId) === zoneId) : this.branchFilterOptions;
+  }
   dealerFilterOptions: SelectOption[] = [];
   filter: NewInvoiceFilter = {};
   /**
@@ -215,7 +224,7 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
     });
     this.masterCrudService.list({ path: 'getbranches', listKey: 'branches', itemKey: 'branch' }, '', 1, 0).subscribe({
       next: rows => {
-        this.branchFilterOptions = rows.filter(row => row.active !== '0').map(row => ({ id: row.id, label: row.branchName || row.name || `Branch ${row.id}` }));
+        this.branchFilterOptions = rows.filter(row => row.active !== '0').map(row => ({ id: row.id, label: row.branchName || row.name || `Branch ${row.id}`, zoneId: row.zoneId ?? null }));
         this.refreshView();
       },
       error: error => this.showToast(error.message, 'error')
@@ -242,6 +251,8 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
   onZoneFilterChange(value: number | string | null): void {
     const id = Number(value || 0);
     this.filter.zone_id = id > 0 ? id : null;
+    // A branch of another zone would contradict the zone just picked.
+    if (this.filter.branch_id && !this.zoneBranchOptions.some(option => Number(option.id) === Number(this.filter.branch_id))) this.filter.branch_id = null;
     this.resetPage();
     this.loadInvoices();
   }

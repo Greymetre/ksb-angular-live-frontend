@@ -82,7 +82,6 @@ export class LoyaltyPerformanceReportComponent implements OnInit {
 
   private validate(): string {
     const missing = [
-      !this.segmentId && 'Segment',
       !this.zoneId && 'Zone',
       !this.schemeId && 'Scheme Name',
       !this.startDate && 'Start Date',

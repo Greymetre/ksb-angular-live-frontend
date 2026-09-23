@@ -306,12 +306,12 @@
         <div class="filter-field">
           <label>Zone</label>
           <app-searchable-select [options]="zoneFilterOptions" [selected]="filter.zone_id ?? null"
-            placeholder="All Zones" (selectedChange)="onZoneFilterChange($event)"></app-searchable-select>
+            placeholder="All Zones" allOption="All Zones" (selectedChange)="onZoneFilterChange($event)"></app-searchable-select>
         </div>
         <div class="filter-field">
           <label>Branch</label>
-          <app-searchable-select [options]="branchFilterOptions" [selected]="filter.branch_id ?? null"
-            placeholder="All Branches" (selectedChange)="onBranchFilterChange($event)"></app-searchable-select>
+          <app-searchable-select [options]="zoneBranchOptions" [selected]="filter.branch_id ?? null"
+            placeholder="All Branches" allOption="All Branches" (selectedChange)="onBranchFilterChange($event)"></app-searchable-select>
         </div>
         <div class="filter-field" *ngIf="dealerFilterOptions.length > 1">
           <label>Dealer</label>

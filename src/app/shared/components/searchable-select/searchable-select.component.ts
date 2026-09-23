@@ -24,6 +24,10 @@ export class SearchableSelectComponent {
   /** Show labels exactly as given instead of first-letter caps - for labels such as "OD"
    *  that firstCaps would turn into "Od". */
   @Input() keepCase = false;
+  /** Label of a first row that stands for "no filter", e.g. "All Segments". Choosing it
+   *  clears the selection, the same as the x on the trigger - a row is easier to hit and
+   *  says plainly that the list is not filtered. Single select only. */
+  @Input() allOption = '';
   @Input() loading = false;
   @Input() loadingText = 'Loading...';
   @Input() pageSize = 0;
@@ -126,6 +130,16 @@ export class SearchableSelectComponent {
     }
 
     this.selectedChange.emit(option.id);
+    this.opened = false;
+  }
+
+  get showAllOption(): boolean {
+    return !!this.allOption && !this.multiple && !this.loading;
+  }
+
+  chooseAll(event: Event): void {
+    event.stopPropagation();
+    this.selectedChange.emit(null);
     this.opened = false;
   }
 

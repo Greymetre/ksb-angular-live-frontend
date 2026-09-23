@@ -8,7 +8,7 @@
       <app-searchable-select [options]="asrOptions.users" labelKey="name" [selected]="employeeId" placeholder="All Users" [pageSize]="25" (selectedChange)="employeeId=$event"></app-searchable-select>
     </label>
     <label>Division
-      <select [(ngModel)]="divisionId" name="divisionId">
+      <select [(ngModel)]="divisionId" name="divisionId" (ngModelChange)="branchId = null">
         <option [ngValue]="null">All Divisions</option>
         <option *ngFor="let item of asrOptions.divisions" [ngValue]="item.id">{{ item.name }}</option>
       </select>
@@ -16,7 +16,7 @@
     <label>Branch
       <select [(ngModel)]="branchId" name="branchId">
         <option [ngValue]="null">All Branches</option>
-        <option *ngFor="let item of asrOptions.branches" [ngValue]="item.id">{{ item.name }}</option>
+        <option *ngFor="let item of zoneBranches" [ngValue]="item.id">{{ item.name }}</option>
       </select>
     </label>
     <label><span class="field-label">Designation <span class="required">*</span></span>
@@ -47,7 +47,7 @@
       <app-searchable-select [options]="asrOptions.divisions" labelKey="name" [selected]="divisionId" placeholder="All Zones" [pageSize]="25" (selectedChange)="divisionId=$event;branchId=null"></app-searchable-select>
     </label>
     <label>Branch
-      <app-searchable-select [options]="asrOptions.branches" labelKey="name" [selected]="branchId" placeholder="All Branches" [pageSize]="25" (selectedChange)="branchId=$event"></app-searchable-select>
+      <app-searchable-select [options]="zoneBranches" labelKey="name" [selected]="branchId" placeholder="All Branches" allOption="All Branches" [pageSize]="25" (selectedChange)="branchId=$event"></app-searchable-select>
     </label>
     <div class="rating-export-separator"><span>Excel Download Options</span><small>These period fields apply only to the detailed Excel report.</small></div>
     <label><span class="field-label">Excel Report Year <span class="required" *ngIf="month !== 'weekly'">*</span></span>
@@ -259,13 +259,13 @@
       <select [(ngModel)]="year" name="year"><option *ngFor="let item of years" [ngValue]="item">{{item}}</option></select>
     </label>
     <label>{{mode === 'retailer' ? 'Zone *' : 'Division'}}
-      <select [(ngModel)]="divisionId" name="productivityDivisionId"><option [ngValue]="null">{{mode === 'retailer' ? 'Select Zone' : 'All Divisions'}}</option><option *ngFor="let item of asrOptions.divisions" [ngValue]="item.id">{{item.name}}</option></select>
+      <select [(ngModel)]="divisionId" name="productivityDivisionId" (ngModelChange)="branchId = null"><option [ngValue]="null">{{mode === 'retailer' ? 'Select Zone' : 'All Divisions'}}</option><option *ngFor="let item of asrOptions.divisions" [ngValue]="item.id">{{item.name}}</option></select>
     </label>
     <label *ngIf="mode === 'retailer'">State
       <select [(ngModel)]="stateId" name="stateId"><option [ngValue]="null">All States</option><option *ngFor="let item of asrOptions.states" [ngValue]="item.id">{{item.name}}</option></select>
     </label>
     <label *ngIf="mode === 'dealer'">Branch
-      <select [(ngModel)]="branchId" name="productivityBranchId"><option [ngValue]="null">All Branches</option><option *ngFor="let item of asrOptions.branches" [ngValue]="item.id">{{item.name}}</option></select>
+      <select [(ngModel)]="branchId" name="productivityBranchId"><option [ngValue]="null">All Branches</option><option *ngFor="let item of zoneBranches" [ngValue]="item.id">{{item.name}}</option></select>
     </label>
     <div class="download-wrap"><button class="primary" type="submit" *ngIf="canDownloadProductivity" [disabled]="loading"><span class="material-icons">download</span>{{loading ? 'Preparing...' : 'Download Excel Report'}}</button></div>
   </form>

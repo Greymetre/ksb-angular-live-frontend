@@ -20,7 +20,7 @@
     </div>
     <div class="filter-field">
       <label>Zone</label>
-      <select [(ngModel)]="zoneId" (ngModelChange)="applyFilters()">
+      <select [(ngModel)]="zoneId" (ngModelChange)="onZoneFilterChange()">
         <option [ngValue]="null">All</option>
         <option *ngFor="let zone of options.zones" [ngValue]="zone.id">{{ zone.name }}</option>
       </select>
@@ -29,7 +29,7 @@
       <label>Branch</label>
       <select [(ngModel)]="branchId" (ngModelChange)="applyFilters()">
         <option [ngValue]="null">All</option>
-        <option *ngFor="let branch of options.branches" [ngValue]="branch.id">{{ branch.name }}</option>
+        <option *ngFor="let branch of zoneBranches" [ngValue]="branch.id">{{ branch.name }}</option>
       </select>
     </div>
     <div class="filter-field">

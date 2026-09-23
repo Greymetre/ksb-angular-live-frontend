@@ -7,13 +7,15 @@ import { AuthService } from './auth.service';
 export type ReportMode = 'asr' | 'rating' | 'retailer' | 'dealer' | 'market' | 'activity';
 export interface ReportResult { rows: Record<string, any>[]; summary: Record<string, any>; }
 export interface ReportOption { id: number; name: string; }
+/** A branch carries its zone so a screen filtered on a zone can offer only its branches. */
+export interface BranchOption extends ReportOption { zone_id?: number | null; }
 export interface LoyaltyPerformanceScheme extends ReportOption { code: string; start_date: string; end_date: string; }
 export interface LoyaltyPerformanceOptions { segments: ReportOption[]; zones: ReportOption[]; schemes: LoyaltyPerformanceScheme[]; }
-export interface LoyaltyPerformanceFilters { segmentId: number; zoneId: number; schemeId: number; startDate: string; endDate: string; }
+export interface LoyaltyPerformanceFilters { segmentId: number | null; zoneId: number; schemeId: number; startDate: string; endDate: string; }
 export interface AsrReportOptions {
   users: ReportOption[];
   divisions: ReportOption[];
-  branches: ReportOption[];
+  branches: BranchOption[];
   designations: ReportOption[];
   default_designation_id: number | null;
   states?: ReportOption[];
@@ -165,12 +167,13 @@ export class ReportManagementService {
   }
 
   downloadLoyaltyPerformance(kind: 'asr' | 'dealer', filters: LoyaltyPerformanceFilters): Observable<Blob> {
-    const params = new HttpParams()
-      .set('segment_id', filters.segmentId)
+    let params = new HttpParams()
       .set('zone_id', filters.zoneId)
       .set('scheme_id', filters.schemeId)
       .set('start_date', filters.startDate)
       .set('end_date', filters.endDate);
+    // No segment = every segment.
+    if (filters.segmentId) params = params.set('segment_id', String(filters.segmentId));
     return this.http.get(`${API_BASE_URL}/reports/loyalty-performance/${kind}-export`, { headers: this.headers(), params, responseType: 'blob' });
   }
 

@@ -13,6 +13,10 @@
     <input class="select-search-box" type="text" [ngModel]="search" (ngModelChange)="onSearchChange($event)" placeholder="Search"/>
     <div class="select-options">
       <div class="empty-option" *ngIf="loading">{{ loadingText }}</div>
+      <button type="button" class="select-option" *ngIf="showAllOption" (click)="chooseAll($event)" [class.selected]="selectedArray.length === 0">
+        <span class="material-icons check-icon" [class.visible]="selectedArray.length === 0">check</span>
+        <span>{{ allOption }}</span>
+      </button>
       <button type="button" class="select-option" *ngFor="let option of (loading ? [] : visibleOptions)" (click)="choose(option, $event)" [class.selected]="isSelected(option.id)">
         <span class="material-icons check-icon" [class.visible]="multiple || isSelected(option.id)">{{ multiple ? (isSelected(option.id) ? 'check_box' : 'check_box_outline_blank') : 'check' }}</span>
         <span>{{ displayLabel(optionLabel(option)) }}</span>

@@ -235,6 +235,20 @@ export class UsersComponent implements OnInit {
     this.loadUsers();
   }
 
+  /** The branches of the zone being filtered on - every branch while no zone is picked.
+   *  A branch whose zone has not been set yet shows only in that unfiltered list. */
+  get zoneBranches(): UserOption[] {
+    return this.selectedDivisionId
+      ? this.branches.filter(branch => Number(branch.zoneId) === Number(this.selectedDivisionId))
+      : this.branches;
+  }
+
+  onZoneFilterChange(): void {
+    // A branch of another zone would contradict the zone just picked.
+    if (this.selectedBranchId && !this.zoneBranches.some(branch => String(branch.id) === String(this.selectedBranchId))) this.selectedBranchId = '';
+    this.applyFilters();
+  }
+
   scheduleSearch(): void {
     if (this.searchTimeoutId) window.clearTimeout(this.searchTimeoutId);
     this.searchTimeoutId = window.setTimeout(() => {

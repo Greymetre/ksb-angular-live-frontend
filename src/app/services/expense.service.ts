@@ -280,7 +280,8 @@ export class ExpenseService {
     return this.asArray(source[key])
       .map(value => {
         const row = this.asRecord(value);
-        return { id: this.readNumber(row['id'] ?? row['Id']), name: this.readString(row['name'] ?? row['Name']) };
+        const zoneId = this.readNumber(row['zoneId'] ?? row['ZoneId'] ?? row['zone_id']);
+        return { id: this.readNumber(row['id'] ?? row['Id']), name: this.readString(row['name'] ?? row['Name']), zoneId: zoneId > 0 ? zoneId : null };
       })
       .filter(option => option.id > 0);
   }

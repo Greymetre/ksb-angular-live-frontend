@@ -9,6 +9,8 @@ import { asPagedArray, PagedArray } from '../shared/utils/paged-array';
 export interface UserOption {
   id: number;
   name: string;
+  /** Branch options only: the branch's zone, so a Branch filter can follow a Zone one. */
+  zoneId?: number | null;
 }
 
 export interface UserRole {
@@ -378,9 +380,11 @@ export class UserService {
 
   private normalizeOption(value: unknown): UserOption {
     const row = this.asRecord(value);
+    const zoneId = this.readNumber(row['zoneId'] ?? row['ZoneId'] ?? row['zone_id']);
     return {
       id: this.readNumber(row['id'] ?? row['Id']),
-      name: this.readString(row['name'] ?? row['Name'])
+      name: this.readString(row['name'] ?? row['Name']),
+      zoneId: zoneId > 0 ? zoneId : null
     };
   }
 

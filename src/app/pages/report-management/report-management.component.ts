@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs';
-import { AsrReportOptions, RatingDashboardFilters, RatingReportDashboard, RatingReportFilters, RatingTrendComponent, RatingTrendRow, ReportManagementService, ReportMode } from '../../services/report-management.service';
+import { AsrReportOptions, BranchOption, RatingDashboardFilters, RatingReportDashboard, RatingReportFilters, RatingTrendComponent, RatingTrendRow, ReportManagementService, ReportMode } from '../../services/report-management.service';
 import { AuthService } from '../../services/auth.service';
 
 @Component({ standalone: false, selector: 'app-report-management', templateUrl: './report-management.component.html', styleUrls: ['./report-management.component.scss'] })
@@ -33,6 +33,9 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   startDate = this.firstDayOfMonth();
   endDate = this.today();
   activityOptions: { zones: Array<{id:number;name:string}>; branches: Array<{id:number;name:string;zone_id?:number}>; meets: Array<{id:string;name:string}> } = { zones: [], branches: [], meets: [] };
+  /** The branches of the zone that is filtered on - every branch while no zone is picked.
+   *  A branch whose zone is not set yet shows only in that unfiltered list. */
+  get zoneBranches(): BranchOption[] { return this.divisionId ? this.asrOptions.branches.filter(x => Number(x.zone_id) === Number(this.divisionId)) : this.asrOptions.branches; }
   get activityBranches(): Array<{id:number;name:string;zone_id?:number}> { return this.divisionId ? this.activityOptions.branches.filter(x => Number(x.zone_id) === Number(this.divisionId)) : this.activityOptions.branches; }
   meet = 'retailer';
   activityPreview: any = { summary: {}, sales_engineer_wise: [], distributor_wise: [], gift_summary: [] };
