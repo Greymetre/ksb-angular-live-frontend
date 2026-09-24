@@ -11,7 +11,7 @@ export interface ReportOption { id: number; name: string; }
 export interface BranchOption extends ReportOption { zone_id?: number | null; }
 export interface LoyaltyPerformanceScheme extends ReportOption { code: string; start_date: string; end_date: string; }
 export interface LoyaltyPerformanceOptions { segments: ReportOption[]; zones: ReportOption[]; schemes: LoyaltyPerformanceScheme[]; }
-export interface LoyaltyPerformanceFilters { segmentId: number | null; zoneId: number; schemeId: number; startDate: string; endDate: string; }
+export interface LoyaltyPerformanceFilters { segmentId: number | null; zoneId: number; schemeId: number; startDate: string; endDate: string; employeeStatus?: string | null; }
 export interface AsrReportOptions {
   users: ReportOption[];
   divisions: ReportOption[];
@@ -26,6 +26,8 @@ export interface AsrReportOptions {
 }
 export interface AsrReportFilters {
   employeeId?: number | null;
+  /** "Y", "N" or empty for both. */
+  employeeStatus?: string | null;
   divisionId?: number | null;
   branchId?: number | null;
   designationId?: number | null;
@@ -38,17 +40,21 @@ export interface RatingReportFilters {
   month?: number | 'weekly' | null;
   divisionId?: number | null;
   branchId?: number | null;
+  /** "Y", "N" or empty for both. */
+  employeeStatus?: string | null;
 }
 export interface RatingDashboardFilters {
   designationId: number;
   divisionId?: number | null;
   branchId?: number | null;
+  /** "Y", "N" or empty for both. */
+  employeeStatus?: string | null;
   search?: string;
   page: number;
   pageSize: number;
 }
 export interface RatingTrendRow {
-  user_id: number; branch: string; employee_code: string; employee_name: string; reporting_manager: string; zone: string;
+  user_id: number; branch: string; employee_code: string; employee_name: string; employee_status?: string; reporting_manager: string; zone: string;
   average_rating: number; date_of_joining?: string | null; rating_start_month?: string; average_month_count?: number;
   monthly_ratings: Record<string, number>; monthly_details: Record<string, RatingTrendMonthDetail>;
 }
@@ -120,6 +126,7 @@ export class ReportManagementService {
     if (filters.divisionId) params = params.set('division_id', String(filters.divisionId));
     if (filters.branchId) params = params.set('branch_id', String(filters.branchId));
     if (filters.search?.trim()) params = params.set('search', filters.search.trim());
+    if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);
     return this.http.get<RatingReportDashboard>(`${API_BASE_URL}/reports/rating-report/dashboard`, { headers: this.headers(), params });
   }
 
@@ -153,6 +160,7 @@ export class ReportManagementService {
     if (filters.divisionId) params = params.set('division_id', filters.divisionId);
     if (filters.branchId) params = params.set('branch_id', filters.branchId);
     if (filters.designationId) params = params.set('designation_id', filters.designationId);
+    if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);
     return this.http.get(`${API_BASE_URL}/reports/asr-performance/export`, {
       headers: this.headers(), params, responseType: 'blob'
     });
@@ -174,6 +182,7 @@ export class ReportManagementService {
       .set('end_date', filters.endDate);
     // No segment = every segment.
     if (filters.segmentId) params = params.set('segment_id', String(filters.segmentId));
+    if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);
     return this.http.get(`${API_BASE_URL}/reports/loyalty-performance/${kind}-export`, { headers: this.headers(), params, responseType: 'blob' });
   }
 
@@ -201,6 +210,7 @@ export class ReportManagementService {
     }
     if (filters.divisionId) params = params.set('division_id', filters.divisionId);
     if (filters.branchId) params = params.set('branch_id', filters.branchId);
+    if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);
     return params;
   }
   private headers(): HttpHeaders { const token = this.auth.getToken(); return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders(); }

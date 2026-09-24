@@ -25,6 +25,13 @@
         <option *ngFor="let item of asrOptions.designations" [ngValue]="item.id">{{ item.name }}</option>
       </select>
     </label>
+    <label>Employee Status
+      <select [(ngModel)]="employeeStatus" name="employeeStatusAsrPerformance">
+        <option value="">All</option>
+        <option value="Y">Active</option>
+        <option value="N">Inactive</option>
+      </select>
+    </label>
     <label><span class="field-label">Start Date <span class="required">*</span></span><input type="date" [(ngModel)]="startDate" name="startDate" required></label>
     <label><span class="field-label">End Date <span class="required">*</span></span><input type="date" [(ngModel)]="endDate" name="endDate" required></label>
     <div class="download-wrap"><button class="primary" type="submit" *ngIf="auth.hasPermission('asr_performance_report.export')" [disabled]="loading"><span class="material-icons">download</span>{{ loading ? 'Preparing...' : 'Download Report' }}</button></div>
@@ -48,6 +55,13 @@
     </label>
     <label>Branch
       <app-searchable-select [options]="zoneBranches" labelKey="name" [selected]="branchId" placeholder="All Branches" allOption="All Branches" [pageSize]="25" (selectedChange)="branchId=$event"></app-searchable-select>
+    </label>
+    <label>Employee Status
+      <select [(ngModel)]="employeeStatus" name="employeeStatusAsr">
+        <option value="">All</option>
+        <option value="Y">Active</option>
+        <option value="N">Inactive</option>
+      </select>
     </label>
     <div class="rating-export-separator"><span>Excel Download Options</span><small>These period fields apply only to the detailed Excel report.</small></div>
     <label><span class="field-label">Excel Report Year <span class="required" *ngIf="month !== 'weekly'">*</span></span>
@@ -108,7 +122,7 @@
         <table class="rating-matrix">
           <thead>
             <tr>
-              <th>#</th><th>Employee</th><th>Branch / Zone</th><th>Reporting Manager</th><th>Avg ({{dashboard.period.months[0]?.label}}–{{dashboard.period.months[5]?.label}})</th>
+              <th>#</th><th>Employee</th><th>Employee Status</th><th>Branch / Zone</th><th>Reporting Manager</th><th>Avg ({{dashboard.period.months[0]?.label}}–{{dashboard.period.months[5]?.label}})</th>
               <th *ngFor="let periodMonth of dashboard.period.months" [title]="periodMonth.full_label">{{periodMonth.label}}</th>
             </tr>
           </thead>
@@ -120,6 +134,7 @@
                   <strong>{{row.employee_name}}</strong><small>{{row.employee_code || '-'}}</small>
                 </button>
               </td>
+              <td><span class="status-chip" [class.inactive]="row.employee_status === 'N'">{{row.employee_status || 'Y'}}</span></td>
               <td><strong>{{row.branch || '-'}}</strong><small>{{row.zone || '-'}}</small></td>
               <td>{{row.reporting_manager || '-'}}</td>
               <td><span class="rating-chip" [ngClass]="ratingScoreClass(row.average_rating)">{{fixed(row.average_rating)}}</span></td>
@@ -213,6 +228,13 @@
     <label>Branch
       <app-searchable-select [options]="activityBranches" labelKey="name" [selected]="branchId" placeholder="All Branches" [pageSize]="25" (selectedChange)="branchId=$event;activityFilterChanged()"></app-searchable-select>
     </label>
+    <label>Employee Status
+      <select [(ngModel)]="employeeStatus" name="employeeStatusActivity" (ngModelChange)="activityFilterChanged()">
+        <option value="">All</option>
+        <option value="Y">Active</option>
+        <option value="N">Inactive</option>
+      </select>
+    </label>
     <label><span class="field-label">Select Meet <span class="required">*</span></span>
       <select [(ngModel)]="meet" name="activityMeet" (ngModelChange)="activityFilterChanged()" required><option *ngFor="let item of activityOptions.meets" [value]="item.id">{{item.name}}</option></select>
     </label>
@@ -234,8 +256,8 @@
       <div><span class="material-icons">engineering</span><small>Sales Engineers</small><strong>{{activityPreview.summary.sales_engineers || 0}}</strong></div>
     </div>
     <div class="preview-tabs"><button type="button" [class.active]="activityView==='sales'" (click)="activityView='sales'">Sales Engineer Wise</button><button type="button" [class.active]="activityView==='distributor'" (click)="activityView='distributor'">Distributor Wise</button><button type="button" [class.active]="activityView==='gifts'" (click)="activityView='gifts'">Gift Summary</button></div>
-    <div class="preview-table" *ngIf="activityView==='sales'"><table><thead><tr><th>Zone</th><th>Branch</th><th>Sales Engineer</th><th>ASR / DSR Name</th><th>Meets</th><th>Participants</th><th>Gifts</th><th>Expense</th></tr></thead><tbody><tr *ngFor="let row of activityPreview.sales_engineer_wise"><td>{{row.zone}}</td><td>{{row.branch}}</td><td>{{row.sales_engineer}}</td><td>{{row.asr_name}}</td><td>{{row.meets}}</td><td>{{row.participants}}</td><td>{{row.gifts}}</td><td>{{money(row.expense)}}</td></tr><tr *ngIf="!previewLoading&&!activityPreview.sales_engineer_wise?.length"><td colspan="8" class="empty">No activity data found.</td></tr></tbody></table></div>
-    <div class="preview-table" *ngIf="activityView==='distributor'"><table><thead><tr><th>Zone</th><th>Branch</th><th>Distributor</th><th>Sales Engineer</th><th>ASR / DSR Name</th><th>Meets</th><th>Participants</th><th>Gifts</th><th>Expense</th></tr></thead><tbody><tr *ngFor="let row of activityPreview.distributor_wise"><td>{{row.zone}}</td><td>{{row.branch}}</td><td>{{row.distributor}}</td><td>{{row.sales_engineer}}</td><td>{{row.asr_name}}</td><td>{{row.meets}}</td><td>{{row.participants}}</td><td>{{row.gifts}}</td><td>{{money(row.expense)}}</td></tr><tr *ngIf="!previewLoading&&!activityPreview.distributor_wise?.length"><td colspan="9" class="empty">No distributor data found.</td></tr></tbody></table></div>
+    <div class="preview-table" *ngIf="activityView==='sales'"><table><thead><tr><th>Zone</th><th>Branch</th><th>Sales Engineer</th><th>ASR / DSR Name</th><th>Employee Status</th><th>Meets</th><th>Participants</th><th>Gifts</th><th>Expense</th></tr></thead><tbody><tr *ngFor="let row of activityPreview.sales_engineer_wise"><td>{{row.zone}}</td><td>{{row.branch}}</td><td>{{row.sales_engineer}}</td><td>{{row.asr_name}}</td><td><span class="status-chip" [class.inactive]="row.employee_status === 'N'">{{row.employee_status || 'Y'}}</span></td><td>{{row.meets}}</td><td>{{row.participants}}</td><td>{{row.gifts}}</td><td>{{money(row.expense)}}</td></tr><tr *ngIf="!previewLoading&&!activityPreview.sales_engineer_wise?.length"><td colspan="9" class="empty">No activity data found.</td></tr></tbody></table></div>
+    <div class="preview-table" *ngIf="activityView==='distributor'"><table><thead><tr><th>Zone</th><th>Branch</th><th>Distributor</th><th>Sales Engineer</th><th>ASR / DSR Name</th><th>Employee Status</th><th>Meets</th><th>Participants</th><th>Gifts</th><th>Expense</th></tr></thead><tbody><tr *ngFor="let row of activityPreview.distributor_wise"><td>{{row.zone}}</td><td>{{row.branch}}</td><td>{{row.distributor}}</td><td>{{row.sales_engineer}}</td><td>{{row.asr_name}}</td><td><span class="status-chip" [class.inactive]="row.employee_status === 'N'">{{row.employee_status || 'Y'}}</span></td><td>{{row.meets}}</td><td>{{row.participants}}</td><td>{{row.gifts}}</td><td>{{money(row.expense)}}</td></tr><tr *ngIf="!previewLoading&&!activityPreview.distributor_wise?.length"><td colspan="10" class="empty">No distributor data found.</td></tr></tbody></table></div>
     <div class="gift-dashboard" *ngIf="activityView==='gifts'"><div class="gift-card" *ngFor="let gift of activityPreview.gift_summary"><div><span>{{gift.gift_name}}</span><strong>{{gift.count}}</strong></div><div class="gift-track"><span [style.width.%]="giftPercent(gift.count)"></span></div></div><div class="empty" *ngIf="!previewLoading&&!activityPreview.gift_summary?.length">No gift distribution found.</div></div>
   </div>
 </section>
@@ -248,6 +270,13 @@
     </label>
     <label>Employee Name
       <app-searchable-select [options]="asrOptions.users" labelKey="name" [selected]="employeeId" placeholder="All Employees" [pageSize]="25" (selectedChange)="employeeId=$event"></app-searchable-select>
+    </label>
+    <label>Employee Status
+      <select [(ngModel)]="employeeStatus" name="employeeStatusProductivity">
+        <option value="">All</option>
+        <option value="Y">Active</option>
+        <option value="N">Inactive</option>
+      </select>
     </label>
     <label *ngIf="mode === 'retailer'">Retailer Name
       <app-searchable-select [options]="asrOptions.retailers || []" labelKey="name" [selected]="retailerId" placeholder="All Retailers" [pageSize]="25" (selectedChange)="retailerId=$event"></app-searchable-select>

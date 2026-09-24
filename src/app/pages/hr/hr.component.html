@@ -44,6 +44,14 @@
           <option *ngFor="let division of options.divisions" [value]="division.id">{{ division.name | firstCaps }}</option>
         </select>
       </div>
+      <div class="filter-field" *ngIf="isAttendance || isSummary">
+        <label>Employee Status</label>
+        <select [(ngModel)]="filter['employee_status']" (ngModelChange)="loadRows()">
+          <option value="">All</option>
+          <option value="Y">Active</option>
+          <option value="N">Inactive</option>
+        </select>
+      </div>
       <div class="filter-field" *ngIf="isTour || isAttendance || isSummary">
         <label>Designation</label>
         <select [(ngModel)]="filter['designation_id']" (ngModelChange)="loadRows()">
@@ -177,7 +185,7 @@
 
     <table class="data-table" *ngIf="isAttendance">
       <thead>
-        <tr><th></th><th>No</th><th>Action</th><th>User</th><th>Branch</th><th>Punchin Date</th><th>Punchin</th><th>Punchout</th><th>Punchin Address</th><th>Punchout Address</th><th>Worked</th><th>Status</th><th>Objective</th><th>Approval</th><th>Approve/Reject Reason</th><th>From</th><th>Approve/Reject By</th></tr>
+        <tr><th></th><th>No</th><th>Action</th><th>User</th><th>Employee Status</th><th>Branch</th><th>Punchin Date</th><th>Punchin</th><th>Punchout</th><th>Punchin Address</th><th>Punchout Address</th><th>Worked</th><th>Status</th><th>Objective</th><th>Approval</th><th>Approve/Reject Reason</th><th>From</th><th>Approve/Reject By</th></tr>
       </thead>
       <tbody>
         <tr *ngFor="let row of visibleRows; let i = index">
@@ -185,6 +193,7 @@
           <td>{{ pageStart + i + 1 }}</td>
           <td><div class="action-btns"><button class="btn-edit" title="Punch Out" (click)="punchOut(row)" *ngIf="!row['punchout_time'] && !row['punchoutTime']"><span class="material-icons">logout</span></button><button class="btn-danger" title="Remove Punchout" (click)="removePunchOut(row)" *ngIf="row['punchout_time'] || row['punchoutTime']"><span class="material-icons">undo</span></button><button class="btn-danger" title="Delete Attendance" (click)="openAttendanceDelete(row)" *ngIf="canDeleteAttendance"><span class="material-icons">delete</span></button></div></td>
           <td class="name-cell">{{ row['user_name'] || row['userName'] | firstCaps }}<small>{{ row['employee_code'] || row['employeeCode'] }}</small></td>
+          <td><span class="status-chip" [class.inactive]="(row['employee_status'] || row['employeeStatus']) === 'N'">{{ (row['employee_status'] || row['employeeStatus']) === 'N' ? 'N' : 'Y' }}</span></td>
           <td>{{ row['branch_name'] || row['branchName'] || '-' }}</td>
           <td>{{ formatDate(row['punchin_date'] || row['punchinDate']) }}</td>
           <td>{{ row['punchin_time'] || row['punchinTime'] }}</td>
@@ -204,7 +213,7 @@
 
     <table class="data-table" *ngIf="isSummary">
       <thead>
-        <tr><th>No</th><th>User Id</th><th>Employee Code</th><th>User Name</th><th>Reporting Managers</th><th *ngFor="let day of dayKeys(visibleRows[0] || {})">{{ day }}</th><th>Week Off</th><th>Absent</th><th>Half Day</th><th>Holiday</th><th>Present</th><th>Total Days</th></tr>
+        <tr><th>No</th><th>User Id</th><th>Employee Code</th><th>User Name</th><th>Employee Status</th><th>Reporting Managers</th><th *ngFor="let day of dayKeys(visibleRows[0] || {})">{{ day }}</th><th>Week Off</th><th>Absent</th><th>Half Day</th><th>Holiday</th><th>Present</th><th>Total Days</th></tr>
       </thead>
       <tbody>
         <tr *ngFor="let row of visibleRows; let i = index">
@@ -212,6 +221,7 @@
           <td>{{ row['user_id'] || row['userId'] }}</td>
           <td>{{ row['employee_code'] || row['employeeCode'] }}</td>
           <td class="name-cell">{{ row['user_name'] || row['userName'] | firstCaps }}</td>
+          <td><span class="status-chip" [class.inactive]="(row['employee_status'] || row['employeeStatus']) === 'N'">{{ (row['employee_status'] || row['employeeStatus']) === 'N' ? 'N' : 'Y' }}</span></td>
           <td>{{ row['reporting_managers'] || row['reportingManagers'] }}</td>
           <td *ngFor="let day of dayKeys(row)">{{ row['days'][day] }}</td>
           <td>{{ row['week_off'] || row['weekOff'] }}</td>

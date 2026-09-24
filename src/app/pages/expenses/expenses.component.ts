@@ -56,6 +56,8 @@ export class ExpensesComponent implements OnInit {
   selectedUserId: number | null = null;
   selectedExpenseTypeId: number | null = null;
   selectedBranchId: number | null = null;
+  /** Employee Status filter: '' both, 'Y' active only, 'N' inactive only. */
+  selectedEmployeeStatus = '';
   selectedDivisionId: number | null = null;
   selectedPayroll = '';
   selectedStatus: number | null = null;
@@ -188,7 +190,8 @@ export class ExpensesComponent implements OnInit {
       startDate: this.startDate || null,
       endDate: this.endDate || null,
       expenseId: this.expenseId,
-      search: this.appliedSearchQuery || null
+      search: this.appliedSearchQuery || null,
+      employeeStatus: this.selectedEmployeeStatus || null
     }).pipe(
       timeout(20000),
       finalize(() => {

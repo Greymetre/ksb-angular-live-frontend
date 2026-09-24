@@ -34,6 +34,8 @@ export class UserTargetsComponent implements OnInit {
   searchQuery = '';
   appliedSearchQuery = '';
   selectedBranchId: number | null = null;
+  /** Employee Status filter: '' both, 'Y' active only, 'N' inactive only. */
+  selectedEmployeeStatus = '';
   selectedUserId: number | null = null;
   selectedDivisionId: number | null = null;
   selectedType = '';
@@ -312,7 +314,8 @@ export class UserTargetsComponent implements OnInit {
       type: this.selectedType || null,
       month: this.selectedMonth || null,
       financialYear: this.selectedFinancialYear || null,
-      search: this.appliedSearchQuery || null
+      search: this.appliedSearchQuery || null,
+      employeeStatus: this.selectedEmployeeStatus || null
     };
   }
 

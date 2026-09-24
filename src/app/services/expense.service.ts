@@ -14,6 +14,8 @@ export interface Expense {
   expenseTypeName?: string | null;
   userId: number | null;
   userName?: string | null;
+  /** "Y" while the employee is switched on in the user master, "N" once they are not. */
+  employeeStatus?: string | null;
   employeeCode?: string | null;
   designationName?: string | null;
   branchId?: number | null;
@@ -70,6 +72,8 @@ export interface ExpenseFilters {
   endDate?: string | null;
   expenseId?: number | null;
   search?: string | null;
+  /** '', 'Y' or 'N'. */
+  employeeStatus?: string | null;
 }
 
 export interface ExpenseUserOption extends UserOption {
@@ -178,6 +182,7 @@ export class ExpenseService {
     if (filters.endDate) params = params.set('end_date', filters.endDate);
     if (filters.expenseId) params = params.set('expense_id', String(filters.expenseId));
     if (filters.search?.trim()) params = params.set('search', filters.search.trim());
+    if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);
     return params;
   }
 
@@ -215,6 +220,7 @@ export class ExpenseService {
       expenseTypeName: this.readNullableString(row['expenseTypeName'] ?? row['ExpenseTypeName'] ?? row['expense_type_name']),
       userId: this.readNullableNumber(row['userId'] ?? row['UserId'] ?? row['user_id']),
       userName: this.readNullableString(row['userName'] ?? row['UserName'] ?? row['user_name']),
+      employeeStatus: this.readNullableString(row['employeeStatus'] ?? row['EmployeeStatus'] ?? row['employee_status']),
       employeeCode: this.readNullableString(row['employeeCode'] ?? row['EmployeeCode'] ?? row['employee_code']),
       designationName: this.readNullableString(row['designationName'] ?? row['DesignationName'] ?? row['designation_name']),
       branchId: this.readNullableNumber(row['branchId'] ?? row['BranchId'] ?? row['branch_id']),

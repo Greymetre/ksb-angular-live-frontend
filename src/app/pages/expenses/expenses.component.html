@@ -29,6 +29,14 @@
       </select>
     </div>
     <div class="filter-field">
+      <label>Employee Status</label>
+      <select [(ngModel)]="selectedEmployeeStatus" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        <option value="Y">Active</option>
+        <option value="N">Inactive</option>
+      </select>
+    </div>
+    <div class="filter-field">
       <label>Zone</label>
       <select [(ngModel)]="selectedDivisionId" (ngModelChange)="onZoneFilterChange()">
         <option [ngValue]="null">All</option>
@@ -114,6 +122,7 @@
             <th>Expense Id</th>
             <th>Expense Date</th>
             <th>Employee</th>
+            <th>Employee Status</th>
             <th>Designation</th>
             <th>Expense Type</th>
             <th>Claim Amount</th>
@@ -133,6 +142,7 @@
             <td>{{ row.id }}</td>
             <td>{{ row.date }}</td>
             <td class="name-cell">{{ row.userName | firstCaps }}</td>
+            <td><span class="status-chip" [class.inactive]="row.employeeStatus === 'N'">{{ row.employeeStatus === 'N' ? 'N' : 'Y' }}</span></td>
             <td>{{ row.designationName | firstCaps }}</td>
             <td>{{ row.expenseTypeName | firstCaps }}</td>
             <td>{{ row.claimAmount | number:'1.2-2' }}</td>

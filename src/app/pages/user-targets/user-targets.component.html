@@ -26,6 +26,14 @@
       <app-searchable-select [options]="users" labelKey="name" [selected]="selectedUserId" placeholder="All Users" (selectedChange)="selectedUserId=$event; applyFilters()"></app-searchable-select>
     </div>
     <div class="filter-field">
+      <label>Employee Status</label>
+      <select [(ngModel)]="selectedEmployeeStatus" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        <option value="Y">Active</option>
+        <option value="N">Inactive</option>
+      </select>
+    </div>
+    <div class="filter-field">
       <label>Zone</label>
       <select [(ngModel)]="selectedDivisionId" (ngModelChange)="onZoneFilterChange()">
         <option [ngValue]="null">All</option>
@@ -98,6 +106,7 @@
             <th>Action</th>
             <th>Emp Code</th>
             <th>User Name</th>
+            <th>Employee Status</th>
             <th>Designation</th>
             <th>Branch Name</th>
             <th>Sales Type</th>
@@ -123,6 +132,7 @@
             </td>
             <td>{{ row.employeeCode }}</td>
             <td class="name-cell">{{ row.userName | firstCaps }}</td>
+            <td><span class="status-chip" [class.inactive]="row.userActive === 'N'">{{ row.userActive === 'N' ? 'N' : 'Y' }}</span></td>
             <td>{{ row.designationName | firstCaps }}</td>
             <td>{{ row.branchName | firstCaps }}</td>
             <td>{{ row.type | firstCaps }}</td>

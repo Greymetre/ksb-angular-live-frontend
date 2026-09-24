@@ -14,7 +14,7 @@ header p { color: #64748b; }
   margin-top: 22px;
 
   label { display: flex; flex-direction: column; gap: 7px; font-weight: 600; }
-  input { height: 44px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; padding: 7px 10px; font: inherit; }
+  input, select { height: 44px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; padding: 7px 10px; font: inherit; color: inherit; }
 }
 
 .required { color: #dc2626; }

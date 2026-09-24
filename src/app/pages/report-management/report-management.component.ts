@@ -20,6 +20,8 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   branch = ''; zone = ''; search = '';
   asrOptions: AsrReportOptions = { users: [], divisions: [], branches: [], designations: [], default_designation_id: null };
   employeeId: number | null = null;
+  /** Employee Status filter: '' both, 'Y' active only, 'N' inactive only. */
+  employeeStatus = '';
   divisionId: number | null = null;
   branchId: number | null = null;
   designationId: number | null = null;
@@ -109,6 +111,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
     }
     return {
       designationId: this.designationId, divisionId: this.divisionId, branchId: this.branchId,
+      employeeStatus: this.employeeStatus || null,
       search: this.ratingSearch, page: this.ratingPage, pageSize: this.ratingPageSize
     };
   }
@@ -118,7 +121,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
       this.error = this.month === 'weekly' ? 'Designation is required.' : 'Designation and year are required.';
       return null;
     }
-    return { designationId: this.designationId, year: this.year, month: this.month, divisionId: this.divisionId, branchId: this.branchId };
+    return { designationId: this.designationId, year: this.year, month: this.month, divisionId: this.divisionId, branchId: this.branchId, employeeStatus: this.employeeStatus || null };
   }
 
   loadRatingDashboard(): void {
@@ -247,13 +250,13 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
     if (!this.designationId || !this.startDate || !this.endDate) { this.error = 'Designation, start date and end date are required.'; return; }
     if (this.startDate > this.endDate) { this.error = 'Start date cannot be after end date.'; return; }
     this.loading = true; this.error = '';
-    this.service.downloadAsr({ employeeId: this.employeeId, divisionId: this.divisionId, branchId: this.branchId, designationId: this.designationId, startDate: this.startDate, endDate: this.endDate })
+    this.service.downloadAsr({ employeeId: this.employeeId, divisionId: this.divisionId, branchId: this.branchId, designationId: this.designationId, employeeStatus: this.employeeStatus || null, startDate: this.startDate, endDate: this.endDate })
       .pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); }))
       .subscribe({ next: blob => this.saveBlob(blob, 'Asr_performance_report.xlsx'), error: error => this.handleBlobError(error) });
   }
 
   loadActivityOptions(): void { this.loading = true; this.error = ''; this.service.activityOptions().pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); })).subscribe({ next: options => { this.activityOptions = options; this.loadActivityPreview(); }, error: error => this.error = error?.error?.message || error.message || 'Unable to load activity report filters.' }); }
-  activityFilters(): Record<string, any> { return { start_date: this.startDate, end_date: this.endDate, zone_id: this.divisionId, branch_id: this.branchId, meet: this.meet }; }
+  activityFilters(): Record<string, any> { return { start_date: this.startDate, end_date: this.endDate, zone_id: this.divisionId, branch_id: this.branchId, meet: this.meet, employee_status: this.employeeStatus }; }
   activityFilterChanged(): void { if (this.startDate && this.endDate && this.meet && this.startDate <= this.endDate) this.loadActivityPreview(); }
   loadActivityPreview(): void { if (!this.meet) return; this.previewLoading = true; this.error = ''; this.service.activityPreview(this.activityFilters()).pipe(finalize(() => { this.previewLoading = false; this.cdr.detectChanges(); })).subscribe({ next: data => this.activityPreview = { summary: data.summary || {}, sales_engineer_wise: data.sales_engineer_wise || [], distributor_wise: data.distributor_wise || [], gift_summary: data.gift_summary || [] }, error: error => this.error = error?.error?.message || error.message || 'Unable to load activity report preview.' }); }
   downloadActivity(kind: 'sales-engineer'|'distributor'|'gift-summary'): void { if (!this.startDate || !this.endDate) { this.error = 'Date range is required.'; return; } if (!this.meet) { this.error = 'Please select a meet before downloading the report.'; return; } if (this.startDate > this.endDate) { this.error = 'Start date cannot be after end date.'; return; } this.loading = true; this.error = ''; this.service.downloadActivity(kind, this.activityFilters()).pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); })).subscribe({ next: blob => this.saveBlob(blob, `${this.selectedMeetName.replace(/\s*\/\s*|\s+/g, '_')}_${kind}_${this.startDate}_${this.endDate}.xlsx`), error: error => this.handleBlobError(error) }); }
@@ -279,7 +282,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   downloadProductivity(): void {
     if (this.mode === 'retailer' && !this.divisionId) { this.error = 'Please select a zone before downloading the report.'; return; }
     this.loading = true; this.error = '';
-    const filters: Record<string, any> = { employee_id: this.employeeId, dealer_id: this.dealerId, year: this.year, designation_id: this.designationIds };
+    const filters: Record<string, any> = { employee_id: this.employeeId, dealer_id: this.dealerId, year: this.year, designation_id: this.designationIds, employee_status: this.employeeStatus };
     if (this.mode === 'retailer') Object.assign(filters, { retailer_id: this.retailerId, zone_id: this.divisionId, state_id: this.stateId });
     else Object.assign(filters, { division_id: this.divisionId, branch_id: this.branchId });
     this.service.downloadProductivity(this.mode as 'retailer' | 'dealer', filters).pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); })).subscribe({

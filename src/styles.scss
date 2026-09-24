@@ -980,3 +980,22 @@ body {
   color: #b26a00 !important;
   font-weight: 600;
 }
+
+// Employee Status beside a name: "Y" while the employee is switched on in the user master,
+// "N" once they are not. The figures of someone switched off stay in the report.
+.status-chip {
+  display: inline-block;
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 11px;
+  text-align: center;
+  background: #e8f5e9;
+  color: #2e7d32;
+
+  &.inactive {
+    background: #fdecea;
+    color: #c62828;
+  }
+}

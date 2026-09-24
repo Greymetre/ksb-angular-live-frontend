@@ -7,7 +7,7 @@ import { AuthService } from '../../services/auth.service';
 @Component({standalone:false,selector:'app-checkin-reports',templateUrl:'./checkin-reports.component.html',styleUrls:['./checkin-reports.component.scss']})
 export class CheckinReportsComponent implements OnInit {
   rows:CheckinRow[]=[];users:CheckinUser[]=[];divisions:CheckinOption[]=[];branches:CheckinOption[]=[];designations:CheckinOption[]=[];userOptions:SearchableSelectOption[]=[];designationOptions:SearchableSelectOption[]=[];total=0;loading=false;exporting=false;error='';searchTimer?:number;
-  filter:CheckinFilter={page:1,pageSize:25,search:'',startDate:'',endDate:'',userId:null,divisionId:null,branchId:null,designationIds:[]};
+  filter:CheckinFilter={page:1,pageSize:25,search:'',startDate:'',endDate:'',userId:null,divisionId:null,branchId:null,designationIds:[],employeeStatus:''};
   constructor(private service:CheckinReportService,private auth:AuthService,private cdr:ChangeDetectorRef){}
 
   get canExport(): boolean { return this.auth.hasPermission('checkin.export'); }

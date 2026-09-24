@@ -13,6 +13,13 @@
     <label><span class="field-label">Scheme Name <span class="required">*</span></span>
       <app-searchable-select [options]="schemeOptions" labelKey="name" [selected]="schemeId" placeholder="Select Scheme" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading schemes..." (selectedChange)="schemeId=$event"></app-searchable-select>
     </label>
+    <label><span class="field-label">Employee Status</span>
+      <select [(ngModel)]="employeeStatus" name="employeeStatus">
+        <option value="">All</option>
+        <option value="Y">Active</option>
+        <option value="N">Inactive</option>
+      </select>
+    </label>
     <label><span class="field-label">Start Date <span class="required">*</span></span><input type="date" [(ngModel)]="startDate" name="startDate" required></label>
     <label><span class="field-label">End Date <span class="required">*</span></span><input type="date" [(ngModel)]="endDate" name="endDate" [min]="startDate" required></label>
 

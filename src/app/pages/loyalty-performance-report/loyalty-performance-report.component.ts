@@ -23,6 +23,8 @@ export class LoyaltyPerformanceReportComponent implements OnInit {
   optionsLoading = false;
 
   segmentId: number | null = null;
+  /** Employee Status filter: '' both, 'Y' active only, 'N' inactive only. */
+  employeeStatus = '';
   zoneId: number | null = null;
   schemeId: number | null = null;
   startDate = '';
@@ -67,6 +69,7 @@ export class LoyaltyPerformanceReportComponent implements OnInit {
     this.downloading = kind;
     this.service.downloadLoyaltyPerformance(kind, {
       segmentId: this.segmentId!,
+      employeeStatus: this.employeeStatus || null,
       zoneId: this.zoneId!,
       schemeId: this.schemeId!,
       startDate: this.startDate,

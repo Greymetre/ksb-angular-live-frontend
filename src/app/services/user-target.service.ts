@@ -13,6 +13,8 @@ export interface UserTarget {
   branchId: number | null;
   employeeCode?: string | null;
   userName?: string | null;
+  /** "Y" while the employee is switched on in the user master, "N" once they are not. */
+  userActive?: string | null;
   designationName?: string | null;
   branchName?: string | null;
   divisionId?: number | null;
@@ -38,6 +40,8 @@ export interface UserTargetFilters {
   month?: string | null;
   financialYear?: string | null;
   search?: string | null;
+  /** '', 'Y' or 'N'. */
+  employeeStatus?: string | null;
 }
 
 export interface UserTargetPayload {
@@ -154,6 +158,7 @@ export class UserTargetService {
     if (filters.month) params = params.set('month', filters.month);
     if (filters.financialYear) params = params.set('financial_year', filters.financialYear);
     if (filters.search?.trim()) params = params.set('search', filters.search.trim());
+    if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);
     return params;
   }
 
@@ -213,6 +218,7 @@ export class UserTargetService {
       branchId: this.readNullableNumber(row['branchId'] ?? row['BranchId'] ?? row['branch_id']),
       employeeCode: this.readNullableString(row['employeeCode'] ?? row['EmployeeCode'] ?? row['employee_code']),
       userName: this.readNullableString(row['userName'] ?? row['UserName'] ?? row['user_name']),
+      userActive: this.readNullableString(row['userActive'] ?? row['UserActive'] ?? row['user_active']),
       designationName: this.readNullableString(row['designationName'] ?? row['DesignationName'] ?? row['designation_name']),
       branchName: this.readNullableString(row['branchName'] ?? row['BranchName'] ?? row['branch_name']),
       divisionId: this.readNullableNumber(row['divisionId'] ?? row['DivisionId'] ?? row['division_id']),
