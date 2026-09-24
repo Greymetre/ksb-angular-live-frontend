@@ -9,15 +9,26 @@
   min-height: 100vh;
   // The backdrop both field apps paint behind every screen, so signing in to the CRM
   // looks like the apps it belongs to.
-  background: #fdf3e2 url('/assets/img/app-backdrop.jpg') center / cover no-repeat;
+  background: #fdf3e2;
   overflow: hidden;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 48px;
 }
 
+.login-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .login-brands {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
