@@ -15,20 +15,29 @@
   align-items: center;
   height: 100%;
 }
+// KSB sits in the strip beside the menu; the two field apps stand next to it.
 .logo-area {
   width: 280px;
   height: 100%;
-  // White behind the logo: the AAROH mark is navy on a transparent background, so it is
-  // shown as it was given rather than recoloured to sit on a dark strip.
+  // White behind the logo: the marks are navy on a transparent background, so they are
+  // shown as they were given rather than recoloured to sit on a dark strip.
   background: #ffffff;
   border-right: 1px solid #e0e0e0;
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 0 18px;
+
+  .ksb-logo {
+    width: 120px;
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
 }
 
-// Both field apps, small and side by side, the way the apps themselves show KSB beside
-// their own mark. Each logo is the file as it was given - only its size is set here.
+// Both field apps, small and side by side, each logo the file as it was given - only its
+// size is set here.
 .brand-lockup {
   display: flex;
   align-items: center;
@@ -55,12 +64,6 @@
   padding: 0 28px;
   display: flex;
   align-items: center;
-
-  .ksb-logo {
-    width: 92px;
-    height: auto;
-    display: block;
-  }
 }
 .header-right {
   display: flex;
