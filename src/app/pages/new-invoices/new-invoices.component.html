@@ -223,10 +223,14 @@
               <iframe *ngIf="isPdfAttachment(currentAttachmentPath())"
                 [src]="attachmentViewerResourceUrl"
                 title="Invoice PDF attachment"></iframe>
+              <!-- The same lens the KYC document viewer carries, so a faint invoice number
+                   can be read without zooming the whole page. -->
               <img *ngIf="!isPdfAttachment(currentAttachmentPath())"
                 [src]="mediaUrl(currentAttachmentPath())"
                 [style.transform]="attachmentRotationStyle()"
-                alt="Invoice attachment" />
+                alt="Invoice attachment"
+                appHoverMagnifier [magnifierRotation]="attachmentRotation"
+                title="Move the mouse over the invoice to magnify it" />
             </div>
           </div>
         </div>
