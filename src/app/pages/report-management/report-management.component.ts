@@ -31,7 +31,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   dealerId: number | null = null;
   stateId: number | null = null;
   year = new Date().getFullYear();
-  month: number | 'weekly' | null = new Date().getMonth() + 1;
+  month: number | 'weekly' | 'fy' | null = new Date().getMonth() + 1;
   startDate = this.firstDayOfMonth();
   endDate = this.today();
   activityOptions: { zones: Array<{id:number;name:string}>; branches: Array<{id:number;name:string;zone_id?:number}>; meets: Array<{id:string;name:string}> } = { zones: [], branches: [], meets: [] };

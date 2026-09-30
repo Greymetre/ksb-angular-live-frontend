@@ -304,6 +304,9 @@ export class SidebarComponent {
           children: [
             { label: 'Retailer Performance', icon: 'summarize', route: '/reports/retailer-performance', permission: 'retailer_performance_report.export' },
             { label: 'Dealer Performance', icon: 'summarize', route: '/reports/dealer-performance', permission: 'retailer_performance_report.export' },
+            { label: 'RFM Report', icon: 'leaderboard', route: '/reports/rfm-report', permission: 'rfm_report.export' },
+            { label: 'RFM Movement', icon: 'swap_vert', route: '/reports/rfm-movement', permission: 'rfm_report.export' },
+            { label: 'RFM Activation', icon: 'bolt', route: '/reports/rfm-activation', permission: 'rfm_report.export' },
             { label: 'Customer Master', icon: 'contact_emergency', route: '/reports/customer-master', permission: 'customer.export' },
             // { label: 'Calling Report', icon: 'dialpad', permission: 'calling_report' },
             { label: 'Market Intelligence', icon: 'nature_people', route: '/reports/market-intelligence', permission: 'market_intelligence_report.view' }

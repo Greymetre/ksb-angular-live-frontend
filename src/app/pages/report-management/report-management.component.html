@@ -68,7 +68,7 @@
       <select [(ngModel)]="year" name="ratingYear" [required]="month !== 'weekly'" [disabled]="month === 'weekly'"><option *ngFor="let item of years" [ngValue]="item">{{item}}</option></select>
     </label>
     <label>Excel Report Period
-      <select [(ngModel)]="month" name="ratingMonth"><option [ngValue]="'weekly'">Weekly (Last 7 Days)</option><option [ngValue]="null">All Months (YTD)</option><option *ngFor="let item of months" [ngValue]="item.id">{{item.name}}</option></select>
+      <select [(ngModel)]="month" name="ratingMonth"><option [ngValue]="'weekly'">Weekly (Last 7 Days)</option><option [ngValue]="null">All Months (YTD - Jan-Dec)</option><option [ngValue]="'fy'">All Months (YTD - Apr-Mar)</option><option *ngFor="let item of months" [ngValue]="item.id">{{item.name}}</option></select>
     </label>
     <div class="download-wrap rating-filter-actions">
       <button class="secondary-action" type="button" (click)="clearRatingFilters()" [disabled]="ratingDashboardLoading">Clear</button>

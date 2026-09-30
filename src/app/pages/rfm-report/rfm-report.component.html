@@ -1,0 +1,65 @@
+<section class="page">
+  <header>
+    <div>
+      <h1>{{ mode === 'movement' ? 'RFM Movement' : mode === 'activation' ? 'RFM Activation' : 'RFM Report' }}</h1>
+      <p *ngIf="mode === 'report'">Recency, frequency and monetary value for every active retailer that has placed at least one order, retailer wise or dealer wise. Each is rated 1 to 5.</p>
+      <p *ngIf="mode === 'movement'">Where each retailer stood at the end of the chosen month against where it stood a month earlier - who slipped, who climbed, and why.</p>
+      <p *ngIf="mode === 'activation'">How much of each ASR's or dealer's retailer book has been activated by the end of the chosen month, and how many were won during it.</p>
+    </div>
+  </header>
+
+  <form class="asr-filter-card" (ngSubmit)="$event.preventDefault()">
+    <label><span class="field-label">Zone</span>
+      <app-searchable-select [options]="options.zones" labelKey="name" [selected]="zoneId" placeholder="All Zones" allOption="All Zones" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading zones..." (selectedChange)="zoneId=$event;branchId=null"></app-searchable-select>
+    </label>
+    <label><span class="field-label">Branch</span>
+      <app-searchable-select [options]="zoneBranches" labelKey="name" [selected]="branchId" placeholder="All Branches" allOption="All Branches" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading branches..." (selectedChange)="branchId=$event"></app-searchable-select>
+    </label>
+    <label><span class="field-label">State</span>
+      <app-searchable-select [options]="options.states" labelKey="name" [selected]="stateId" placeholder="All States" allOption="All States" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading states..." (selectedChange)="stateId=$event;districtId=null"></app-searchable-select>
+    </label>
+    <label><span class="field-label">District</span>
+      <app-searchable-select [options]="stateDistricts" labelKey="name" [selected]="districtId" placeholder="All Districts" allOption="All Districts" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading districts..." (selectedChange)="districtId=$event"></app-searchable-select>
+    </label>
+
+    <label *ngIf="needsMonth"><span class="field-label">Year <span class="required">*</span></span>
+      <select [(ngModel)]="year" name="rfmYear"><option *ngFor="let item of years" [ngValue]="item">{{item}}</option></select>
+    </label>
+    <label *ngIf="needsMonth"><span class="field-label">Month <span class="required">*</span></span>
+      <select [(ngModel)]="month" name="rfmMonth"><option *ngFor="let item of months" [ngValue]="item.id">{{item.name}}</option></select>
+    </label>
+    <p class="month-note" *ngIf="mode === 'movement'">Both sides are counted from the first order ever placed: everything up to the end of the chosen month against everything up to the end of the month before.</p>
+    <label *ngIf="mode === 'activation'"><span class="field-label">Employee Status</span>
+      <select [(ngModel)]="employeeStatus" name="rfmEmployeeStatus">
+        <option value="">All</option>
+        <option value="Y">Active</option>
+        <option value="N">Inactive</option>
+      </select>
+    </label>
+    <p class="month-note" *ngIf="mode === 'activation'">Active means the retailer had placed at least one order by the end of the chosen month. New Activated means its very first order landed in that month. Employee Status applies to the ASR Wise sheet.</p>
+
+    <div class="download-wrap" *ngIf="auth.hasPermission('rfm_report.export')">
+      <ng-container *ngIf="mode === 'report'">
+        <button class="primary" type="button" [disabled]="!!downloading" (click)="download('retailer')">
+          <span class="material-icons">download</span>{{ downloading === 'retailer' ? 'Preparing...' : 'Retailer Wise' }}
+        </button>
+        <button class="primary" type="button" [disabled]="!!downloading" (click)="download('dealer')">
+          <span class="material-icons">download</span>{{ downloading === 'dealer' ? 'Preparing...' : 'Dealer Wise' }}
+        </button>
+      </ng-container>
+      <button class="primary" type="button" *ngIf="mode === 'movement'" [disabled]="!!downloading" (click)="download('movement')">
+        <span class="material-icons">download</span>{{ downloading === 'movement' ? 'Preparing...' : 'Export' }}
+      </button>
+      <ng-container *ngIf="mode === 'activation'">
+        <button class="primary" type="button" [disabled]="!!downloading" (click)="download('activation-asr')">
+          <span class="material-icons">download</span>{{ downloading === 'activation-asr' ? 'Preparing...' : 'ASR Wise' }}
+        </button>
+        <button class="primary" type="button" [disabled]="!!downloading" (click)="download('activation-dealer')">
+          <span class="material-icons">download</span>{{ downloading === 'activation-dealer' ? 'Preparing...' : 'Dealer Wise' }}
+        </button>
+      </ng-container>
+    </div>
+  </form>
+
+  <div class="error" *ngIf="error">{{ error }}</div>
+</section>

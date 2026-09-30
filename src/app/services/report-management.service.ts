@@ -9,6 +9,11 @@ export interface ReportResult { rows: Record<string, any>[]; summary: Record<str
 export interface ReportOption { id: number; name: string; }
 /** A branch carries its zone so a screen filtered on a zone can offer only its branches. */
 export interface BranchOption extends ReportOption { zone_id?: number | null; }
+/** A district carries its state so a screen filtered on a state can offer only its districts. */
+export interface DistrictOption extends ReportOption { state_id?: number | null; }
+/** The sheets the RFM screens can download; each maps to reports/rfm/{kind}-export. */
+export type RfmDownloadKind = 'retailer' | 'dealer' | 'movement' | 'activation-asr' | 'activation-dealer';
+export interface RfmReportOptions { zones: ReportOption[]; branches: BranchOption[]; states: ReportOption[]; districts: DistrictOption[]; }
 export interface LoyaltyPerformanceScheme extends ReportOption { code: string; start_date: string; end_date: string; }
 export interface LoyaltyPerformanceOptions { segments: ReportOption[]; zones: ReportOption[]; schemes: LoyaltyPerformanceScheme[]; }
 export interface LoyaltyPerformanceFilters { segmentId: number | null; zoneId: number; schemeId: number; startDate: string; endDate: string; employeeStatus?: string | null; }
@@ -37,7 +42,8 @@ export interface AsrReportFilters {
 export interface RatingReportFilters {
   designationId: number;
   year: number;
-  month?: number | 'weekly' | null;
+  /** A month number, 'weekly', 'fy' for the April-March year, or null for January-December. */
+  month?: number | 'weekly' | 'fy' | null;
   divisionId?: number | null;
   branchId?: number | null;
   /** "Y", "N" or empty for both. */
@@ -186,6 +192,22 @@ export class ReportManagementService {
     return this.http.get(`${API_BASE_URL}/reports/loyalty-performance/${kind}-export`, { headers: this.headers(), params, responseType: 'blob' });
   }
 
+  rfmOptions(): Observable<RfmReportOptions> {
+    return this.http.get<any>(`${API_BASE_URL}/reports/rfm/options`, { headers: this.headers() }).pipe(map(response => ({
+      zones: this.array(response.zones),
+      branches: this.array(response.branches),
+      states: this.array(response.states),
+      districts: this.array(response.districts)
+    })));
+  }
+
+  /** Every filter is optional - nothing set means every retailer the caller may see. */
+  downloadRfm(kind: RfmDownloadKind, filters: Record<string, any>): Observable<Blob> {
+    let params = new HttpParams();
+    Object.entries(filters).forEach(([key, value]) => { if (value !== null && value !== undefined && value !== '') params = params.set(key, String(value)); });
+    return this.http.get(`${API_BASE_URL}/reports/rfm/${kind}-export`, { headers: this.headers(), params, responseType: 'blob' });
+  }
+
   activityOptions(): Observable<{ zones: ReportOption[]; branches: Array<ReportOption & { zone_id?: number }>; meets: Array<{ id: string; name: string }> }> {
     return this.http.get<any>(`${API_BASE_URL}/reports/activity-report/options`, { headers: this.headers() }).pipe(map(response => ({ zones: this.array(response.zones), branches: this.array(response.branches), meets: this.array(response.meets) })));
   }
@@ -206,7 +228,10 @@ export class ReportManagementService {
     if (filters.month === 'weekly') params = params.set('period', 'weekly');
     else {
       params = params.set('year', filters.year);
-      if (filters.month) params = params.set('month', filters.month);
+      // 'fy' is the April-March year: a whole year like the January-December one, so it
+      // carries no month - only the period that says where the year starts.
+      if (filters.month === 'fy') params = params.set('period', 'fy');
+      else if (filters.month) params = params.set('month', filters.month);
     }
     if (filters.divisionId) params = params.set('division_id', filters.divisionId);
     if (filters.branchId) params = params.set('branch_id', filters.branchId);
