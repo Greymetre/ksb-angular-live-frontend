@@ -28,10 +28,19 @@ export async function copyTable(table: TableSnapshot): Promise<void> {
 /// jsPDF is pulled in only when a PDF is actually asked for - it is a third of a megabyte
 /// and would otherwise sit in the initial bundle for every page of the CRM.
 export async function downloadTablePdf(table: TableSnapshot): Promise<void> {
-  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+  const [pdfModule, tableModule] = await Promise.all([
     import('jspdf'),
-    import('jspdf-autotable'),
+    import('jspdf-autotable') as Promise<any>,
   ]);
+  // jspdf-autotable ships a CommonJS build, so a dynamic import hands back the module
+  // object rather than the function: autoTable sits one level further down. Reading it
+  // as a plain default export gave "e is not a function" on every PDF button.
+  const jsPDF = pdfModule.jsPDF ?? (pdfModule as any).default;
+  const autoTable = typeof tableModule.default === 'function'
+    ? tableModule.default
+    : tableModule.default?.default ?? tableModule.autoTable;
+  if (typeof autoTable !== 'function') throw new Error('The PDF library could not be loaded.');
+
   const landscape = table.headers.length > 6;
   const doc = new jsPDF({ orientation: landscape ? 'landscape' : 'portrait', unit: 'pt', format: 'a4' });
   doc.setFontSize(14);
