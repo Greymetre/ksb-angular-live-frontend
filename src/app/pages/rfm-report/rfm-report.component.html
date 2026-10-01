@@ -38,23 +38,23 @@
     </label>
     <p class="month-note" *ngIf="mode === 'activation'">Active means the retailer had placed at least one order by the end of the chosen month. New Activated means its very first order landed in that month. Employee Status applies to the ASR Wise sheet.</p>
 
-    <div class="download-wrap" *ngIf="auth.hasPermission('rfm_report.export')">
+    <div class="download-wrap">
       <ng-container *ngIf="mode === 'report'">
-        <button class="primary" type="button" [disabled]="!!downloading" (click)="download('retailer')">
+        <button class="primary" type="button" *ngIf="auth.hasPermission('rfm_report.export_retailer')" [disabled]="!!downloading" (click)="download('retailer')">
           <span class="material-icons">download</span>{{ downloading === 'retailer' ? 'Preparing...' : 'Retailer Wise' }}
         </button>
-        <button class="primary" type="button" [disabled]="!!downloading" (click)="download('dealer')">
+        <button class="primary" type="button" *ngIf="auth.hasPermission('rfm_report.export_dealer')" [disabled]="!!downloading" (click)="download('dealer')">
           <span class="material-icons">download</span>{{ downloading === 'dealer' ? 'Preparing...' : 'Dealer Wise' }}
         </button>
       </ng-container>
-      <button class="primary" type="button" *ngIf="mode === 'movement'" [disabled]="!!downloading" (click)="download('movement')">
+      <button class="primary" type="button" *ngIf="mode === 'movement' && auth.hasPermission('rfm_movement_report.export')" [disabled]="!!downloading" (click)="download('movement')">
         <span class="material-icons">download</span>{{ downloading === 'movement' ? 'Preparing...' : 'Export' }}
       </button>
       <ng-container *ngIf="mode === 'activation'">
-        <button class="primary" type="button" [disabled]="!!downloading" (click)="download('activation-asr')">
+        <button class="primary" type="button" *ngIf="auth.hasPermission('rfm_activation_report.export_asr')" [disabled]="!!downloading" (click)="download('activation-asr')">
           <span class="material-icons">download</span>{{ downloading === 'activation-asr' ? 'Preparing...' : 'ASR Wise' }}
         </button>
-        <button class="primary" type="button" [disabled]="!!downloading" (click)="download('activation-dealer')">
+        <button class="primary" type="button" *ngIf="auth.hasPermission('rfm_activation_report.export_dealer')" [disabled]="!!downloading" (click)="download('activation-dealer')">
           <span class="material-icons">download</span>{{ downloading === 'activation-dealer' ? 'Preparing...' : 'Dealer Wise' }}
         </button>
       </ng-container>

@@ -1,0 +1,97 @@
+<section class="page">
+  <header>
+    <div>
+      <h1>Route Optimized</h1>
+      <p>Pick an employee and a day to see the order their counters should be visited in, and when each is reached.</p>
+    </div>
+    <div class="route-stats" *ngIf="plan?.summary as summary">
+      <div class="route-stat"><b>{{ summary.stops }}</b><span>Stops</span></div>
+      <div class="route-stat"><b>{{ summary.route_km }}</b><span>Route KM</span></div>
+      <div class="route-stat"><b>{{ summary.finish_time || '-' }}</b><span>Est. Finish</span></div>
+    </div>
+  </header>
+
+  <form class="asr-filter-card" (ngSubmit)="$event.preventDefault()">
+    <label><span class="field-label">Employee <span class="required">*</span></span>
+      <app-searchable-select [options]="users" labelKey="name" [selected]="userId" placeholder="Select Employee"
+        [pageSize]="25" [loading]="usersLoading" loadingText="Loading employees..." (selectedChange)="userId=$event;selectionChanged()"></app-searchable-select>
+    </label>
+    <label><span class="field-label">Date <span class="required">*</span></span>
+      <input type="date" [(ngModel)]="date" name="routeDate" (ngModelChange)="selectionChanged()" required>
+    </label>
+    <label *ngIf="showBeatPicker"><span class="field-label">Beat</span>
+      <app-searchable-select [options]="beatChoice!.beats" labelKey="name" [selected]="beatId" placeholder="Select Beat"
+        [pageSize]="25" [loading]="beatsLoading" loadingText="Loading beats..." (selectedChange)="beatId=$event"></app-searchable-select>
+      <small class="hint">Nothing is scheduled for this date, so pick the beat to plan.</small>
+    </label>
+    <label *ngIf="scheduledBeatName"><span class="field-label">Scheduled Beat</span>
+      <div class="scheduled-beat"><span class="material-icons">event_available</span>{{ scheduledBeatName }}</div>
+    </label>
+    <div class="download-wrap" *ngIf="auth.hasPermission('beat_route_optimizer.build')">
+      <button class="primary" type="button" [disabled]="building" (click)="build()">
+        <span class="material-icons">route</span>{{ building ? 'Building...' : 'Show Optimized Route' }}
+      </button>
+    </div>
+  </form>
+
+  <div class="error" *ngIf="error">{{ error }}</div>
+
+  <div class="notice" *ngIf="plan?.empty">{{ plan?.message }}</div>
+
+  <ng-container *ngIf="hasRoute">
+    <div class="route-meta">
+      <span><strong>{{ plan?.user?.name }}</strong> · {{ plan?.user?.designation }}</span>
+      <span>{{ plan?.beat_name }}</span>
+      <span>{{ plan?.date }}</span>
+      <span class="plan-tag" [class.assigned]="plan?.plan_source === 'assigned'">
+        {{ plan?.plan_source === 'scheduled' ? 'Scheduled beat' : 'Assigned beat' }}
+      </span>
+      <span *ngIf="plan?.start as start">Starts at {{ start.source }}{{ start.time ? ' · ' + start.time : '' }}</span>
+      <span *ngIf="!plan?.start">No punch in or location for the day - the walk starts at its first counter</span>
+    </div>
+
+    <div class="notice" *ngIf="plan?.summary?.capped">
+      This beat holds {{ plan?.summary?.beat_counters }} counters. A day's plan is the nearest
+      {{ plan?.summary?.day_plan_limit }} from where the employee started.
+    </div>
+
+    <div class="route-body">
+      <div class="route-list-card">
+        <div class="route-list-head">
+          <h2>Route Sequence</h2>
+          <p>Nearest first from the day's start point. Click a stop to find it on the map.</p>
+        </div>
+        <ol class="route-list">
+          <li *ngFor="let stop of stops" [class.active]="selectedStop === stop.sequence" (click)="selectStop(stop)">
+            <span class="seq" [class.done]="stop.visited">{{ stop.sequence }}</span>
+            <div class="stop-body">
+              <strong>{{ stop.name }}</strong>
+              <small>{{ stop.category }}<ng-container *ngIf="stop.city"> · {{ stop.city }}</ng-container><ng-container *ngIf="stop.address"> · {{ stop.address }}</ng-container></small>
+              <div class="stop-tags">
+                <span class="tag" [ngClass]="priorityClass(stop)">{{ stop.priority_label }}</span>
+                <span class="tag plain" *ngIf="stop.visited_at">at {{ stop.visited_at }}</span>
+                <span class="tag plain" *ngIf="stop.last_visited && !stop.visited">Last seen {{ stop.last_visited }}</span>
+                <span class="tag plain" *ngIf="stop.mobile">{{ stop.mobile }}</span>
+              </div>
+            </div>
+            <div class="stop-side">
+              <strong *ngIf="stop.eta">{{ stop.eta }}</strong>
+              <small *ngIf="stop.leg_km !== null">{{ stop.leg_km }} km</small>
+              <small class="unmapped" *ngIf="stop.latitude === null">No location</small>
+            </div>
+          </li>
+        </ol>
+      </div>
+
+      <div class="route-map-card">
+        <div class="map-note" *ngIf="mapError">{{ mapError }} The route sequence beside it is unaffected.</div>
+        <div #routeMap class="route-map" [class.hidden]="mapError"></div>
+        <div class="route-legend">
+          <span><i class="dot start"></i> Day start</span>
+          <span><i class="dot pending"></i> To visit</span>
+          <span><i class="dot done"></i> Visited today</span>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</section>

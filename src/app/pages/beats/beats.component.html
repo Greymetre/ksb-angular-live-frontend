@@ -1,6 +1,15 @@
 <section class="page">
   <header><div><h1>Beats</h1><p>Manage beat areas, users, customers and schedules.</p></div><button *ngIf="canCreate" class="primary" (click)="create()">+ Add Beat</button></header>
-  <div class="toolbar"><label>Show <select [(ngModel)]="showEntries" (change)="filtersChanged()"><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option></select> entries</label><input [(ngModel)]="search" (ngModelChange)="filtersChanged()" placeholder="Search beats"/></div>
+  <div class="toolbar"><label>Show <select [(ngModel)]="showEntries" (change)="filtersChanged()"><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option></select> entries</label><input [(ngModel)]="search" (ngModelChange)="filtersChanged()" placeholder="Search beats"/>
+    <div class="table-actions" *ngIf="hasTableActions">
+      <button *ngIf="canCopy" (click)="copyRows()">Copy</button>
+      <button *ngIf="canExport" [disabled]="busy==='export'" (click)="exportExcel()">{{busy==='export'?'Exporting...':'Excel'}}</button>
+      <button *ngIf="canPdf" (click)="downloadPdf()">PDF</button>
+      <button *ngIf="canPrint" (click)="printRows()">Print</button>
+      <button *ngIf="canImport" class="primary" [disabled]="busy==='import'" (click)="chooseFile(importInput)">{{busy==='import'?'Importing...':'Import'}}</button>
+      <input #importInput type="file" accept=".xlsx,.xls" hidden (change)="importFile($event)"/>
+    </div>
+  </div>
   <div class="table-wrap"><table><thead><tr><th>#</th><th>Beat</th><th>Description</th><th>Users</th><th>Customers</th><th>Schedules</th><th>Status</th><th>Actions</th></tr></thead><tbody>
     <tr *ngFor="let row of visible;let i=index"><td>{{(page-1)*showEntries+i+1}}</td><td>{{row.beatName}}</td><td>{{row.description||'-'}}</td><td>{{row.userCount}}</td><td>{{row.customerCount}}</td><td>{{row.scheduleCount}}</td><td><label class="switch"><input type="checkbox" [checked]="row.active==='Y'" [disabled]="!canEdit" (change)="toggle(row,$event)"><span></span></label></td><td class="actions"><button (click)="view(row)">View</button><button *ngIf="canEdit" (click)="edit(row)">Edit</button><button *ngIf="canDelete" class="danger" (click)="remove(row)">Delete</button></td></tr>
     <tr *ngIf="!loading&&!visible.length"><td colspan="8" class="empty">No beats found.</td></tr><tr *ngIf="loading"><td colspan="8" class="empty">Loading...</td></tr>
@@ -18,4 +27,8 @@
 <div class="modal-foot"><button (click)="close()">Cancel</button><button class="primary" [disabled]="saving" (click)="save()">{{saving?'Saving...':'Save Beat'}}</button></div></div></div>
 
 <div class="overlay" *ngIf="showDetail&&detail"><div class="modal"><div class="modal-head"><h2>{{detail.beat.beatName}}</h2><button (click)="close()">×</button></div><dl><dt>Description</dt><dd>{{detail.beat.description||'-'}}</dd><dt>Cities</dt><dd>{{names(csv(detail.beat.cityId),options.cities)}}</dd><dt>Users</dt><dd>{{names(detail.userIds,options.users)}}</dd><dt>Customers</dt><dd>{{names(detail.customerIds,options.customers)}}</dd></dl><h3>Schedules</h3><table><thead><tr><th>User</th><th>Date</th></tr></thead><tbody><tr *ngFor="let s of detail.schedules"><td>{{userName(s.userId)}}</td><td>{{s.beatDate}}</td></tr><tr *ngIf="!detail.schedules.length"><td colspan="2">No schedules.</td></tr></tbody></table></div></div>
+<div class="overlay" *ngIf="importResult"><div class="modal"><div class="modal-head"><h2>Import Result</h2><button (click)="close()">×</button></div>
+  <dl><dt>Created</dt><dd>{{importResult.created}}</dd><dt>Updated</dt><dd>{{importResult.updated}}</dd><dt>Skipped</dt><dd>{{importResult.skipped}}</dd></dl>
+  <ng-container *ngIf="importResult.problems.length"><h3>Rows that were skipped</h3><ul class="problems"><li *ngFor="let problem of importResult.problems">{{problem}}</li></ul></ng-container>
+  <div class="modal-foot"><button class="primary" (click)="close()">Close</button></div></div></div>
 <div class="toast" *ngIf="toast.visible" [class.error]="toast.type==='error'">{{toast.message}}</div>

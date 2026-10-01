@@ -1,0 +1,41 @@
+// The page, filter card and table are the CRM's own tokens - the same ones the Route
+// Optimized and report screens use.
+.page { padding: 24px; color: #263238; }
+header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 26px; color: #153f74; }
+header p { margin: 5px 0 0; color: #6b7280; }
+
+.asr-filter-card {
+  background: #fff;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin: 22px 0 18px;
+
+  .filter-grid { display: grid; grid-template-columns: repeat(4, minmax(170px, 1fr)); gap: 18px; }
+  label { display: flex; flex-direction: column; gap: 7px; font-weight: 600; }
+  input, select { height: 44px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; padding: 7px 10px; font: inherit; color: inherit; }
+  .filter-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+  .filter-foot > button { padding: 9px 16px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font-weight: 600; cursor: pointer; }
+}
+
+.table-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.table-actions button {
+  padding: 9px 16px; border: 1px solid #dbe3ef; border-radius: 8px; background: #fff;
+  color: #153f74; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer;
+}
+.table-actions button:hover:not(:disabled) { background: #f2f6fc; }
+.table-actions button:disabled { opacity: .6; cursor: not-allowed; }
+
+.table-wrap { overflow: auto; background: #fff; border: 1px solid #dbe3ef; border-radius: 14px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid #e8eef7; white-space: nowrap; font-size: 13px; }
+th { background: #f5f8fc; color: #153f74; font-weight: 700; }
+tbody tr:last-child td { border-bottom: 0; }
+.empty { text-align: center; color: #64748b; padding: 30px; }
+
+.toast { position: fixed; right: 24px; bottom: 24px; background: #2e7d32; color: #fff; padding: 12px 18px; border-radius: 6px; z-index: 1200; }
+.toast.error { background: #c62828; }
+
+@media (max-width: 900px) { .asr-filter-card .filter-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .page { padding: 12px; } .asr-filter-card .filter-grid { grid-template-columns: 1fr; } }

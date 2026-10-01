@@ -1,0 +1,44 @@
+<section class="page">
+  <header>
+    <div><h1>Beat Detail</h1><p>Every beat schedule with its date, user and counter count.</p></div>
+  </header>
+
+  <div class="asr-filter-card">
+    <div class="filter-grid">
+      <label>Search<input [(ngModel)]="search" (ngModelChange)="filtersChanged()" placeholder="Beat, user or mobile"/></label>
+      <label>From Date<input type="date" [(ngModel)]="fromDate" (ngModelChange)="filtersChanged()"/></label>
+      <label>To Date<input type="date" [(ngModel)]="toDate" (ngModelChange)="filtersChanged()"/></label>
+      <label>Show<select [(ngModel)]="showEntries" (change)="filtersChanged()"><option [ngValue]="10">10</option><option [ngValue]="25">25</option><option [ngValue]="50">50</option><option [ngValue]="100">100</option></select></label>
+    </div>
+    <div class="filter-foot">
+      <button (click)="reset()">Reset</button>
+      <div class="table-actions" *ngIf="hasTableActions">
+        <button *ngIf="canCopy" (click)="copyRows()">Copy</button>
+        <button *ngIf="canExport" [disabled]="busy==='export'" (click)="exportExcel()">{{busy==='export'?'Exporting...':'Excel'}}</button>
+        <button *ngIf="canPdf" (click)="downloadPdf()">PDF</button>
+        <button *ngIf="canPrint" (click)="printRows()">Print</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Beat Name</th><th>Beat Date</th><th>Customers</th><th>User Name</th><th>Mobile</th><th>Created At</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let row of rows; let i = index">
+          <td>{{(page-1)*showEntries+i+1}}</td>
+          <td>{{row.beatName||'-'}}</td>
+          <td>{{row.beatDate||'-'}}</td>
+          <td>{{row.customerCount}}</td>
+          <td>{{row.userName||'-'}}</td>
+          <td>{{row.mobile||'-'}}</td>
+          <td>{{row.createdAt||'-'}}</td>
+        </tr>
+        <tr *ngIf="!loading && !rows.length"><td colspan="7" class="empty">No beat schedules found.</td></tr>
+        <tr *ngIf="loading"><td colspan="7" class="empty">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <app-pagination [total]="total" [pageSize]="showEntries" [page]="page" (pageChange)="pageChanged($event)"></app-pagination>
+</section>
+<div class="toast" *ngIf="toast.visible" [class.error]="toast.type==='error'">{{toast.message}}</div>

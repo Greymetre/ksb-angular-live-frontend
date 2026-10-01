@@ -253,10 +253,11 @@ export class SidebarComponent {
     {
       label: 'Beats Management',
       icon: 'houseboat',
-      permissions: ['visitreport_access', 'beat.view'],
+      permissions: ['visitreport_access', 'beat.view', 'beat_route_optimizer.view'],
       children: [
         { label: 'Beats', icon: 'kitesurfing', route: '/beats', permission: 'beat.view' },
         { label: 'Beat Detail', icon: 'waves', route: '/beat-details', permission: 'beat_detail.view' },
+        { label: 'Route Optimized', icon: 'route', route: '/beat-route-optimized', permission: 'beat_route_optimizer.view' },
         { label: 'Checkin-Checkout', icon: 'assignment_turned_in', route: '/checkin-checkout', permission: 'checkin.view' },
         // { label: 'Visit Report', icon: 'summarize', permission: 'visitreport_access' },
         // { label: 'Visit Type', icon: 'border_color', permission: 'visittype_access' },
@@ -304,9 +305,9 @@ export class SidebarComponent {
           children: [
             { label: 'Retailer Performance', icon: 'summarize', route: '/reports/retailer-performance', permission: 'retailer_performance_report.export' },
             { label: 'Dealer Performance', icon: 'summarize', route: '/reports/dealer-performance', permission: 'retailer_performance_report.export' },
-            { label: 'RFM Report', icon: 'leaderboard', route: '/reports/rfm-report', permission: 'rfm_report.export' },
-            { label: 'RFM Movement', icon: 'swap_vert', route: '/reports/rfm-movement', permission: 'rfm_report.export' },
-            { label: 'RFM Activation', icon: 'bolt', route: '/reports/rfm-activation', permission: 'rfm_report.export' },
+            { label: 'RFM Report', icon: 'leaderboard', route: '/reports/rfm-report', permission: 'rfm_report.view' },
+            { label: 'RFM Movement', icon: 'swap_vert', route: '/reports/rfm-movement', permission: 'rfm_movement_report.view' },
+            { label: 'RFM Activation', icon: 'bolt', route: '/reports/rfm-activation', permission: 'rfm_activation_report.view' },
             { label: 'Customer Master', icon: 'contact_emergency', route: '/reports/customer-master', permission: 'customer.export' },
             // { label: 'Calling Report', icon: 'dialpad', permission: 'calling_report' },
             { label: 'Market Intelligence', icon: 'nature_people', route: '/reports/market-intelligence', permission: 'market_intelligence_report.view' }

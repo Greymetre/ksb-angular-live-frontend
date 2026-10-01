@@ -46,10 +46,12 @@ import { ExpensesTypeComponent } from './pages/expenses-type/expenses-type.compo
 import { ExpensesComponent } from './pages/expenses/expenses.component';
 import { OrdersComponent } from './pages/orders/orders.component';
 import { BeatsComponent } from './pages/beats/beats.component';
+import { BeatDetailComponent } from './pages/beat-detail/beat-detail.component';
 import { CheckinReportsComponent } from './pages/checkin-reports/checkin-reports.component';
 import { ReportManagementComponent } from './pages/report-management/report-management.component';
 import { LoyaltyPerformanceReportComponent } from './pages/loyalty-performance-report/loyalty-performance-report.component';
 import { RfmReportComponent } from './pages/rfm-report/rfm-report.component';
+import { BeatRouteOptimizerComponent } from './pages/beat-route-optimizer/beat-route-optimizer.component';
 import { FieldKonnectAppSettingComponent } from './pages/field-konnect-app-setting/field-konnect-app-setting.component';
 import { LoyaltyAppSettingComponent } from './pages/loyalty-app-setting/loyalty-app-setting.component';
 import { OrderDispatchComponent } from './pages/order-dispatch/order-dispatch.component';
@@ -93,10 +95,12 @@ import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.compo
     ExpensesComponent,
     OrdersComponent,
     BeatsComponent,
+    BeatDetailComponent,
     CheckinReportsComponent,
     ReportManagementComponent,
     LoyaltyPerformanceReportComponent,
     RfmReportComponent,
+    BeatRouteOptimizerComponent,
     LoyaltyAppSettingComponent,
     FieldKonnectAppSettingComponent,
     OrderDispatchComponent,

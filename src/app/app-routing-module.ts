@@ -28,10 +28,12 @@ import { ExpensesTypeComponent } from './pages/expenses-type/expenses-type.compo
 import { ExpensesComponent } from './pages/expenses/expenses.component';
 import { OrdersComponent } from './pages/orders/orders.component';
 import { BeatsComponent } from './pages/beats/beats.component';
+import { BeatDetailComponent } from './pages/beat-detail/beat-detail.component';
 import { CheckinReportsComponent } from './pages/checkin-reports/checkin-reports.component';
 import { ReportManagementComponent } from './pages/report-management/report-management.component';
 import { LoyaltyPerformanceReportComponent } from './pages/loyalty-performance-report/loyalty-performance-report.component';
 import { RfmReportComponent } from './pages/rfm-report/rfm-report.component';
+import { BeatRouteOptimizerComponent } from './pages/beat-route-optimizer/beat-route-optimizer.component';
 import { FieldKonnectAppSettingComponent } from './pages/field-konnect-app-setting/field-konnect-app-setting.component';
 import { LoyaltyAppSettingComponent } from './pages/loyalty-app-setting/loyalty-app-setting.component';
 import { OrderDispatchComponent } from './pages/order-dispatch/order-dispatch.component';
@@ -84,7 +86,8 @@ const routes: Routes = [
       { path: 'orders/:id/dispatch/:mode', component: OrderDispatchComponent, canActivate: [authGuard], data: { permission: 'order.dispatch' } },
       { path: 'order-dispatch/:mode', component: OrderDispatchComponent, canActivate: [authGuard], data: { permission: 'order_dispatch.view' } },
       { path: 'beats', component: BeatsComponent, canActivate: [authGuard], data: { permission: 'beat.view' } },
-      { path: 'beat-details', component: BeatsComponent, canActivate: [authGuard], data: { permission: 'beat_detail.view' } },
+      { path: 'beat-details', component: BeatDetailComponent, canActivate: [authGuard], data: { permission: 'beat_detail.view' } },
+      { path: 'beat-route-optimized', component: BeatRouteOptimizerComponent, canActivate: [authGuard], data: { permission: 'beat_route_optimizer.view' } },
       { path: 'checkin-checkout', component: CheckinReportsComponent, canActivate: [authGuard], data: { permission: 'checkin.view' } },
       { path: 'checkin-checkout-report', component: CheckinReportsComponent, canActivate: [authGuard], data: { permission: 'visit_report.view' } },
       { path: 'reports/asr-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'asr_performance_report.export', reportMode: 'asr' } },
@@ -93,9 +96,9 @@ const routes: Routes = [
       { path: 'reports/retailer-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'retailer_performance_report.export', reportMode: 'retailer' } },
       { path: 'reports/dealer-performance', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'retailer_performance_report.export', reportMode: 'dealer' } },
       { path: 'reports/market-intelligence', component: ReportManagementComponent, canActivate: [authGuard], data: { permission: 'market_intelligence_report.view', reportMode: 'market' } },
-      { path: 'reports/rfm-report', component: RfmReportComponent, canActivate: [authGuard], data: { permission: 'rfm_report.export' } },
-      { path: 'reports/rfm-movement', component: RfmReportComponent, canActivate: [authGuard], data: { permission: 'rfm_report.export', rfmMode: 'movement' } },
-      { path: 'reports/rfm-activation', component: RfmReportComponent, canActivate: [authGuard], data: { permission: 'rfm_report.export', rfmMode: 'activation' } },
+      { path: 'reports/rfm-report', component: RfmReportComponent, canActivate: [authGuard], data: { permission: 'rfm_report.view' } },
+      { path: 'reports/rfm-movement', component: RfmReportComponent, canActivate: [authGuard], data: { permission: 'rfm_movement_report.view', rfmMode: 'movement' } },
+      { path: 'reports/rfm-activation', component: RfmReportComponent, canActivate: [authGuard], data: { permission: 'rfm_activation_report.view', rfmMode: 'activation' } },
       { path: 'reports/loyalty-performance', component: LoyaltyPerformanceReportComponent, canActivate: [authGuard], data: { permission: 'loyalty_performance_report.view' } },
       { path: 'loyalty-app-setting', component: LoyaltyAppSettingComponent, canActivate: [authGuard], data: { permission: 'app_setting.view' } },
       { path: 'field-konnect-app-setting', component: FieldKonnectAppSettingComponent, canActivate: [authGuard], data: { permission: 'app_setting.view' } },
