@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
-import { finalize, timeout } from 'rxjs';
+import { finalize, forkJoin, timeout } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import {
   LoyaltyScheme,
@@ -10,6 +10,26 @@ import {
   SchemeDealerOption
 } from '../../services/loyalty-scheme.service';
 import { SearchableSelectOption as SelectOption } from '../../shared/components/searchable-select/searchable-select.component';
+import { ProductService } from '../../services/product.service';
+
+/**
+ * One line of a Product or Quantity scheme on the form.
+ *
+ * The option lists belong to the line rather than to the screen: each line narrows its
+ * families by the segments it picked, and its products by those families, so two lines of
+ * the same scheme offer different choices.
+ */
+interface SchemeProductLine {
+  segmentIds: number[];
+  familyIds: number[];
+  productIds: number[];
+  rewardValue: number | string | null;
+  rewardType: string;
+  familyOptions: SelectOption[];
+  productOptions: SelectOption[];
+  loadingFamilies: boolean;
+  loadingProducts: boolean;
+}
 import { formatKolkataDate } from '../../shared/utils/date-time';
 import { API_ORIGIN } from '../../config/api.config';
 
@@ -32,6 +52,7 @@ interface SchemeFormModel {
   redemptionEnabled: boolean;
   brochure: File | null;
   brochurePath: string;
+  productLines: SchemeProductLine[];
   slabs: Array<{
     tierName: string;
     valueFrom: number | null;
@@ -69,8 +90,8 @@ export class LoyaltySchemesComponent implements OnInit {
   slabRewardTypes = ['Value', 'Percentage'];
   schemeTypes: Array<{ value: string; label: string; available: boolean }> = [
     { value: 'Invoice', label: 'Invoice', available: true },
-    { value: 'Product', label: 'Product', available: false },
-    { value: 'Quantity', label: 'Quantity', available: false }
+    { value: 'Product', label: 'Product', available: true },
+    { value: 'Quantity', label: 'Quantity', available: true }
   ];
   statuses = ['Draft', 'Pending Approval', 'Approved', 'Rejected', 'Live', 'Expired'];
 
@@ -97,12 +118,16 @@ export class LoyaltySchemesComponent implements OnInit {
   allDealers: SchemeDealerOption[] = [];
   dealersLoading = false;
   form: SchemeFormModel = this.emptyForm();
+  segmentOptions: SelectOption[] = [];
+  productLineBusy = '';
+  importProblems: string[] = [];
   private toastTimeoutId?: number;
   private codeGenerateTimeoutId?: number;
   private searchTimeoutId?: number;
 
   constructor(
     private schemeService: LoyaltySchemeService,
+    private productService: ProductService,
     private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -110,6 +135,13 @@ export class LoyaltySchemesComponent implements OnInit {
   ngOnInit(): void {
     this.loadOptions();
     this.loadSchemes();
+    this.productService.listSegmentOptions().subscribe({
+      next: segments => {
+        this.segmentOptions = segments.map(segment => ({ id: segment.id, label: segment.name }));
+        this.refreshView();
+      },
+      error: () => { /* the scheme form still works; only the picker is empty */ }
+    });
   }
 
   get pagedSchemes(): LoyaltyScheme[] {
@@ -305,11 +337,26 @@ export class LoyaltySchemesComponent implements OnInit {
       excludedDealerIds: [...(scheme.excludedDealerIds || [])],
       startDate: this.toDateInput(scheme.startDate),
       endDate: this.toDateInput(scheme.endDate),
-      schemeType: 'Invoice',
+      schemeType: scheme.schemeType || 'Invoice',
       basedOn: scheme.basedOn || 'Value',
       redemptionEnabled: scheme.redemptionEnabled,
       brochure: null,
       brochurePath: scheme.brochurePath || '',
+      productLines: scheme.products.length
+        ? scheme.products.map(line => ({
+            segmentIds: [...line.segmentIds],
+            familyIds: [...line.familyIds],
+            productIds: [...line.productIds],
+            rewardValue: line.rewardValue,
+            rewardType: line.rewardType || 'Value',
+            // The saved names are enough to show the line; the full pickers are fetched
+            // only if the person actually changes a segment.
+            familyOptions: line.familyIds.map((id, index) => ({ id, label: line.familyNames[index] ?? String(id) })),
+            productOptions: line.productIds.map((id, index) => ({ id, label: line.productNames[index] ?? String(id) })),
+            loadingFamilies: false,
+            loadingProducts: false
+          }))
+        : [this.emptyProductLine()],
       slabs: scheme.slabs.length ? scheme.slabs.map(slab => ({
         tierName: slab.tierName,
         valueFrom: slab.valueFrom,
@@ -443,7 +490,7 @@ export class LoyaltySchemesComponent implements OnInit {
   private generateSchemeCode(): void {
     if (this.form.id) return;
     this.generatingCode = true;
-    this.schemeService.generateCode(this.form.schemeName, this.form.schemeTag, this.form.basedOn).pipe(
+    this.schemeService.generateCode(this.form.schemeName, this.form.schemeTag, this.form.basedOn, this.form.schemeType).pipe(
       finalize(() => {
         this.generatingCode = false;
         this.refreshView();
@@ -622,9 +669,20 @@ export class LoyaltySchemesComponent implements OnInit {
       excluded_dealer_ids: this.form.excludedDealerIds,
       start_date: this.form.startDate,
       end_date: this.form.endDate,
-      scheme_type: 'Invoice',
+      scheme_type: this.form.schemeType,
       based_on: this.form.basedOn,
       redemption_enabled: this.form.redemptionEnabled,
+      products: this.readsProducts
+        ? this.form.productLines
+            .filter(line => line.segmentIds.length || line.familyIds.length || line.productIds.length)
+            .map(line => ({
+              segment_ids: line.segmentIds,
+              family_ids: line.familyIds,
+              product_ids: line.productIds,
+              reward_value: Number(line.rewardValue ?? 0),
+              reward_type: this.isMixedScheme ? (line.rewardType || 'Value') : null
+            }))
+        : [],
       slabs: this.form.slabs.map(slab => ({
         tier_name: slab.tierName.trim(),
         value_from: Number(slab.valueFrom ?? 0),
@@ -642,6 +700,21 @@ export class LoyaltySchemesComponent implements OnInit {
     if (!payload.customer_type) return 'Customer type is required.';
     if (!payload.start_date || !payload.end_date) return 'Start date and end date are required.';
     if (payload.area_scope !== 'All' && payload.area_values.length === 0) return 'Select at least one area value.';
+
+    // A Product or Quantity scheme is written as lines, not slabs, so only one of the two
+    // is ever checked.
+    if (this.readsProducts) {
+      if (payload.products.length === 0) return `A ${payload.scheme_type} scheme needs at least one product line.`;
+      if (payload.products.some(line => line.reward_value <= 0)) return 'Enter a reward on every product line.';
+      const limit = payload.based_on === 'Percentage' ? 99.9 : 10000000;
+      if (payload.products.some(line => line.reward_value > limit)) {
+        return payload.based_on === 'Percentage'
+          ? 'Reward percentage cannot be more than 99.9.'
+          : 'Reward amount cannot be greater than 1,00,00,000.';
+      }
+      return '';
+    }
+
     if (payload.slabs.some(slab => !slab.tier_name || slab.value_from < 0 || slab.reward_value < 0)) return 'Complete all slab rows.';
     if (payload.slabs.some(slab => slab.value_to !== null && slab.value_to < slab.value_from)) return 'Slab value to must be greater than value from.';
     for (let index = 1; index < payload.slabs.length; index++) {
@@ -674,7 +747,16 @@ export class LoyaltySchemesComponent implements OnInit {
       redemptionEnabled: false,
       brochure: null,
       brochurePath: '',
+      productLines: [this.emptyProductLine()],
       slabs: [this.emptySlab()]
+    };
+  }
+
+  private emptyProductLine(): SchemeProductLine {
+    return {
+      segmentIds: [], familyIds: [], productIds: [],
+      rewardValue: null, rewardType: 'Value',
+      familyOptions: [], productOptions: [], loadingFamilies: false, loadingProducts: false
     };
   }
 
@@ -702,13 +784,180 @@ export class LoyaltySchemesComponent implements OnInit {
     });
   }
 
+  // ---- Product and Quantity schemes: the lines, and the sheet that fills them ----
+
+  get readsProducts(): boolean {
+    return this.form.schemeType === 'Product' || this.form.schemeType === 'Quantity';
+  }
+
+  /** A quantity scheme pays a rate per unit, so a percentage of it means nothing. */
+  get basedOnChoices(): string[] {
+    return this.form.schemeType === 'Quantity' ? ['Value'] : this.basedOnOptions;
+  }
+
+  productRewardLabel(): string {
+    if (this.isMixedScheme) return 'Reward';
+    if (this.form.basedOn === 'Percentage') return 'Reward %';
+    return this.form.schemeType === 'Quantity' ? 'Reward per Unit' : 'Reward';
+  }
+
+  lineIsPercentage(line: SchemeProductLine): boolean {
+    return this.isMixedScheme ? line.rewardType === 'Percentage' : this.form.basedOn === 'Percentage';
+  }
+
+  onSchemeTypeChange(): void {
+    // Quantity has only one basis, so a scheme switched to it cannot keep a percentage.
+    if (this.form.schemeType === 'Quantity' && this.form.basedOn !== 'Value') this.form.basedOn = 'Value';
+    if (this.readsProducts && this.form.productLines.length === 0) this.form.productLines = [this.emptyProductLine()];
+    this.scheduleGenerateCode();
+  }
+
+  addProductLine(): void {
+    this.form.productLines.push(this.emptyProductLine());
+  }
+
+  removeProductLine(index: number): void {
+    this.form.productLines.splice(index, 1);
+    if (this.form.productLines.length === 0) this.form.productLines.push(this.emptyProductLine());
+  }
+
+  /** Segments decide which families are on offer, so a family no longer under any chosen
+   *  segment is dropped rather than left behind where nobody can see it. */
+  onLineSegmentsChange(line: SchemeProductLine): void {
+    line.familyOptions = [];
+    line.productOptions = [];
+    line.familyIds = [];
+    line.productIds = [];
+    if (line.segmentIds.length === 0) { this.refreshView(); return; }
+
+    line.loadingFamilies = true;
+    forkJoin(line.segmentIds.map(id => this.productService.listFamilyOptions(id)))
+      .pipe(finalize(() => { line.loadingFamilies = false; this.refreshView(); }))
+      .subscribe({
+        next: results => line.familyOptions = this.dedupe(results.flat().map(f => ({ id: f.id, label: f.name }))),
+        error: error => this.showToast(error.message, 'error')
+      });
+  }
+
+  onLineFamiliesChange(line: SchemeProductLine): void {
+    line.productOptions = [];
+    line.productIds = [];
+    if (line.familyIds.length === 0) { this.refreshView(); return; }
+
+    line.loadingProducts = true;
+    forkJoin(line.familyIds.map(id => this.productService.listProducts(null, id, undefined, 1, 500)))
+      .pipe(finalize(() => { line.loadingProducts = false; this.refreshView(); }))
+      .subscribe({
+        next: results => line.productOptions = this.dedupe(results.flat().map(p => ({ id: p.id, label: p.productCode ? `${p.productName} (${p.productCode})` : p.productName }))),
+        error: error => this.showToast(error.message, 'error')
+      });
+  }
+
+  private dedupe(options: SelectOption[]): SelectOption[] {
+    const seen = new Map<number | string, SelectOption>();
+    options.forEach(option => seen.set(option.id, option));
+    return [...seen.values()].sort((a, b) => String(a.label).localeCompare(String(b.label)));
+  }
+
+  downloadProductTemplate(): void {
+    this.productLineBusy = 'template';
+    this.schemeService.productLineTemplate()
+      .pipe(finalize(() => { this.productLineBusy = ''; this.refreshView(); }))
+      .subscribe({
+        next: blob => this.download(blob, 'scheme-product-lines-template.xlsx'),
+        error: error => this.showToast(error.message, 'error')
+      });
+  }
+
+  exportProductLines(): void {
+    if (!this.form.id) return;
+    this.productLineBusy = 'export';
+    this.schemeService.exportProductLines(this.form.id)
+      .pipe(finalize(() => { this.productLineBusy = ''; this.refreshView(); }))
+      .subscribe({
+        next: blob => this.download(blob, `${this.form.schemeCode || 'scheme'}-product-lines.xlsx`),
+        error: error => this.showToast(error.message, 'error')
+      });
+  }
+
+  chooseProductFile(input: HTMLInputElement): void {
+    input.value = '';
+    input.click();
+  }
+
+  /**
+   * The sheet becomes the list.
+   *
+   * A line already on the form whose goods match a row in the sheet keeps its place and
+   * takes the sheet's reward; a line the sheet does not mention is dropped. That is what
+   * makes export, edit, import a round trip rather than a way to end up with two copies
+   * of everything.
+   */
+  importProductLines(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    this.productLineBusy = 'import';
+    this.importProblems = [];
+    this.schemeService.importProductLines(file)
+      .pipe(finalize(() => { this.productLineBusy = ''; input.value = ''; this.refreshView(); }))
+      .subscribe({
+        next: result => {
+          this.importProblems = result.problems;
+          if (result.lines.length === 0) {
+            this.showToast(result.message, 'error');
+            return;
+          }
+          const existing = this.form.productLines.filter(line => this.lineKey(line).length > 0);
+          this.form.productLines = result.lines.map(imported => {
+            const key = [imported.segmentIds, imported.familyIds, imported.productIds]
+              .map(ids => [...ids].sort((a, b) => a - b).join(',')).join('|');
+            const match = existing.find(line => this.lineKey(line) === key);
+            const line = match ?? this.emptyProductLine();
+            line.segmentIds = [...imported.segmentIds];
+            line.familyIds = [...imported.familyIds];
+            line.productIds = [...imported.productIds];
+            line.rewardValue = imported.rewardValue;
+            // Value or Percentage stays the form's choice: the sheet does not carry it, so
+            // a line already on the form keeps the one it was given.
+            if (!match) {
+              line.rewardType = 'Value';
+              // A line that came only from the sheet still needs its pickers filled, or it
+              // would show ids with no names beside them.
+              line.familyOptions = imported.familyIds.map((id, index) => ({ id, label: imported.familyNames[index] ?? String(id) }));
+              line.productOptions = imported.productIds.map((id, index) => ({ id, label: imported.productNames[index] ?? String(id) }));
+            }
+            return line;
+          });
+          this.showToast(result.message, result.problems.length ? 'error' : 'success');
+        },
+        error: error => this.showToast(error.message, 'error')
+      });
+  }
+
+  private lineKey(line: SchemeProductLine): string {
+    return [line.segmentIds, line.familyIds, line.productIds]
+      .map(ids => [...ids].sort((a, b) => a - b).join(',')).join('|');
+  }
+
+  private download(blob: Blob, name: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  }
+
   private localFallbackCode(): string {
     const namePart = this.abbr(this.form.schemeName || 'Scheme');
     const tagPart = this.form.schemeTag === 'Booster' ? 'BST' : 'REG';
     const basisPart = this.isMixedScheme ? 'MIX' : this.form.basedOn === 'Percentage' ? 'PCT' : 'VAL';
     const year = new Date().getFullYear();
     const random = Math.floor(Math.random() * 99) + 1;
-    return `${tagPart}-${namePart}-INV-${basisPart}-${year}-${String(random).padStart(2, '0')}`.toUpperCase();
+    const typePart = this.form.schemeType === 'Product' ? 'PRD' : this.form.schemeType === 'Quantity' ? 'QTY' : 'INV';
+    return `${tagPart}-${namePart}-${typePart}-${basisPart}-${year}-${String(random).padStart(2, '0')}`.toUpperCase();
   }
 
   private abbr(value: string): string {

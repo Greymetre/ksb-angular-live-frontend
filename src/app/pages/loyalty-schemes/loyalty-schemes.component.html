@@ -111,7 +111,13 @@
     <div class="modal-icon"><span class="material-icons">card_membership</span></div>
     <div class="modal-header-row">
       <h3>{{ viewOnly ? 'Scheme Details' : (form.id ? 'Edit Scheme' : 'Add Scheme') }}</h3>
-      <button class="modal-close-btn" (click)="closeModal()" [disabled]="saving"><span class="material-icons">close</span></button>
+      <span class="header-tools">
+        <button type="button" class="mini-btn light" *ngIf="readsProducts && form.id"
+          [disabled]="productLineBusy === 'export'" (click)="exportProductLines()">
+          {{ productLineBusy === 'export' ? 'Exporting...' : 'Export Lines' }}
+        </button>
+        <button class="modal-close-btn" (click)="closeModal()" [disabled]="saving"><span class="material-icons">close</span></button>
+      </span>
     </div>
     <fieldset class="modal-body modal-fieldset" [disabled]="viewOnly">
       <div class="form-section">
@@ -147,18 +153,24 @@
           </div>
           <div class="modal-field">
             <label>Scheme Type</label>
-            <select [(ngModel)]="form.schemeType">
+            <select [(ngModel)]="form.schemeType" (ngModelChange)="onSchemeTypeChange()">
               <option *ngFor="let type of schemeTypes" [value]="type.value" [disabled]="!type.available">
-                {{ type.label }}{{ type.available ? '' : ' (Coming Soon)' }}
+                {{ type.label }}
               </option>
             </select>
-            <small class="field-note">Product and Quantity based schemes are coming soon.</small>
+            <small class="field-note">
+              Invoice reads the whole bill and pays by slab. Product and Quantity are read on the goods -
+              Product on their value, Quantity on how many were bought.
+            </small>
           </div>
           <div class="modal-field">
             <label>Based On <span class="req">*</span></label>
             <select [(ngModel)]="form.basedOn" (ngModelChange)="scheduleGenerateCode()">
-              <option *ngFor="let option of basedOnOptions" [value]="option">{{ option }}</option>
+              <option *ngFor="let option of basedOnChoices" [value]="option">{{ option }}</option>
             </select>
+            <small class="field-note" *ngIf="form.schemeType === 'Quantity'">
+              A Quantity scheme pays a rate per unit, so it can only be based on Value.
+            </small>
           </div>
           <div class="modal-field">
             <label>Redemption</label>
@@ -256,7 +268,7 @@
         </div>
       </div>
 
-      <div class="form-section">
+      <div class="form-section" *ngIf="!readsProducts">
         <div class="section-title">Slab Configuration</div>
         <div class="slab-table">
           <div class="slab-row slab-head" [class.mixed]="isMixedScheme">
@@ -286,6 +298,67 @@
           </div>
         </div>
         <button type="button" class="mini-btn light add-slab-btn" (click)="addSlab()">Add Slab</button>
+      </div>
+
+      <div class="form-section" *ngIf="readsProducts">
+        <div class="section-title product-lines-title">
+          <span>{{ form.schemeType }} Configuration</span>
+          <span class="line-tools" *ngIf="!viewOnly">
+            <button type="button" class="mini-btn light" [disabled]="productLineBusy === 'template'" (click)="downloadProductTemplate()">
+              {{ productLineBusy === 'template' ? 'Preparing...' : 'Download Template' }}
+            </button>
+            <button type="button" class="mini-btn light" [disabled]="productLineBusy === 'import'" (click)="chooseProductFile(lineFile)">
+              {{ productLineBusy === 'import' ? 'Reading...' : 'Import' }}
+            </button>
+            <input #lineFile type="file" accept=".xlsx,.xls" hidden (change)="importProductLines($event)"/>
+          </span>
+        </div>
+
+        <ul class="import-problems" *ngIf="importProblems.length">
+          <li *ngFor="let problem of importProblems">{{ problem }}</li>
+        </ul>
+
+        <div class="product-line" *ngFor="let line of form.productLines; let index = index">
+          <div class="product-line-grid">
+            <label>Segment <span class="req">*</span>
+              <app-searchable-select [options]="segmentOptions" [selected]="line.segmentIds" [multiple]="true"
+                placeholder="Select Segment" (selectedChange)="line.segmentIds = $event; onLineSegmentsChange(line)">
+              </app-searchable-select>
+            </label>
+            <label>Family
+              <app-searchable-select [options]="line.familyOptions" [selected]="line.familyIds" [multiple]="true"
+                [loading]="line.loadingFamilies" loadingText="Loading families..."
+                [disabled]="line.segmentIds.length === 0" placeholder="All families of the segment"
+                (selectedChange)="line.familyIds = $event; onLineFamiliesChange(line)">
+              </app-searchable-select>
+            </label>
+            <label>Product
+              <app-searchable-select [options]="line.productOptions" [selected]="line.productIds" [multiple]="true"
+                [loading]="line.loadingProducts" loadingText="Loading products..."
+                [disabled]="line.familyIds.length === 0" placeholder="All products of the family"
+                (selectedChange)="line.productIds = $event">
+              </app-searchable-select>
+            </label>
+            <label *ngIf="isMixedScheme" class="narrow">Based On
+              <select [(ngModel)]="line.rewardType">
+                <option *ngFor="let type of slabRewardTypes" [value]="type">{{ type }}</option>
+              </select>
+            </label>
+            <label class="narrow">{{ productRewardLabel() }} <span class="req">*</span>
+              <input type="number" [(ngModel)]="line.rewardValue" min="0" step="0.01"
+                [max]="lineIsPercentage(line) ? 99.9 : 10000000"
+                [attr.placeholder]="lineIsPercentage(line) ? '2.8' : '50'"/>
+            </label>
+            <button type="button" class="btn-danger line-remove" title="Remove" (click)="removeProductLine(index)">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
+          <small class="field-hint">
+            Leave Product blank to cover every product of the chosen families, and Family blank to cover the whole segment.
+          </small>
+        </div>
+
+        <button type="button" class="mini-btn light add-slab-btn" (click)="addProductLine()">Add Line</button>
       </div>
 
       <div class="modal-actions" *ngIf="!viewOnly">

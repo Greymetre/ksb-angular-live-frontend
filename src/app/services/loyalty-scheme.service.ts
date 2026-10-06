@@ -16,6 +16,20 @@ export interface LoyaltySchemeSlab {
   sortOrder?: number;
 }
 
+/** One line of a Product or Quantity scheme: the goods it covers and what they earn. */
+export interface LoyaltySchemeProductLine {
+  id?: number;
+  segmentIds: number[];
+  segmentNames: string[];
+  familyIds: number[];
+  familyNames: string[];
+  productIds: number[];
+  productNames: string[];
+  rewardValue: number;
+  rewardType?: string | null;
+  sortOrder?: number;
+}
+
 export interface LoyaltyScheme {
   id: number;
   active: string;
@@ -53,6 +67,7 @@ export interface LoyaltyScheme {
   createdByName?: string | null;
   createdAt?: string | null;
   slabs: LoyaltySchemeSlab[];
+  products: LoyaltySchemeProductLine[];
 }
 
 export interface LoyaltySchemePayload {
@@ -76,6 +91,14 @@ export interface LoyaltySchemePayload {
     value_from: number;
     value_to: number | null;
     reward_value: number;
+  }>;
+  /** Only a Product or Quantity scheme sends these; an Invoice scheme sends slabs. */
+  products: Array<{
+    segment_ids: number[];
+    family_ids: number[];
+    product_ids: number[];
+    reward_value: number;
+    reward_type: string | null;
   }>;
 }
 
@@ -175,11 +198,41 @@ export class LoyaltySchemeService {
     );
   }
 
-  generateCode(schemeName: string, schemeTag: string, basedOn: string): Observable<string> {
+  /** The template, the import and the export for a Product or Quantity scheme's lines.
+   *  The import saves nothing - it hands the rows back for the form to merge. */
+  productLineTemplate(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/product-lines/template`, { headers: this.authHeaders(), responseType: 'blob' })
+      .pipe(catchError(error => this.handleError(error)));
+  }
+
+  exportProductLines(schemeId: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/${schemeId}/product-lines/export`, { headers: this.authHeaders(), responseType: 'blob' })
+      .pipe(catchError(error => this.handleError(error)));
+  }
+
+  importProductLines(file: File): Observable<{ lines: LoyaltySchemeProductLine[]; problems: string[]; message: string }> {
+    const data = new FormData();
+    data.append('import_file', file);
+    return this.http.post<ApiResponse>(`${this.baseUrl}/product-lines/import`, data, { headers: this.authHeaders() }).pipe(
+      map(response => {
+        const payload = this.pickFirstValue(response, ['lines', 'data.lines', 'data']) ?? response;
+        const row = this.asRecord(payload);
+        return {
+          lines: this.pickArray(row, ['lines']).map(line => this.normalizeProductLine(line)),
+          problems: this.pickArray(row, ['problems']).map(value => String(value)),
+          message: String(row['message'] ?? 'Import read.')
+        };
+      }),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  generateCode(schemeName: string, schemeTag: string, basedOn: string, schemeType: string): Observable<string> {
     const params = new HttpParams()
       .set('scheme_name', schemeName || 'Scheme')
       .set('scheme_tag', schemeTag || 'Regular')
-      .set('based_on', basedOn || 'Value');
+      .set('based_on', basedOn || 'Value')
+      .set('scheme_type', schemeType || 'Invoice');
 
     return this.http.get<ApiResponse>(`${this.baseUrl}/generate-code`, { headers: this.authHeaders(), params }).pipe(
       map(response => this.readString(this.pickFirstValue(response, ['scheme_code', 'data.scheme_code', 'data']) ?? '')),
@@ -291,7 +344,8 @@ export class LoyaltySchemeService {
       publishedByName: this.readNullableString(row['published_by_name'] ?? row['publishedByName']),
       createdByName: this.readNullableString(row['created_by_name'] ?? row['createdByName']),
       createdAt: this.readNullableString(row['created_at'] ?? row['createdAt']),
-      slabs: this.pickArray(row, ['slabs']).map(slab => this.normalizeSlab(slab))
+      slabs: this.pickArray(row, ['slabs']).map(slab => this.normalizeSlab(slab)),
+      products: this.pickArray(row, ['products']).map(line => this.normalizeProductLine(line))
     };
   }
 
@@ -302,6 +356,26 @@ export class LoyaltySchemeService {
       tierName: this.readString(row['tier_name'] ?? row['tierName']),
       valueFrom: this.readNumber(row['value_from'] ?? row['valueFrom']),
       valueTo: this.nullableNumber(row['value_to'] ?? row['valueTo']),
+      rewardValue: this.readNumber(row['reward_value'] ?? row['rewardValue']),
+      rewardType: (row['reward_type'] ?? row['rewardType'] ?? null) as string | null,
+      sortOrder: this.readNumber(row['sort_order'] ?? row['sortOrder'])
+    };
+  }
+
+  private normalizeProductLine(value: unknown): LoyaltySchemeProductLine {
+    const row = this.asRecord(value);
+    const ids = (keys: string[]): number[] =>
+      this.pickArray(row, keys).map(item => this.readNumber(item)).filter(id => id > 0);
+    const names = (keys: string[]): string[] =>
+      this.pickArray(row, keys).map(item => this.readString(item)).filter(name => !!name);
+    return {
+      id: this.readNumber(row['id']),
+      segmentIds: ids(['segment_ids', 'segmentIds']),
+      segmentNames: names(['segment_names', 'segmentNames']),
+      familyIds: ids(['family_ids', 'familyIds']),
+      familyNames: names(['family_names', 'familyNames']),
+      productIds: ids(['product_ids', 'productIds']),
+      productNames: names(['product_names', 'productNames']),
       rewardValue: this.readNumber(row['reward_value'] ?? row['rewardValue']),
       rewardType: (row['reward_type'] ?? row['rewardType'] ?? null) as string | null,
       sortOrder: this.readNumber(row['sort_order'] ?? row['sortOrder'])

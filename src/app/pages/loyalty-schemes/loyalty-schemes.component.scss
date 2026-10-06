@@ -176,3 +176,56 @@
   span { padding: 3px 7px; font-size: 11px; }
   button { font-size: 15px; }
 }
+
+// Product and Quantity schemes are written as lines rather than slabs: three pickers that
+// narrow one another, and a reward. The row has to breathe more than a slab row does,
+// because each picker holds a list rather than a number.
+.product-lines-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .line-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+}
+
+.product-line {
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  padding: 14px 16px 10px;
+  margin-bottom: 12px;
+  background: #fbfdff;
+
+  .product-line-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1.2fr 1.6fr auto auto;
+    gap: 12px;
+    align-items: end;
+  }
+  .product-line-grid.mixed { grid-template-columns: 1.1fr 1.1fr 1.4fr 0.7fr auto auto; }
+
+  label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 13px; }
+  label.narrow { max-width: 150px; }
+  input, select { height: 40px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px; font: inherit; }
+
+  .line-remove { height: 40px; width: 40px; display: flex; align-items: center; justify-content: center; }
+  .field-hint { display: block; margin-top: 8px; color: #64748b; font-weight: 400; }
+}
+
+.import-problems {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  color: #b42318;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .product-line .product-line-grid { grid-template-columns: 1fr; }
+  .product-line label.narrow { max-width: none; }
+}
+
+// The export sits beside the close button because the body is a disabled fieldset while a
+// scheme is only being viewed, and nothing inside it can be pressed there.
+.modal-header-row .header-tools { display: flex; align-items: center; gap: 10px; }
