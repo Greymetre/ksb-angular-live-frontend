@@ -273,6 +273,13 @@
         <div class="section-title">Compliance & Legal</div>
         <div class="form-grid">
           <div class="modal-field">
+            <label>GST Treatment <small>On = not GST registered</small></label>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="gstTreatmentOn" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="modal-field">
             <label>Business Registration Type <span class="req">*</span></label>
             <app-searchable-select [options]="registrationTypeOptions" [selected]="field('registration_type')" placeholder="Registration Type" (selectedChange)="setField('registration_type', $event)"></app-searchable-select>
           </div>
@@ -374,6 +381,13 @@
 
         <div class="section-title">KYC Details</div>
         <div class="form-grid">
+          <div class="modal-field">
+            <label>GST Treatment <small>On = not GST registered</small></label>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="gstTreatmentOn" />
+              <span class="slider"></span>
+            </label>
+          </div>
           <div class="modal-field">
             <label>GST Number</label>
             <input type="text" [ngModel]="field('gst_number')" (ngModelChange)="setField('gst_number', $event)" maxlength="50"/>

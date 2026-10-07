@@ -546,16 +546,18 @@ export class CustomersComponent implements OnInit {
   // The action that would set the status a customer already has is pointless, so
   // it is left out rather than shown and ignored.
 
+  // The server also enforces this: a retailer's own creator or assigned employee cannot
+  // review it, only a reporting manager above them (an admin always can).
   canApproveRow(customer: CustomerItem): boolean {
-    return this.canApproveRetailer && this.isRetailerCustomer(customer) && this.approvalStatus(customer) !== 'APPROVED';
+    return this.canApproveRetailer && customer.canReviewApproval !== false && this.isRetailerCustomer(customer) && this.approvalStatus(customer) !== 'APPROVED';
   }
 
   canRejectRow(customer: CustomerItem): boolean {
-    return this.canRejectRetailer && this.isRetailerCustomer(customer) && this.approvalStatus(customer) !== 'REJECTED';
+    return this.canRejectRetailer && customer.canReviewApproval !== false && this.isRetailerCustomer(customer) && this.approvalStatus(customer) !== 'REJECTED';
   }
 
   canPendingRow(customer: CustomerItem): boolean {
-    return this.canMarkRetailerPending && this.isRetailerCustomer(customer) && this.approvalStatus(customer) !== 'PENDING';
+    return this.canMarkRetailerPending && customer.canReviewApproval !== false && this.isRetailerCustomer(customer) && this.approvalStatus(customer) !== 'PENDING';
   }
 
   menuActionCount(customer: CustomerItem): number {
@@ -869,6 +871,14 @@ export class CustomersComponent implements OnInit {
 
   field(key: string): string {
     return this.form.customFields[key] || '';
+  }
+
+  /** GST Treatment toggle. On means the customer is NOT GST registered; stored as Yes/No. */
+  get gstTreatmentOn(): boolean {
+    return (this.field('gst_treatment') || '').trim().toLowerCase() === 'yes';
+  }
+  set gstTreatmentOn(value: boolean) {
+    this.setField('gst_treatment', value ? 'Yes' : 'No');
   }
 
   filteredOptions(options: SelectOption[], search: string): SelectOption[] {

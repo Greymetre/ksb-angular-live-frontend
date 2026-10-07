@@ -32,6 +32,9 @@ export interface CustomerItem {
   pincode?: string | null;
   createdBy?: number | null;
   createdByName?: string | null;
+  /** False when the current user created this retailer or it is assigned to them, so the
+   *  approval buttons are hidden. Defaults to true. */
+  canReviewApproval?: boolean;
   createdAt?: string | null;
   totalPoints: number;
   totalRegularPoints: number;
@@ -316,6 +319,7 @@ export class CustomerService {
       pincode: this.readNullableString(row['pincode'] ?? row['Pincode']),
       createdBy: this.readNullableNumber(row['created_by'] ?? row['createdBy'] ?? row['CreatedBy']),
       createdByName: this.readNullableString(row['created_by_name'] ?? row['createdByName'] ?? row['CreatedByName']),
+      canReviewApproval: (row['can_review_approval'] ?? row['canReviewApproval'] ?? row['CanReviewApproval']) !== false,
       createdAt: this.readNullableString(row['created_at'] ?? row['createdAt'] ?? row['CreatedAt']),
       totalPoints: this.readNumber(row['total_points'] ?? row['totalPoints'] ?? row['TotalPoints']),
       totalRegularPoints: this.readNumber(row['total_regular_points'] ?? row['totalRegularPoints'] ?? row['TotalRegularPoints']),
