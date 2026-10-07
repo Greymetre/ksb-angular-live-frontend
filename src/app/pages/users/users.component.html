@@ -50,6 +50,13 @@
         <option *ngFor="let department of departments" [ngValue]="department.id">{{ department.name | firstCaps }}</option>
       </select>
     </div>
+    <div class="filter-field">
+      <label>Designation</label>
+      <select [(ngModel)]="selectedDesignationId" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">All</option>
+        <option *ngFor="let designation of designations" [ngValue]="designation.id">{{ designation.name | firstCaps }}</option>
+      </select>
+    </div>
     <div class="filter-actions">
       <button type="button" class="mini-btn light" (click)="clearFilters()">Clear</button>
     </div>

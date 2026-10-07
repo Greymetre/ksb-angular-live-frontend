@@ -71,6 +71,7 @@ export class UsersComponent implements OnInit {
   selectedDivisionId: number | null = null;
   selectedBranchId = '';
   selectedDepartmentId: number | null = null;
+  selectedDesignationId: number | null = null;
 
   loading = false;
   optionsLoading = false;
@@ -266,6 +267,7 @@ export class UsersComponent implements OnInit {
     this.selectedDivisionId = null;
     this.selectedBranchId = '';
     this.selectedDepartmentId = null;
+    this.selectedDesignationId = null;
     this.searchQuery = '';
     this.appliedSearchQuery = '';
     this.currentPage = 1;
@@ -510,7 +512,8 @@ export class UsersComponent implements OnInit {
       active: this.selectedActive || undefined,
       divisionId: this.selectedDivisionId,
       branchId: this.selectedBranchId || undefined,
-      departmentId: this.selectedDepartmentId
+      departmentId: this.selectedDepartmentId,
+      designationId: this.selectedDesignationId
     };
   }
 

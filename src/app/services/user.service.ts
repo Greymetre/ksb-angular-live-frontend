@@ -77,6 +77,7 @@ export interface UserFilters {
   divisionId?: number | null;
   branchId?: string | null;
   departmentId?: number | null;
+  designationId?: number | null;
 }
 
 export interface UserPayload {
@@ -243,6 +244,7 @@ export class UserService {
     if (filters.divisionId) params = params.set('division_id', String(filters.divisionId));
     if (filters.branchId) params = params.set('branch_id', filters.branchId);
     if (filters.departmentId) params = params.set('department_id', String(filters.departmentId));
+    if (filters.designationId) params = params.set('designation_id', String(filters.designationId));
 
     return params;
   }

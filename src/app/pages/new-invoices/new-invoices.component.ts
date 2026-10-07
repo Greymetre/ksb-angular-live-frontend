@@ -810,7 +810,7 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
       // build can never reach the API. page and page_size are set per request.
       const allowed: (keyof NewInvoiceFilter)[] = [
         'scheme_id', 'retailer_search', 'invoice_number', 'approval_status',
-        'zone_id', 'branch_id', 'dealer_id', 'from_date', 'to_date', 'search'
+        'zone_id', 'branch_id', 'user_id', 'dealer_id', 'from_date', 'to_date', 'search'
       ];
       const restored: NewInvoiceFilter = {};
       for (const key of allowed) {
