@@ -3,6 +3,8 @@ import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { provideHttpClient } from '@angular/common/http';
+import { TitleStrategy } from '@angular/router';
+import { PageTitleStrategy } from './shared/strategies/page-title.strategy';
 
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
@@ -108,7 +110,7 @@ import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.compo
     DealerSchemeComponent,
   ],
   imports: [BrowserModule, CommonModule, FormsModule, ReactiveFormsModule, AppRoutingModule],
-  providers: [provideHttpClient()],
+  providers: [provideHttpClient(), { provide: TitleStrategy, useClass: PageTitleStrategy }],
   bootstrap: [App],
 })
 export class AppModule {}
