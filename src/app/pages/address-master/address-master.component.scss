@@ -190,7 +190,9 @@
   width: 760px;
   max-width: 94vw;
   padding: 0;
-  overflow: hidden;
+  // Let the searchable-select dropdown (District) spill past the modal edge
+  // instead of being clipped - the form is short and never scrolls.
+  overflow: visible;
 }
 
 .modal-icon {

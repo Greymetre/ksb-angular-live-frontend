@@ -213,7 +213,8 @@
   width: 820px;
   max-width: 96vw;
   padding: 0;
-  overflow: hidden;
+  // Keep searchable-select dropdowns from being clipped at the modal edge.
+  overflow: visible;
 }
 
 .modal-icon {

@@ -212,7 +212,8 @@
 
 .modal-box {
   width: min(760px, 96vw);
-  overflow: hidden;
+  // Allow the customer searchable-select dropdown to overflow the modal edge.
+  overflow: visible;
 }
 
 .modal-header {
