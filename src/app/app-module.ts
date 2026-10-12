@@ -59,6 +59,8 @@ import { LoyaltyAppSettingComponent } from './pages/loyalty-app-setting/loyalty-
 import { OrderDispatchComponent } from './pages/order-dispatch/order-dispatch.component';
 import { UserMonitoringComponent } from './pages/user-monitoring/user-monitoring.component';
 import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.component';
+import { DealerFeedbackComponent } from './pages/dealer-feedback/dealer-feedback.component';
+import { DealerFeedbackListComponent } from './pages/dealer-feedback-list/dealer-feedback-list.component';
 
 @NgModule({
   declarations: [
@@ -86,6 +88,8 @@ import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.compo
     LoyaltySchemesComponent,
     NewInvoicesComponent,
     RedemptionsComponent,
+    DealerFeedbackComponent,
+    DealerFeedbackListComponent,
     MasterCrudComponent,
     AddressMasterComponent,
     ForbiddenComponent,

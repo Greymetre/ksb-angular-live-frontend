@@ -32,6 +32,9 @@
         <option value="N">Inactive</option>
       </select>
     </label>
+    <label>Segment
+      <app-searchable-select [options]="segments" labelKey="name" [selected]="selectedSegmentId" placeholder="All Segments" allOption="All Segments" [pageSize]="25" (selectedChange)="selectedSegmentId=$event"></app-searchable-select>
+    </label>
     <label><span class="field-label">Start Date <span class="required">*</span></span><input type="date" [(ngModel)]="startDate" name="startDate" required></label>
     <label><span class="field-label">End Date <span class="required">*</span></span><input type="date" [(ngModel)]="endDate" name="endDate" required></label>
     <div class="download-wrap"><button class="primary" type="submit" *ngIf="auth.hasPermission('asr_performance_report.export')" [disabled]="loading"><span class="material-icons">download</span>{{ loading ? 'Preparing...' : 'Download Report' }}</button></div>
@@ -69,6 +72,9 @@
     </label>
     <label>Excel Report Period
       <select [(ngModel)]="month" name="ratingMonth"><option [ngValue]="'weekly'">Weekly (Last 7 Days)</option><option [ngValue]="null">All Months (YTD - Jan-Dec)</option><option [ngValue]="'fy'">All Months (YTD - Apr-Mar)</option><option *ngFor="let item of months" [ngValue]="item.id">{{item.name}}</option></select>
+    </label>
+    <label>Segment
+      <app-searchable-select [options]="segments" labelKey="name" [selected]="selectedSegmentId" placeholder="All Segments" allOption="All Segments" [pageSize]="25" (selectedChange)="selectedSegmentId=$event"></app-searchable-select>
     </label>
     <div class="download-wrap rating-filter-actions">
       <button class="secondary-action" type="button" (click)="clearRatingFilters()" [disabled]="ratingDashboardLoading">Clear</button>
@@ -286,6 +292,9 @@
     </label>
     <label>Year
       <select [(ngModel)]="year" name="year"><option *ngFor="let item of years" [ngValue]="item">{{item}}</option></select>
+    </label>
+    <label>Segment
+      <app-searchable-select [options]="segments" labelKey="name" [selected]="selectedSegmentId" placeholder="All Segments" allOption="All Segments" [pageSize]="25" (selectedChange)="selectedSegmentId=$event"></app-searchable-select>
     </label>
     <label>{{mode === 'retailer' ? 'Zone *' : 'Division'}}
       <select [(ngModel)]="divisionId" name="productivityDivisionId" (ngModelChange)="branchId = null"><option [ngValue]="null">{{mode === 'retailer' ? 'Select Zone' : 'All Divisions'}}</option><option *ngFor="let item of asrOptions.divisions" [ngValue]="item.id">{{item.name}}</option></select>

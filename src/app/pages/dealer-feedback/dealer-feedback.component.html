@@ -1,0 +1,62 @@
+<div class="feedback-page">
+  <header class="page-head">
+    <h1>Feedback</h1>
+    <p>Tell us what is working and what is not - your input reaches the KSB team.</p>
+  </header>
+
+  <div class="feedback-card">
+    <div class="field">
+      <label>Category <span class="req">*</span></label>
+      <select [(ngModel)]="category">
+        <option value="">Select a category</option>
+        <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Your feedback <span class="req">*</span></label>
+      <textarea [(ngModel)]="message" rows="5" maxlength="2000" placeholder="Write your feedback here..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>How would you rate us? <span class="req">*</span></label>
+      <div class="stars" (mouseleave)="hoverRating = 0">
+        <button type="button" class="star" *ngFor="let s of stars"
+                [class.on]="s <= starValue()"
+                [style.transition-delay.ms]="(s - 1) * 45"
+                (mouseenter)="hoverRating = s"
+                (click)="setRating(s)"
+                [attr.aria-label]="s + ' star'">
+          <span class="material-icons">star</span>
+        </button>
+        <span class="rating-text">{{ starValue() }} / 5</span>
+      </div>
+    </div>
+
+    <p class="msg error" *ngIf="error">{{ error }}</p>
+    <p class="msg success" *ngIf="success">{{ success }}</p>
+
+    <div class="actions">
+      <button class="btn-primary" (click)="submit()" [disabled]="submitting">
+        {{ submitting ? 'Sending...' : 'Send Feedback' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="history">
+    <h2>Your past feedback</h2>
+    <p class="empty" *ngIf="!loading && mine.length === 0">You have not sent any feedback yet.</p>
+    <p class="empty" *ngIf="loading">Loading...</p>
+
+    <div class="history-item" *ngFor="let f of mine">
+      <div class="history-top">
+        <span class="chip">{{ f.category }}</span>
+        <span class="date">{{ displayDate(f.createdAt) }}</span>
+      </div>
+      <div class="stars sm" *ngIf="f.rating">
+        <span class="material-icons star" *ngFor="let s of stars" [class.on]="s <= f.rating">star</span>
+      </div>
+      <p class="history-msg">{{ f.message }}</p>
+    </div>
+  </div>
+</div>

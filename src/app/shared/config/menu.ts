@@ -8,11 +8,17 @@ export interface MenuItem {
   permissions?: string[];
   children?: MenuItem[];
   expanded?: boolean;
+  // Shows only when a dealer (Distributor-role user) is logged in - used for the dealer
+  // portal's own Feedback screen, which internal users never see.
+  dealerOnly?: boolean;
 }
 
 export const MENU_ITEMS: MenuItem[] = [
 
     { label: 'Dashboard', icon: 'transcribe', route: '/dashboard', permission: 'dashboard.view' },
+
+    // Dealer portal only - a dealer's own feedback screen.
+    { label: 'Feedback', icon: 'feedback', route: '/feedback', dealerOnly: true },
 
     // {
     //   label: 'Lead Management',
@@ -33,7 +39,8 @@ export const MENU_ITEMS: MenuItem[] = [
       children: [
         { label: 'Master', icon: 'diversity_3', route: '/customers', permission: 'customer.view' },
         { label: 'KYC', icon: 'badge', route: '/customer-kyc', permission: 'customer_kyc.view' },
-        { label: 'Customer App details', icon: 'phonelink_setup', route: '/customer-app-details', permission: 'customer_app.view' }
+        { label: 'Customer App details', icon: 'phonelink_setup', route: '/customer-app-details', permission: 'customer_app.view' },
+        { label: 'Dealer Feedback', icon: 'reviews', route: '/dealer-feedback', permission: 'dealer_feedback.view' }
       ]
     },
     {

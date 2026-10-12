@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AsrReportOptions, BranchOption, RatingDashboardFilters, RatingReportDashboard, RatingReportFilters, RatingTrendComponent, RatingTrendRow, ReportManagementService, ReportMode } from '../../services/report-management.service';
 import { AuthService } from '../../services/auth.service';
+import { ProductSegment, ProductService } from '../../services/product.service';
 
 @Component({ standalone: false, selector: 'app-report-management', templateUrl: './report-management.component.html', styleUrls: ['./report-management.component.scss'] })
 export class ReportManagementComponent implements OnInit, OnDestroy {
@@ -30,6 +31,9 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   retailerId: number | null = null;
   dealerId: number | null = null;
   stateId: number | null = null;
+  // Segment filter (ASR / Retailer / Dealer performance): order columns read only this segment's lines.
+  segments: ProductSegment[] = [];
+  selectedSegmentId: number | null = null;
   year = new Date().getFullYear();
   month: number | 'weekly' | 'fy' | null = new Date().getMonth() + 1;
   startDate = this.firstDayOfMonth();
@@ -43,7 +47,11 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   activityPreview: any = { summary: {}, sales_engineer_wise: [], distributor_wise: [], gift_summary: [] };
   activityView: 'sales'|'distributor'|'gifts' = 'sales';
   previewLoading = false;
-  constructor(private route: ActivatedRoute, private service: ReportManagementService, public auth: AuthService, private cdr: ChangeDetectorRef) {}
+  constructor(private route: ActivatedRoute, private service: ReportManagementService, public auth: AuthService, private cdr: ChangeDetectorRef, private productService: ProductService) {}
+
+  loadSegments(): void {
+    this.productService.listSegmentOptions().subscribe({ next: segments => { this.segments = segments; this.cdr.detectChanges(); }, error: () => { this.segments = []; } });
+  }
 
   /** Market intelligence is the report behind the standard layout, and its download is a
    *  permission of its own. Any other report using this layout keeps its own view gate. */
@@ -90,6 +98,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
 
   loadAsrOptions(): void {
     this.loading = true; this.error = '';
+    this.loadSegments();
     this.service.asrOptions().pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); })).subscribe({
       next: options => { this.asrOptions = options; this.designationId = options.default_designation_id; },
       error: error => this.error = error?.error?.message || error.message || 'Unable to load report filters.'
@@ -98,6 +107,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
 
   loadRatingOptions(): void {
     this.loading = true; this.error = '';
+    this.loadSegments();
     this.service.ratingOptions().pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); })).subscribe({
       next: options => { this.asrOptions = options; this.designationId = options.default_designation_id; if (this.designationId) this.loadRatingDashboard(); },
       error: error => this.error = error?.error?.message || error.message || 'Unable to load rating report filters.'
@@ -121,7 +131,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
       this.error = this.month === 'weekly' ? 'Designation is required.' : 'Designation and year are required.';
       return null;
     }
-    return { designationId: this.designationId, year: this.year, month: this.month, divisionId: this.divisionId, branchId: this.branchId, employeeStatus: this.employeeStatus || null };
+    return { designationId: this.designationId, year: this.year, month: this.month, divisionId: this.divisionId, branchId: this.branchId, segmentId: this.selectedSegmentId, employeeStatus: this.employeeStatus || null };
   }
 
   loadRatingDashboard(): void {
@@ -250,7 +260,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
     if (!this.designationId || !this.startDate || !this.endDate) { this.error = 'Designation, start date and end date are required.'; return; }
     if (this.startDate > this.endDate) { this.error = 'Start date cannot be after end date.'; return; }
     this.loading = true; this.error = '';
-    this.service.downloadAsr({ employeeId: this.employeeId, divisionId: this.divisionId, branchId: this.branchId, designationId: this.designationId, employeeStatus: this.employeeStatus || null, startDate: this.startDate, endDate: this.endDate })
+    this.service.downloadAsr({ employeeId: this.employeeId, divisionId: this.divisionId, branchId: this.branchId, designationId: this.designationId, segmentId: this.selectedSegmentId, employeeStatus: this.employeeStatus || null, startDate: this.startDate, endDate: this.endDate })
       .pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); }))
       .subscribe({ next: blob => this.saveBlob(blob, 'Asr_performance_report.xlsx'), error: error => this.handleBlobError(error) });
   }
@@ -269,6 +279,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
 
   loadProductivityOptions(): void {
     this.loading = true; this.error = '';
+    this.loadSegments();
     this.service.productivityOptions().pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); })).subscribe({
       next: options => { this.asrOptions = options; this.designationOptions = options.designations.map(item => ({ id: item.id, label: item.name })); this.designationIds = this.mode === 'retailer' ? (options.default_retailer_designation_ids || []) : (options.default_dealer_designation_ids || []); },
       error: error => this.error = error?.error?.message || error.message || 'Unable to load report filters.'
@@ -282,7 +293,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   downloadProductivity(): void {
     if (this.mode === 'retailer' && !this.divisionId) { this.error = 'Please select a zone before downloading the report.'; return; }
     this.loading = true; this.error = '';
-    const filters: Record<string, any> = { employee_id: this.employeeId, dealer_id: this.dealerId, year: this.year, designation_id: this.designationIds, employee_status: this.employeeStatus };
+    const filters: Record<string, any> = { employee_id: this.employeeId, dealer_id: this.dealerId, year: this.year, designation_id: this.designationIds, employee_status: this.employeeStatus, segment_id: this.selectedSegmentId };
     if (this.mode === 'retailer') Object.assign(filters, { retailer_id: this.retailerId, zone_id: this.divisionId, state_id: this.stateId });
     else Object.assign(filters, { division_id: this.divisionId, branch_id: this.branchId });
     this.service.downloadProductivity(this.mode as 'retailer' | 'dealer', filters).pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); })).subscribe({

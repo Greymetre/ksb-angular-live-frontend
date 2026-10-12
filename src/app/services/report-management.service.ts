@@ -36,6 +36,7 @@ export interface AsrReportFilters {
   divisionId?: number | null;
   branchId?: number | null;
   designationId?: number | null;
+  segmentId?: number | null;
   startDate: string;
   endDate: string;
 }
@@ -46,6 +47,7 @@ export interface RatingReportFilters {
   month?: number | 'weekly' | 'fy' | null;
   divisionId?: number | null;
   branchId?: number | null;
+  segmentId?: number | null;
   /** "Y", "N" or empty for both. */
   employeeStatus?: string | null;
 }
@@ -167,6 +169,7 @@ export class ReportManagementService {
     if (filters.branchId) params = params.set('branch_id', filters.branchId);
     if (filters.designationId) params = params.set('designation_id', filters.designationId);
     if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);
+    if (filters.segmentId) params = params.set('segment_id', String(filters.segmentId));
     return this.http.get(`${API_BASE_URL}/reports/asr-performance/export`, {
       headers: this.headers(), params, responseType: 'blob'
     });
@@ -235,6 +238,7 @@ export class ReportManagementService {
     }
     if (filters.divisionId) params = params.set('division_id', filters.divisionId);
     if (filters.branchId) params = params.set('branch_id', filters.branchId);
+    if (filters.segmentId) params = params.set('segment_id', String(filters.segmentId));
     if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);
     return params;
   }

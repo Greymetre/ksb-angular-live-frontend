@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { BranchOption, DistrictOption, ReportManagementService, ReportOption, RfmDownloadKind, RfmReportOptions } from '../../services/report-management.service';
+import { ProductSegment, ProductService } from '../../services/product.service';
 
 /** The sheets these screens download. */
 type RfmDownload = RfmDownloadKind;
@@ -32,6 +33,9 @@ export class RfmReportComponent implements OnInit {
   branchId: number | null = null;
   stateId: number | null = null;
   districtId: number | null = null;
+  // Segment: every RFM figure then reads only that segment's order lines.
+  segments: ProductSegment[] = [];
+  selectedSegmentId: number | null = null;
 
   /** Which sheet is being prepared, if any. */
   downloading: RfmDownload | null = null;
@@ -47,7 +51,7 @@ export class RfmReportComponent implements OnInit {
   get needsMonth(): boolean { return this.mode === 'movement' || this.mode === 'activation'; }
 
   constructor(public auth: AuthService, private service: ReportManagementService,
-    private route: ActivatedRoute, private cdr: ChangeDetectorRef) {
+    private route: ActivatedRoute, private cdr: ChangeDetectorRef, private productService: ProductService) {
     const routeMode = this.route.snapshot.data['rfmMode'];
     this.mode = routeMode === 'movement' || routeMode === 'activation' ? routeMode : 'report';
   }
@@ -78,6 +82,7 @@ export class RfmReportComponent implements OnInit {
       next: options => this.options = options,
       error: () => this.error = 'Could not load the filters. Please refresh the page.'
     });
+    this.productService.listSegmentOptions().subscribe({ next: segments => { this.segments = segments; this.cdr.detectChanges(); }, error: () => { this.segments = []; } });
   }
 
   download(kind: RfmDownload): void {
@@ -88,6 +93,7 @@ export class RfmReportComponent implements OnInit {
       branch_id: this.branchId,
       state_id: this.stateId,
       district_id: this.districtId,
+      segment_id: this.selectedSegmentId,
       // Only the movement sheet stands on a month; the other two read every order ever.
       ...(this.needsMonth ? { year: this.year, month: this.month } : {}),
       // Only the ASR-wise activation sheet lists employees.

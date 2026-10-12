@@ -1,0 +1,85 @@
+<div class="df-page">
+  <header class="page-head">
+    <div>
+      <h1>Dealer Feedback</h1>
+      <p>Feedback from dealers, shown reporting-wise.</p>
+    </div>
+    <div class="head-actions">
+      <button class="btn-ghost" (click)="showFilters = !showFilters">
+        <span class="material-icons">filter_list</span> Filters
+      </button>
+      <button class="btn-ghost" *ngIf="canExport" (click)="exportFile()" [disabled]="exporting">
+        <span class="material-icons">download</span> {{ exporting ? 'Exporting...' : 'Export' }}
+      </button>
+    </div>
+  </header>
+
+  <div class="filters" *ngIf="showFilters">
+    <div class="f">
+      <label>Category</label>
+      <select [(ngModel)]="filter.category">
+        <option value="">All</option>
+        <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+      </select>
+    </div>
+    <div class="f">
+      <label>From</label>
+      <input type="date" [(ngModel)]="filter.from_date" />
+    </div>
+    <div class="f">
+      <label>To</label>
+      <input type="date" [(ngModel)]="filter.to_date" />
+    </div>
+    <div class="f grow">
+      <label>Search</label>
+      <input type="text" [(ngModel)]="filter.search" placeholder="Dealer name or text" (keyup.enter)="applyFilters()" />
+    </div>
+    <div class="f btns">
+      <button class="btn-primary" (click)="applyFilters()">Apply</button>
+      <button class="btn-ghost" (click)="clearFilters()">Clear</button>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Dealer</th>
+          <th>Mobile</th>
+          <th>Category</th>
+          <th>Rating</th>
+          <th>Feedback</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of rows; let i = index">
+          <td>{{ (page - 1) * pageSize + i + 1 }}</td>
+          <td>{{ r.dealerName }}</td>
+          <td>{{ r.dealerMobile || '-' }}</td>
+          <td><span class="chip">{{ r.category }}</span></td>
+          <td>
+            <span class="stars sm">
+              <span class="material-icons star" *ngFor="let s of stars" [class.on]="s <= r.rating">star</span>
+            </span>
+          </td>
+          <td class="msg-cell">{{ r.message }}</td>
+          <td class="nowrap">{{ displayDate(r.createdAt) }}</td>
+        </tr>
+        <tr *ngIf="!loading && rows.length === 0">
+          <td colspan="7" class="empty">No feedback found.</td>
+        </tr>
+        <tr *ngIf="loading">
+          <td colspan="7" class="empty">Loading...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager" *ngIf="lastPage > 1">
+    <button (click)="changePage(page - 1)" [disabled]="page === 1">Previous</button>
+    <span>{{ page }} / {{ lastPage }}</span>
+    <button (click)="changePage(page + 1)" [disabled]="page === lastPage">Next</button>
+  </div>
+</div>

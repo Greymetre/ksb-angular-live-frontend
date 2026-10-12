@@ -16,6 +16,8 @@ import { PromotionalActivitiesComponent } from './pages/promotional-activities/p
 import { LoyaltySchemesComponent } from './pages/loyalty-schemes/loyalty-schemes.component';
 import { NewInvoicesComponent } from './pages/new-invoices/new-invoices.component';
 import { RedemptionsComponent } from './pages/redemptions/redemptions.component';
+import { DealerFeedbackComponent } from './pages/dealer-feedback/dealer-feedback.component';
+import { DealerFeedbackListComponent } from './pages/dealer-feedback-list/dealer-feedback-list.component';
 import { MasterCrudComponent } from './pages/master-crud/master-crud.component';
 import { AddressMasterComponent } from './pages/address-master/address-master.component';
 import { authGuard } from './guards/auth-guard';
@@ -82,6 +84,11 @@ const routes: Routes = [
       // Dealer-only read view of a scheme, reached from the dashboard slider.
       { path: 'dealer/schemes/:id', component: DealerSchemeComponent, canActivate: [authGuard], data: { permission: 'dashboard.view' } },
       { path: 'redemptions', component: RedemptionsComponent, canActivate: [authGuard], data: { permission: 'redemption.view' } },
+      // Dealer portal's own feedback screen - any signed-in dealer; the backend ties it to
+      // the dealer's customer and refuses a non-dealer.
+      { path: 'feedback', component: DealerFeedbackComponent, canActivate: [authGuard] },
+      // Internal reporting-wise listing, read only.
+      { path: 'dealer-feedback', component: DealerFeedbackListComponent, canActivate: [authGuard], data: { permission: 'dealer_feedback.view' } },
       { path: 'orders', component: OrdersComponent, canActivate: [authGuard], data: { permission: 'order.view' } },
       { path: 'orders/:id/dispatch/:mode', component: OrderDispatchComponent, canActivate: [authGuard], data: { permission: 'order.dispatch' } },
       { path: 'order-dispatch/:mode', component: OrderDispatchComponent, canActivate: [authGuard], data: { permission: 'order_dispatch.view' } },

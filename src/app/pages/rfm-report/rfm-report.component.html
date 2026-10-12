@@ -21,6 +21,9 @@
     <label><span class="field-label">District</span>
       <app-searchable-select [options]="stateDistricts" labelKey="name" [selected]="districtId" placeholder="All Districts" allOption="All Districts" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading districts..." (selectedChange)="districtId=$event"></app-searchable-select>
     </label>
+    <label><span class="field-label">Segment</span>
+      <app-searchable-select [options]="segments" labelKey="name" [selected]="selectedSegmentId" placeholder="All Segments" allOption="All Segments" [pageSize]="25" (selectedChange)="selectedSegmentId=$event"></app-searchable-select>
+    </label>
 
     <label *ngIf="needsMonth"><span class="field-label">Year <span class="required">*</span></span>
       <select [(ngModel)]="year" name="rfmYear"><option *ngFor="let item of years" [ngValue]="item">{{item}}</option></select>

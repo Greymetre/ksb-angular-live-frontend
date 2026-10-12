@@ -1,0 +1,179 @@
+// Fills the content area like every other screen, so collapsing the sidebar widens it
+// the same way - no fixed max-width holding the form to one side.
+.feedback-page {
+  padding: 24px;
+}
+
+.page-head {
+  h1 { margin: 0; font-size: 24px; color: var(--text-dark); }
+  p { margin: 6px 0 20px; color: var(--text-muted, #64748b); }
+}
+
+.feedback-card {
+  background: white;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  padding: 22px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+}
+
+.field {
+  margin-bottom: 16px;
+
+  label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 7px;
+    color: var(--text-dark);
+
+    .req { color: var(--danger-red, #dc2626); }
+  }
+
+  select,
+  textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color, #cbd5e1);
+    border-radius: 6px;
+    font: inherit;
+    outline: none;
+    background: white;
+
+    &:focus { border-color: var(--primary-blue, #1976d2); }
+  }
+
+  textarea { resize: vertical; min-height: 110px; }
+}
+
+/* ---- star rating ---- */
+.stars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  .star {
+    border: none;
+    background: transparent;
+    padding: 2px;
+    cursor: pointer;
+    line-height: 0;
+
+    .material-icons {
+      font-size: 36px;
+      color: #dce0e7;                       // empty star
+      // The inline per-star transition-delay creates the left-to-right "filling" wave.
+      transition: color .2s ease, transform .2s ease, filter .2s ease, -webkit-text-fill-color .2s ease;
+      transition-delay: inherit;
+    }
+
+    &:hover .material-icons { transform: scale(1.14); }
+
+    // Solid gold - always fully visible. The shine is a glow + brightness pulse that
+    // sweeps across the row (staggered below), the same lively feel as the invoice chips.
+    &.on .material-icons {
+      color: #f5a200;
+      transform: scale(1.08);
+      animation: starPop .34s ease, goldGlow 2.1s ease-in-out infinite;
+      animation-delay: 0s, 0s;
+    }
+  }
+
+  // Stagger the glow so it travels left -> right across the five stars.
+  .star:nth-child(2).on .material-icons { animation-delay: 0s, .16s; }
+  .star:nth-child(3).on .material-icons { animation-delay: 0s, .32s; }
+  .star:nth-child(4).on .material-icons { animation-delay: 0s, .48s; }
+  .star:nth-child(5).on .material-icons { animation-delay: 0s, .64s; }
+
+  .rating-text {
+    margin-left: 12px;
+    font-weight: 700;
+    font-size: 14px;
+    color: #c07d12;
+  }
+
+  // small read-only stars in the history list
+  &.sm {
+    gap: 1px;
+    margin-bottom: 8px;
+    .material-icons {
+      font-size: 17px;
+      color: #dce0e7;
+      &.on { color: #f5a200; animation: goldGlow 2.1s ease-in-out infinite; }
+    }
+    .material-icons:nth-child(2).on { animation-delay: .16s; }
+    .material-icons:nth-child(3).on { animation-delay: .32s; }
+    .material-icons:nth-child(4).on { animation-delay: .48s; }
+    .material-icons:nth-child(5).on { animation-delay: .64s; }
+  }
+}
+
+@keyframes starPop {
+  0%   { transform: scale(.55); }
+  55%  { transform: scale(1.28); }
+  100% { transform: scale(1.08); }
+}
+
+/* the gold "shine" - a glow + brightness lift that sweeps across the row (staggered).
+   Stars stay solid gold the whole time, so they never wash out. */
+@keyframes goldGlow {
+  0%, 55%, 100% { filter: drop-shadow(0 1px 1px rgba(245, 163, 0, .35)) brightness(1); }
+  28%           { filter: drop-shadow(0 0 5px rgba(255, 205, 70, .9)) brightness(1.3); }
+}
+
+.msg {
+  margin: 4px 0 12px;
+  font-size: 13.5px;
+
+  &.error { color: var(--danger-red, #dc2626); }
+  &.success { color: #0ca26a; }
+}
+
+.actions { display: flex; justify-content: flex-end; }
+
+.btn-primary {
+  background: var(--primary-blue, #1976d2);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:disabled { opacity: .6; cursor: default; }
+}
+
+.history {
+  margin-top: 28px;
+
+  h2 { font-size: 18px; color: var(--text-dark); margin: 0 0 12px; }
+  .empty { color: var(--text-muted, #64748b); }
+}
+
+.history-item {
+  background: white;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.history-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.chip {
+  background: #edf4ff;
+  color: #174a8b;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.date { color: var(--text-muted, #64748b); font-size: 12.5px; }
+
+.history-msg { margin: 0; color: var(--text-dark); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }

@@ -117,6 +117,12 @@ export class SidebarComponent {
   }
 
   private canView(item: MenuItem): boolean {
+    // A dealer-only entry (the dealer portal's Feedback screen) shows for a dealer login
+    // and for no one else.
+    if (item.dealerOnly) {
+      return this.authService.isDistributorUser();
+    }
+
     if (item.permissions?.length) {
       return this.authService.hasAnyPermission(item.permissions);
     }
