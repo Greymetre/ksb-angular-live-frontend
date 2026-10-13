@@ -25,6 +25,7 @@ interface UserFormModel {
   divisionId: number | null;
   departmentId: number | null;
   reportingId: number | null;
+  reportingManagerIds: number[];
   location: string;
   latitude: string;
   longitude: string;
@@ -307,6 +308,9 @@ export class UsersComponent implements OnInit {
       divisionId: user.divisionId ?? null,
       departmentId: user.departmentId ?? null,
       reportingId: user.reportingId ?? null,
+      reportingManagerIds: (user.reportingManagerIds && user.reportingManagerIds.length)
+        ? [...user.reportingManagerIds]
+        : (user.reportingId ? [user.reportingId] : []),
       location: user.location || '',
       latitude: user.latitude || '',
       longitude: user.longitude || '',
@@ -543,7 +547,8 @@ export class UsersComponent implements OnInit {
       designationId: this.userForm.designationId,
       divisionId: this.userForm.divisionId,
       departmentId: this.userForm.departmentId,
-      reportingId: this.userForm.reportingId,
+      reportingId: this.userForm.reportingManagerIds[0] ?? this.userForm.reportingId,
+      reportingManagerIds: this.userForm.reportingManagerIds,
       location: this.userForm.location.trim(),
       baseLocationCoordinates: coordinates,
       payroll: this.userForm.payroll,
@@ -640,6 +645,7 @@ export class UsersComponent implements OnInit {
       divisionId: null,
       departmentId: null,
       reportingId: null,
+      reportingManagerIds: [],
       location: '',
       latitude: '',
       longitude: '',

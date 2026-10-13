@@ -38,6 +38,10 @@ export interface User {
   departmentName?: string | null;
   reportingId?: number | null;
   reportingName?: string | null;
+  /** Every manager this user reports to - prefills the multi-select on the edit form. */
+  reportingManagerIds?: number[];
+  /** All reporting managers' names, comma-separated, for the list column. */
+  reportingNames?: string | null;
   location?: string | null;
   latitude?: string | null;
   longitude?: string | null;
@@ -95,6 +99,7 @@ export interface UserPayload {
   divisionId?: number | null;
   departmentId?: number | null;
   reportingId?: number | null;
+  reportingManagerIds?: number[];
   location?: string;
   baseLocationCoordinates?: string;
   payroll?: string;
@@ -270,6 +275,7 @@ export class UserService {
       division_id: payload.divisionId,
       department_id: payload.departmentId,
       reporting_id: payload.reportingId,
+      reporting_manager_ids: payload.reportingManagerIds,
       location: payload.location,
       base_location_coordinates: payload.baseLocationCoordinates,
       payroll: payload.payroll,
@@ -352,6 +358,10 @@ export class UserService {
       departmentName: this.readNullableString(row['departmentName'] ?? row['DepartmentName'] ?? row['department_name']),
       reportingId: this.readNullableNumber(row['reportingId'] ?? row['ReportingId'] ?? row['reporting_id']),
       reportingName: this.readNullableString(row['reportingName'] ?? row['ReportingName'] ?? row['reporting_name']),
+      reportingManagerIds: this.asArray(row['reportingManagerIds'] ?? row['ReportingManagerIds'] ?? row['reporting_manager_ids'])
+        .map(value => this.readNumber(value))
+        .filter(value => value > 0),
+      reportingNames: this.readNullableString(row['reportingNames'] ?? row['ReportingNames'] ?? row['reporting_names']),
       location: this.readNullableString(row['location'] ?? row['Location']),
       latitude: this.readNullableString(row['latitude'] ?? row['Latitude']),
       longitude: this.readNullableString(row['longitude'] ?? row['Longitude']),

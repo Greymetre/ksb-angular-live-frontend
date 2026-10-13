@@ -108,7 +108,7 @@
             <th>WhatsApp</th>
             <th>Mobile</th>
             <th>Email</th>
-            <th>Reporting Person</th>
+            <th>Reporting Managers</th>
             <th>Joining Date</th>
             <th>Roles</th>
             <th>Password</th>
@@ -155,7 +155,7 @@
             </td>
             <td>{{ user.mobile }}</td>
             <td class="wide-cell" [title]="user.email || ''">{{ user.email }}</td>
-            <td>{{ user.reportingName }}</td>
+            <td>{{ user.reportingNames || user.reportingName }}</td>
             <td>{{ formatDate(user.dateOfJoining) }}</td>
             <td class="wide-cell" [title]="roleSummary(user)">{{ roleSummary(user) }}</td>
             <td>{{ user.passwordString }}</td>
@@ -305,8 +305,16 @@
           <app-searchable-select [options]="departments" labelKey="name" [selected]="userForm.departmentId" placeholder="Select department" (selectedChange)="userForm.departmentId=$event"></app-searchable-select>
         </div>
         <div class="modal-field">
-          <label>Reporting Person</label>
-          <app-searchable-select [options]="reportings" labelKey="name" [selected]="userForm.reportingId" placeholder="Select reporting person" [pageSize]="25" (selectedChange)="userForm.reportingId=$event"></app-searchable-select>
+          <label>Reporting Managers</label>
+          <app-searchable-select
+            [options]="reportings"
+            labelKey="name"
+            [selected]="userForm.reportingManagerIds"
+            [multiple]="true"
+            placeholder="Select reporting managers"
+            [pageSize]="25"
+            (selectedChange)="userForm.reportingManagerIds = $event"
+          ></app-searchable-select>
         </div>
         <div class="modal-field">
           <label>City Assigned</label>
