@@ -111,6 +111,16 @@ export interface UserPayload {
   cityIds?: number[];
 }
 
+export interface UserImportResult {
+  message: string;
+  total: number;
+  imported: number;
+  updated: number;
+  failed: number;
+  errors: string[];
+  warnings: string[];
+}
+
 export interface UserActionResult {
   user?: User;
   message: string;
@@ -218,21 +228,26 @@ export class UserService {
     }).pipe(catchError(error => this.handleError(error)));
   }
 
-  downloadTemplate(): Observable<Blob> {
-    return this.http.get(`${this.baseUrl}/users/template`, {
-      headers: this.authHeaders(),
-      responseType: 'blob'
-    }).pipe(catchError(error => this.handleError(error)));
-  }
 
-  uploadUsers(file: File): Observable<UserActionResult> {
+  uploadUsers(file: File): Observable<UserImportResult> {
     const formData = new FormData();
     formData.append('import_file', file);
 
     return this.http.post<UserApiResponse>(`${this.baseUrl}/users/upload`, formData, {
       headers: this.authHeaders()
     }).pipe(
-      map(response => ({ message: this.responseMessage(response) || 'Users imported successfully' })),
+      map(response => {
+        const r = this.asRecord((response as UserApiResponse)['import'] ?? (response as UserApiResponse)['data']);
+        return {
+          message: this.responseMessage(response) || 'Users imported successfully',
+          total: this.readNumber(r['total_rows'] ?? r['totalRows']),
+          imported: this.readNumber(r['imported_rows'] ?? r['importedRows']),
+          updated: this.readNumber(r['updated_rows'] ?? r['updatedRows']),
+          failed: this.readNumber(r['failed_rows'] ?? r['failedRows']),
+          errors: this.asArray(r['errors']).map(x => this.readString(x)).filter(x => !!x),
+          warnings: this.asArray(r['warnings']).map(x => this.readString(x)).filter(x => !!x)
+        } as UserImportResult;
+      }),
       catchError(error => this.handleError(error))
     );
   }

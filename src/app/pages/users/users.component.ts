@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@an
 import { timeout } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { User, UserFilters, UserOption, UserPayload, UserService } from '../../services/user.service';
+import { User, UserFilters, UserImportResult, UserOption, UserPayload, UserService } from '../../services/user.service';
 import { SearchableSelectOption } from '../../shared/components/searchable-select/searchable-select.component';
 import { firstCaps } from '../../shared/pipes/first-caps.pipe';
 import { formatKolkataDateTime, kolkataDateInput, kolkataTodayInput } from '../../shared/utils/date-time';
@@ -79,8 +79,9 @@ export class UsersComponent implements OnInit {
   saving = false;
   uploading = false;
   exporting = false;
-  templating = false;
   showFilters = false;
+  importResult: UserImportResult | null = null;
+  showImportResult = false;
   showUserModal = false;
   errorMessage = '';
   toast: ToastModel = { visible: false, message: '', type: 'success' };
@@ -158,10 +159,6 @@ export class UsersComponent implements OnInit {
 
   get canExport(): boolean {
     return this.authService.hasPermission('user.export');
-  }
-
-  get canTemplate(): boolean {
-    return this.authService.hasPermission('user.template');
   }
 
   get canUpload(): boolean {
@@ -428,14 +425,24 @@ export class UsersComponent implements OnInit {
       })
     ).subscribe({
       next: result => {
-        this.showToast(result.message, 'success');
+        this.importResult = result;
+        this.showImportResult = true;
+        const summary = `${result.imported} created, ${result.updated} updated, ${result.failed} failed.`;
+        this.showToast(summary, result.failed > 0 ? 'error' : 'success');
         this.loadUsers();
+        this.refreshView();
       },
       error: error => {
         this.showToast(error.message, 'error');
         this.refreshView();
       }
     });
+  }
+
+  closeImportResult(): void {
+    this.showImportResult = false;
+    this.importResult = null;
+    this.refreshView();
   }
 
   exportUsers(): void {
@@ -446,18 +453,6 @@ export class UsersComponent implements OnInit {
       this.refreshView();
     })).subscribe({
       next: blob => this.downloadBlob(blob, `users-${this.dateStamp()}.xlsx`),
-      error: error => this.showToast(error.message, 'error')
-    });
-  }
-
-  downloadTemplate(): void {
-    this.templating = true;
-    this.showToast('Preparing template...', 'success');
-    this.userService.downloadTemplate().pipe(finalize(() => {
-      this.templating = false;
-      this.refreshView();
-    })).subscribe({
-      next: blob => this.downloadBlob(blob, 'users-template.xlsx'),
       error: error => this.showToast(error.message, 'error')
     });
   }

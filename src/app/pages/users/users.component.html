@@ -77,9 +77,6 @@
         <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Export Users'" (click)="exportUsers()" [disabled]="exporting || !canExport" *ngIf="canExport">
           <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
         </button>
-        <button class="btn-icon-round" [title]="templating ? 'Preparing template...' : 'Download Template'" (click)="downloadTemplate()" [disabled]="templating || !canTemplate" *ngIf="canTemplate">
-          <span class="material-icons">{{ templating ? 'hourglass_top' : 'text_snippet' }}</span>
-        </button>
         <button class="btn-icon-round add-btn" title="Add User" (click)="openCreateModal()" *ngIf="canCreate">
           <span class="material-icons">add</span>
         </button>
@@ -168,6 +165,46 @@
     </div>
     <div class="table-footer">
       <app-pagination [total]="totalUsers" [pageSize]="showEntries" [page]="currentPage" (pageChange)="onPageChange($event)"></app-pagination>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showImportResult && importResult" (click)="closeImportResult()">
+  <div class="modal-box user-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header-row">
+      <h2>Import Result</h2>
+      <button class="modal-close-btn" (click)="closeImportResult()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>
+        <strong>{{ importResult.total }}</strong> row(s) processed —
+        <strong>{{ importResult.imported }}</strong> created,
+        <strong>{{ importResult.updated }}</strong> updated,
+        <strong>{{ importResult.failed }}</strong> failed.
+      </p>
+
+      <div *ngIf="importResult.warnings.length">
+        <h3 style="margin: 12px 0 6px; font-size: 15px;">Notes</h3>
+        <ul style="margin: 0; padding-left: 18px; max-height: 220px; overflow: auto;">
+          <li *ngFor="let w of importResult.warnings" style="margin-bottom: 4px;">{{ w }}</li>
+        </ul>
+      </div>
+
+      <div *ngIf="importResult.errors.length">
+        <h3 style="margin: 12px 0 6px; font-size: 15px;">Not imported</h3>
+        <ul style="margin: 0; padding-left: 18px; max-height: 220px; overflow: auto;">
+          <li *ngFor="let e of importResult.errors" style="margin-bottom: 4px; color: #c0392b;">{{ e }}</li>
+        </ul>
+      </div>
+
+      <p *ngIf="!importResult.warnings.length && !importResult.errors.length" style="margin-top: 8px;">
+        All rows imported successfully.
+      </p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-submit-modal" (click)="closeImportResult()">Close</button>
     </div>
   </div>
 </div>
