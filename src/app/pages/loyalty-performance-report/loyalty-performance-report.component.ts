@@ -3,7 +3,7 @@ import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { LoyaltyPerformanceOptions, ReportManagementService, ReportOption } from '../../services/report-management.service';
 
-type LoyaltyDownload = 'asr' | 'dealer';
+type LoyaltyDownload = 'asr' | 'dealer' | 'retailer';
 
 /**
  * Reports > Loyalty > Performance Report.
@@ -25,7 +25,7 @@ export class LoyaltyPerformanceReportComponent implements OnInit {
   segmentId: number | null = null;
   /** Employee Status filter: '' both, 'Y' active only, 'N' inactive only. */
   employeeStatus = '';
-  zoneId: number | null = null;
+  zoneIds: number[] = [];
   schemeId: number | null = null;
   startDate = '';
   endDate = '';
@@ -37,7 +37,8 @@ export class LoyaltyPerformanceReportComponent implements OnInit {
 
   get canDownloadAny(): boolean {
     return this.auth.hasPermission('loyalty_performance_report.export_asr')
-      || this.auth.hasPermission('loyalty_performance_report.export_dealer');
+      || this.auth.hasPermission('loyalty_performance_report.export_dealer')
+      || this.auth.hasPermission('loyalty_performance_report.export_retailer');
   }
 
   ngOnInit(): void {
@@ -70,7 +71,7 @@ export class LoyaltyPerformanceReportComponent implements OnInit {
     this.service.downloadLoyaltyPerformance(kind, {
       segmentId: this.segmentId!,
       employeeStatus: this.employeeStatus || null,
-      zoneId: this.zoneId!,
+      zoneIds: this.zoneIds,
       schemeId: this.schemeId!,
       startDate: this.startDate,
       endDate: this.endDate
@@ -78,14 +79,14 @@ export class LoyaltyPerformanceReportComponent implements OnInit {
       this.downloading = null;
       this.cdr.detectChanges();
     })).subscribe({
-      next: blob => this.saveBlob(blob, kind === 'asr' ? 'Loyalty_Performance_ASR_Wise.xlsx' : 'Loyalty_Performance_Dealer_Wise.xlsx'),
+      next: blob => this.saveBlob(blob, kind === 'asr' ? 'Loyalty_Performance_ASR_Wise.xlsx' : kind === 'dealer' ? 'Loyalty_Performance_Dealer_Wise.xlsx' : 'Loyalty_Performance_Retailer_Wise.xlsx'),
       error: error => this.handleBlobError(error)
     });
   }
 
   private validate(): string {
     const missing = [
-      !this.zoneId && 'Zone',
+      !this.zoneIds.length && 'Zone',
       !this.schemeId && 'Scheme Name',
       !this.startDate && 'Start Date',
       !this.endDate && 'End Date'

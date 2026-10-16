@@ -362,10 +362,10 @@
         <p class="dash-note range">{{ activityRangeLabel }} · {{ fieldActivityTotal | number }} activities logged</p>
         <ul class="mini-list bars">
           <li *ngFor="let row of [
-                { label: 'Retailer Visit', value: act.retailerVisit, tone: 'blue' },
-                { label: 'Retailer Meet', value: act.retailerMeet, tone: 'green' },
-                { label: 'Nukkad Meet', value: act.nukkadMeet, tone: 'amber' },
-                { label: 'Field Demo', value: act.fieldDemo, tone: 'purple' },
+                { label: 'Retailer', value: act.retailer, tone: 'blue' },
+                { label: 'Nukkad', value: act.nukkad, tone: 'amber' },
+                { label: 'Farmer', value: act.farmer, tone: 'green' },
+                { label: 'Influencer', value: act.influencer, tone: 'purple' },
                 { label: 'Other', value: act.other, tone: 'grey' }]">
             <span>{{ row.label }}</span>
             <i class="mini-bar" [ngClass]="row.tone"><em [style.width.%]="percent(row.value, fieldActivityTotal)"></em></i>

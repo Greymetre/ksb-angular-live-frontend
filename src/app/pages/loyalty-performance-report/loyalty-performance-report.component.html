@@ -8,7 +8,7 @@
       <app-searchable-select [options]="options.segments" labelKey="name" [selected]="segmentId" placeholder="All Segments" allOption="All Segments" [loading]="optionsLoading" loadingText="Loading segments..." (selectedChange)="segmentId=$event"></app-searchable-select>
     </label>
     <label><span class="field-label">Zone <span class="required">*</span></span>
-      <app-searchable-select [options]="options.zones" labelKey="name" [selected]="zoneId" placeholder="Select Zone" [loading]="optionsLoading" loadingText="Loading zones..." (selectedChange)="zoneId=$event"></app-searchable-select>
+      <app-searchable-select [options]="options.zones" labelKey="name" [selected]="zoneIds" [multiple]="true" placeholder="Select Zones" [loading]="optionsLoading" loadingText="Loading zones..." (selectedChange)="zoneIds=$event"></app-searchable-select>
     </label>
     <label><span class="field-label">Scheme Name <span class="required">*</span></span>
       <app-searchable-select [options]="schemeOptions" labelKey="name" [selected]="schemeId" placeholder="Select Scheme" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading schemes..." (selectedChange)="schemeId=$event"></app-searchable-select>
@@ -29,6 +29,9 @@
       </button>
       <button class="primary" type="button" *ngIf="auth.hasPermission('loyalty_performance_report.export_dealer')" [disabled]="!!downloading" (click)="download('dealer')">
         <span class="material-icons">download</span>{{ downloading === 'dealer' ? 'Preparing...' : 'Dealer Wise' }}
+      </button>
+      <button class="primary" type="button" *ngIf="auth.hasPermission('loyalty_performance_report.export_retailer')" [disabled]="!!downloading" (click)="download('retailer')">
+        <span class="material-icons">download</span>{{ downloading === 'retailer' ? 'Preparing...' : 'Retailer Wise' }}
       </button>
     </div>
   </form>

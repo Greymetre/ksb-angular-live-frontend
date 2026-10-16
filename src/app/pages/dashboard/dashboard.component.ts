@@ -5,7 +5,7 @@ import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import {
   ActivityDashboard, AttendanceDayPoint, DashboardService, DealerDashboard, DealerScheme,
-  LoyaltyDashboard, LoyaltyTrendPoint, OverviewActivity, OverviewCount, OverviewTarget,
+  LoyaltyDashboard, LoyaltyTrendPoint, OverviewActivity, OverviewFieldActivity, OverviewCount, OverviewTarget,
   OverviewTrendPoint, TeamDashboard
 } from '../../services/dashboard.service';
 
@@ -228,14 +228,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   // ---------------------------------------------------------- team dashboard
 
-  get fieldActivity(): OverviewActivity | null {
+  get fieldActivity(): OverviewFieldActivity | null {
     if (!this.team) return null;
     return this.team.activities[this.activityRange];
   }
 
   get fieldActivityTotal(): number {
     const row = this.fieldActivity;
-    return row ? row.retailerVisit + row.retailerMeet + row.nukkadMeet + row.fieldDemo + row.other : 0;
+    return row ? row.retailer + row.nukkad + row.farmer + row.influencer + row.other : 0;
   }
 
   get activityRangeLabel(): string {

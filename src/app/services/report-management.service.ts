@@ -16,7 +16,7 @@ export type RfmDownloadKind = 'retailer' | 'dealer' | 'movement' | 'activation-a
 export interface RfmReportOptions { zones: ReportOption[]; branches: BranchOption[]; states: ReportOption[]; districts: DistrictOption[]; }
 export interface LoyaltyPerformanceScheme extends ReportOption { code: string; start_date: string; end_date: string; }
 export interface LoyaltyPerformanceOptions { segments: ReportOption[]; zones: ReportOption[]; schemes: LoyaltyPerformanceScheme[]; }
-export interface LoyaltyPerformanceFilters { segmentId: number | null; zoneId: number; schemeId: number; startDate: string; endDate: string; employeeStatus?: string | null; }
+export interface LoyaltyPerformanceFilters { segmentId: number | null; zoneIds: number[]; schemeId: number; startDate: string; endDate: string; employeeStatus?: string | null; }
 export interface AsrReportOptions {
   users: ReportOption[];
   divisions: ReportOption[];
@@ -183,12 +183,13 @@ export class ReportManagementService {
     })));
   }
 
-  downloadLoyaltyPerformance(kind: 'asr' | 'dealer', filters: LoyaltyPerformanceFilters): Observable<Blob> {
+  downloadLoyaltyPerformance(kind: 'asr' | 'dealer' | 'retailer', filters: LoyaltyPerformanceFilters): Observable<Blob> {
     let params = new HttpParams()
-      .set('zone_id', filters.zoneId)
       .set('scheme_id', filters.schemeId)
       .set('start_date', filters.startDate)
       .set('end_date', filters.endDate);
+    // Each selected zone goes as its own zone_id param; the export covers them all.
+    filters.zoneIds.forEach(id => params = params.append('zone_id', String(id)));
     // No segment = every segment.
     if (filters.segmentId) params = params.set('segment_id', String(filters.segmentId));
     if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);

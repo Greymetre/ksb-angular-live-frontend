@@ -56,6 +56,10 @@ export interface OverviewAttendance {
 export interface OverviewActivity {
   retailerVisit: number; retailerMeet: number; nukkadMeet: number; fieldDemo: number; other: number;
 }
+/** Field activity on the secondary-sales dashboard, from the promotional activities (like the SFA app). */
+export interface OverviewFieldActivity {
+  retailer: number; nukkad: number; farmer: number; influencer: number; other: number;
+}
 export interface OverviewTrendPoint {
   month: number; label: string; orders: number; quantity: number; value: number; isCurrent: boolean;
 }
@@ -85,7 +89,7 @@ export interface TeamDashboard {
     pendingKyc: number;
   };
   activities: {
-    today: OverviewActivity; month: OverviewActivity; year: OverviewActivity;
+    today: OverviewFieldActivity; month: OverviewFieldActivity; year: OverviewFieldActivity;
     promotional: { year: number; month: number; gifts: number; expense: number; types: { name: string; count: number }[] };
   };
   topProducts: { quantity: OverviewProduct[]; value: OverviewProduct[] };
@@ -185,6 +189,10 @@ const target = (row: any) => ({
 const activity = (row: any) => ({
   retailerVisit: num(row?.retailer_visit), retailerMeet: num(row?.retailer_meet),
   nukkadMeet: num(row?.nukkad_meet), fieldDemo: num(row?.field_demo), other: num(row?.other)
+});
+const fieldActivity = (row: any) => ({
+  retailer: num(row?.retailer), nukkad: num(row?.nukkad),
+  farmer: num(row?.farmer), influencer: num(row?.influencer), other: num(row?.other)
 });
 const actor = (row: any): DashboardActor => ({
   id: num(row?.id), name: String(row?.name ?? ''), designation: String(row?.designation ?? ''),
@@ -320,9 +328,9 @@ export class DashboardService {
           pendingKyc: num(response?.customers?.pending_kyc)
         },
         activities: {
-          today: activity(response?.activities?.today),
-          month: activity(response?.activities?.month),
-          year: activity(response?.activities?.year),
+          today: fieldActivity(response?.activities?.today),
+          month: fieldActivity(response?.activities?.month),
+          year: fieldActivity(response?.activities?.year),
           promotional: {
             year: num(response?.activities?.promotional?.year),
             month: num(response?.activities?.promotional?.month),
