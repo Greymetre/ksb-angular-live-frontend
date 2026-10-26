@@ -287,7 +287,8 @@ export class CustomerShowComponent implements OnInit {
   get kycDocuments(): KycDocument[] {
     return [
       this.kycDocument('gst', 'GST', this.firstField('gst_attachment', 'gst_image'), [
-        { label: 'GST Number', key: 'gst_number', value: this.field('gst_number') || this.field('gstin_no') }
+        { label: 'GST Number', key: 'gst_number', value: this.field('gst_number') || this.field('gstin_no') },
+        { label: 'GST Registered', value: this.gstRegisteredLabel }
       ]),
       this.kycDocument('pan', 'PAN', this.firstField('pan_attachment', 'pan_image'), [
         { label: 'PAN Number', key: 'pan_number', value: this.field('pan_number') || this.field('pan_no') }
@@ -297,6 +298,13 @@ export class CustomerShowComponent implements OnInit {
       ]),
       this.kycDocument('bank', 'Blank Cheque / Passbook', this.firstField('bank_proof', 'blank_cheque', 'passbook'), this.bankKycRows)
     ].filter(document => !!document.url || document.rows.length > 0);
+  }
+
+  /** Whether the customer is GST registered, read from the gst_treatment toggle the form
+   * stores: it is turned ON for a customer who is NOT GST registered (stored "Yes"), so a
+   * stored "Yes" reads as "No" here and anything else (off, or never set) reads as "Yes". */
+  get gstRegisteredLabel(): string {
+    return (this.field('gst_treatment') || '').trim().toLowerCase() === 'yes' ? 'No' : 'Yes';
   }
 
   openShopImage(): void {

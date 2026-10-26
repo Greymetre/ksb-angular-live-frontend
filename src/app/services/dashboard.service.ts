@@ -81,6 +81,7 @@ export interface TeamDashboard {
   target: { monthLabel: string; month: OverviewTarget; ytd: OverviewTarget; asr: OverviewTarget; dsr: OverviewTarget };
   orders: {
     today: OverviewCount; month: OverviewCount; year: OverviewCount;
+    monthUniqueBuyers: number;
     asrMonth: OverviewCount; dsrMonth: OverviewCount; trend: OverviewTrendPoint[];
   };
   customers: {
@@ -304,6 +305,7 @@ export class DashboardService {
         orders: {
           today: count(response?.orders?.today),
           month: count(response?.orders?.month),
+          monthUniqueBuyers: num(response?.orders?.month_unique_buyers),
           year: count(response?.orders?.year),
           asrMonth: count(response?.orders?.asr_month),
           dsrMonth: count(response?.orders?.dsr_month),

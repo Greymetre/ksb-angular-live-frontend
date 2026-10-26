@@ -207,7 +207,7 @@
       <span class="material-icons">shopping_cart</span>
       <div>
         <small>Orders This Month</small>
-        <strong>{{ t.orders.month.orders | number }}</strong>
+        <strong>{{ t.orders.monthUniqueBuyers | number }}</strong>
         <p>{{ money(t.orders.month.value) }} · {{ t.orders.month.quantity | number }} qty</p>
       </div>
     </article>
@@ -215,9 +215,9 @@
     <article class="dash-kpi rewards" (click)="go('/customers')">
       <span class="material-icons">storefront</span>
       <div>
-        <small>Retailer Network</small>
-        <strong>{{ t.customers.retailers | number }}</strong>
-        <p>{{ t.customers.withOrderYear | number }} ordered this year · {{ percent(t.customers.withOrderYear, t.customers.retailers) }}%</p>
+        <small>Registered &amp; Approved</small>
+        <strong>{{ t.customers.approvedYear | number }}</strong>
+        <p>{{ t.customers.withOrderYear | number }} ordered this year · {{ percent(t.customers.withOrderYear, t.customers.approvedYear) }}%</p>
       </div>
     </article>
   </section>

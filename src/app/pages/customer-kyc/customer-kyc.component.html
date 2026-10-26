@@ -301,11 +301,13 @@
       </div>
 
       <div class="doc-detail-form" *ngIf="editingDetails">
-        <label *ngFor="let detail of document.details">
-          <span>{{ detail.label }}</span>
-          <input type="text" *ngIf="detail.key" [(ngModel)]="detailEdit[detail.key]"
-            [placeholder]="detail.label" [disabled]="savingDetails"/>
-        </label>
+        <ng-container *ngFor="let detail of document.details">
+          <label *ngIf="detail.key">
+            <span>{{ detail.label }}</span>
+            <input type="text" [(ngModel)]="detailEdit[detail.key]"
+              [placeholder]="detail.label" [disabled]="savingDetails"/>
+          </label>
+        </ng-container>
         <div class="doc-detail-form-actions">
           <button type="button" class="btn-secondary" (click)="cancelDetailEdit()" [disabled]="savingDetails">Cancel</button>
           <button type="button" class="btn-approve" (click)="saveDetails()" [disabled]="savingDetails">

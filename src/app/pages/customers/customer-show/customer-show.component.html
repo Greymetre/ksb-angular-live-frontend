@@ -519,15 +519,17 @@
           </div>
 
           <div class="kyc-doc-form" *ngIf="editingKycDetails">
-            <label *ngFor="let detail of document.rows">
-              <span>{{ detail.label }}</span>
-              <select *ngIf="detail.key === 'bank_account_type'" [(ngModel)]="kycEdit[detail.key!]" [disabled]="savingKycDetails">
-                <option value="">Select Account Type</option>
-                <option *ngFor="let type of bankAccountTypes" [value]="type.id">{{ type.label }}</option>
-              </select>
-              <input type="text" [(ngModel)]="kycEdit[detail.key!]" *ngIf="detail.key && detail.key !== 'bank_account_type'"
-                [placeholder]="detail.label" [disabled]="savingKycDetails"/>
-            </label>
+            <ng-container *ngFor="let detail of document.rows">
+              <label *ngIf="detail.key">
+                <span>{{ detail.label }}</span>
+                <select *ngIf="detail.key === 'bank_account_type'" [(ngModel)]="kycEdit[detail.key!]" [disabled]="savingKycDetails">
+                  <option value="">Select Account Type</option>
+                  <option *ngFor="let type of bankAccountTypes" [value]="type.id">{{ type.label }}</option>
+                </select>
+                <input type="text" [(ngModel)]="kycEdit[detail.key!]" *ngIf="detail.key && detail.key !== 'bank_account_type'"
+                  [placeholder]="detail.label" [disabled]="savingKycDetails"/>
+              </label>
+            </ng-container>
             <div class="kyc-doc-form-actions">
               <button type="button" class="btn-secondary" (click)="cancelKycDetailEdit()" [disabled]="savingKycDetails">Cancel</button>
               <button type="button" class="btn-submit-kyc" (click)="saveKycDetails()" [disabled]="savingKycDetails">
