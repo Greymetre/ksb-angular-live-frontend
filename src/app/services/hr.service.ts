@@ -142,7 +142,12 @@ export class HrService {
   private params(filters: HrRecord): HttpParams {
     let params = new HttpParams();
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') params = params.set(key, String(value));
+      if (value === null || value === undefined || value === '') return;
+      if (Array.isArray(value)) {
+        value.forEach(item => { if (item !== null && item !== undefined && item !== '') params = params.append(key, String(item)); });
+        return;
+      }
+      params = params.set(key, String(value));
     });
     return params;
   }

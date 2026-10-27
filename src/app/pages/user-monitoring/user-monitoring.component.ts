@@ -16,7 +16,7 @@ export class UserMonitoringComponent implements OnInit {
   mode:'apps'|'live'|'customers'='apps'; users:any[]=[]; allUsers:any[]=[]; branches:any[]=[]; divisions:any[]=[]; departments:any[]=[];
   customers:any[]=[]; customerTypes:any[]=[]; customerId=''; customerTypeId='';
   rows:any[]=[]; locations:any[]=[]; activities:any[]=[]; selectedPoint:any=null; selectedMapUrl:SafeResourceUrl|null=null;
-  userId=''; branchId=''; divisionId=''; departmentId=''; date=new Date().toISOString().slice(0,10); toDate=this.date;
+  userId=''; branchId=''; divisionIds:number[]=[]; departmentId=''; date=new Date().toISOString().slice(0,10); toDate=this.date;
   page=1;pageSize=10;total=0;lastPage=1;
   loading=false; optionsLoading=false; error=''; success=''; action:'details'|'complete'|'track'='details';
   confirmAction:'logout'|'uuid'|null=null; confirmRow:any=null; actionLoading=false;
@@ -44,10 +44,10 @@ export class UserMonitoringComponent implements OnInit {
     });
   }
   /** The branches of the zone being filtered on - every branch while no zone is picked. */
-  get zoneBranches(){return this.divisionId?this.branches.filter(b=>String(b.zone_id??'')===String(this.divisionId)):this.branches;}
+  get zoneBranches(){return this.divisionIds.length?this.branches.filter(b=>this.divisionIds.includes(Number(b.zone_id))):this.branches;}
   filtersChanged(){
     if(this.branchId&&!this.zoneBranches.some(b=>String(b.id)===String(this.branchId)))this.branchId='';
-    this.users=this.allUsers.filter(u=>(!this.branchId||this.hasId(u.branch_id,this.branchId))&&(!this.divisionId||this.hasId(u.division_id,this.divisionId))&&(!this.departmentId||this.hasId(u.department_id,this.departmentId)));
+    this.users=this.allUsers.filter(u=>(!this.branchId||this.hasId(u.branch_id,this.branchId))&&(!this.divisionIds.length||this.divisionIds.includes(Number(u.division_id)))&&(!this.departmentId||this.hasId(u.department_id,this.departmentId)));
     if(this.userId&&!this.users.some(u=>String(u.id)===String(this.userId)))this.userId='';
   }
   private hasId(value:any,selected:any){return String(value??'').split(',').map(x=>x.trim()).includes(String(selected));}

@@ -18,6 +18,7 @@ export interface UserTarget {
   designationName?: string | null;
   branchName?: string | null;
   divisionId?: number | null;
+  divisionIds?: number[];
   divisionName?: string | null;
   type: string;
   month: string;
@@ -31,6 +32,7 @@ export interface UserTarget {
 }
 
 export interface UserTargetFilters {
+  divisionIds?: number[];
   page?: number;
   pageSize?: number;
   branchId?: number | null;
@@ -153,7 +155,7 @@ export class UserTargetService {
     }
     if (filters.branchId) params = params.set('branch_id', String(filters.branchId));
     if (filters.userId) params = params.set('user_id', String(filters.userId));
-    if (filters.divisionId) params = params.set('division_id', String(filters.divisionId));
+    (filters.divisionIds || []).forEach(id => params = params.append('division_id', String(id)));
     if (filters.type) params = params.set('type', filters.type);
     if (filters.month) params = params.set('month', filters.month);
     if (filters.financialYear) params = params.set('financial_year', filters.financialYear);

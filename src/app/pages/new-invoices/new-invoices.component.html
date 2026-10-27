@@ -309,8 +309,8 @@
         </div>
         <div class="filter-field">
           <label>Zone</label>
-          <app-searchable-select [options]="zoneFilterOptions" [selected]="filter.zone_id ?? null"
-            placeholder="All Zones" allOption="All Zones" (selectedChange)="onZoneFilterChange($event)"></app-searchable-select>
+          <app-searchable-select [options]="zoneFilterOptions" [selected]="filter.zone_ids || []" [multiple]="true"
+            placeholder="Select Zones" (selectedChange)="onZoneFilterChange($event)"></app-searchable-select>
         </div>
         <div class="filter-field">
           <label>Branch</label>

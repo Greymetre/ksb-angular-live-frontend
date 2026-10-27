@@ -58,7 +58,7 @@ export class ExpensesComponent implements OnInit {
   selectedBranchId: number | null = null;
   /** Employee Status filter: '' both, 'Y' active only, 'N' inactive only. */
   selectedEmployeeStatus = '';
-  selectedDivisionId: number | null = null;
+  selectedZoneIds: number[] = [];
   selectedPayroll = '';
   selectedStatus: number | null = null;
   startDate = '';
@@ -184,7 +184,7 @@ export class ExpensesComponent implements OnInit {
       executiveId: this.selectedUserId,
       expensesType: this.selectedExpenseTypeId,
       branchId: this.selectedBranchId,
-      divisionId: this.selectedDivisionId,
+      divisionIds: this.selectedZoneIds,
       payroll: this.selectedPayroll || null,
       status: this.selectedStatus,
       startDate: this.startDate || null,
@@ -235,8 +235,8 @@ export class ExpensesComponent implements OnInit {
   /** The branches of the zone being filtered on - every branch while no zone is picked.
    *  A branch whose zone has not been set yet shows only in that unfiltered list. */
   get zoneBranches(): UserOption[] {
-    return this.selectedDivisionId
-      ? this.branches.filter(branch => Number(branch.zoneId) === Number(this.selectedDivisionId))
+    return this.selectedZoneIds.length
+      ? this.branches.filter(branch => this.selectedZoneIds.includes(Number(branch.zoneId)))
       : this.branches;
   }
 
@@ -259,7 +259,7 @@ export class ExpensesComponent implements OnInit {
     this.selectedUserId = null;
     this.selectedExpenseTypeId = null;
     this.selectedBranchId = null;
-    this.selectedDivisionId = null;
+    this.selectedZoneIds = [];
     this.selectedPayroll = '';
     this.selectedStatus = null;
     this.startDate = '';

@@ -279,14 +279,16 @@
           </p>
         </div>
 
+        <p class="dash-note range">ASR &amp; DSR &middot; this month</p>
         <div class="split">
-          <div class="split-col">
-            <p class="split-head"><b>ASR</b> <span>{{ t.target.asr.achievementPercent | number:'1.0-1' }}%</span></p>
-            <div class="dash-bar"><span class="active" [style.width.%]="barWidth(t.target.asr.achievementPercent)"></span></div>
-          </div>
-          <div class="split-col">
-            <p class="split-head"><b>DSR</b> <span>{{ t.target.dsr.achievementPercent | number:'1.0-1' }}%</span></p>
-            <div class="dash-bar"><span class="active" [style.width.%]="barWidth(t.target.dsr.achievementPercent)"></span></div>
+          <div class="split-col" *ngFor="let row of [{ label: 'ASR', data: t.target.asr }, { label: 'DSR', data: t.target.dsr }]">
+            <p class="split-head"><b>{{ row.label }}</b> <span>{{ row.data.users }} users</span></p>
+            <p class="meter-head"><small>Value</small> <span>{{ row.data.achievementPercent | number:'1.0-1' }}%</span></p>
+            <div class="dash-bar"><span class="active" [style.width.%]="barWidth(row.data.achievementPercent)"></span></div>
+            <p class="meter-foot"><span>Achieved <b>{{ compact(row.data.achievement) }}</b></span><span>Target <b>{{ compact(row.data.target) }}</b></span></p>
+            <p class="meter-head"><small>Quantity</small> <span>{{ row.data.quantityAchievementPercent | number:'1.0-1' }}%</span></p>
+            <div class="dash-bar"><span class="approved" [style.width.%]="barWidth(row.data.quantityAchievementPercent)"></span></div>
+            <p class="meter-foot"><span>Achieved <b>{{ row.data.quantityAchievement | number:'1.0-0' }}</b></span><span>Target <b>{{ row.data.quantityTarget | number:'1.0-0' }}</b></span></p>
           </div>
         </div>
         <p class="dash-empty" *ngIf="!tg.target">No target set for this period.</p>

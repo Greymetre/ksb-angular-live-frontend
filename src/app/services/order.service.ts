@@ -61,7 +61,7 @@ export interface OrderFilters {
   retailersId?: number | null;
   distributorId?: number | null;
   userId?: number | null;
-  divisionId?: number | null;
+  divisionIds?: number[];
   segmentId?: number | null;
   designationIds?: number[];
   pendingStatus?: number | null;
@@ -330,7 +330,7 @@ export class OrderService {
     if (filters.retailersId) params = params.set('retailers_id', String(filters.retailersId));
     if (filters.distributorId) params = params.set('distributor_id', String(filters.distributorId));
     if (filters.userId) params = params.set('user_id', String(filters.userId));
-    if (filters.divisionId) params = params.set('division_id', String(filters.divisionId));
+    (filters.divisionIds || []).forEach(id => params = params.append('division_id', String(id)));
     if (filters.segmentId) params = params.set('segment_id', String(filters.segmentId));
     if (filters.pendingStatus !== null && filters.pendingStatus !== undefined) params = params.set('pending_status', String(filters.pendingStatus));
     if (filters.startDate) params = params.set('startdate', filters.startDate);

@@ -197,11 +197,13 @@
             <label>Shop Image</label>
             <input type="file" accept="image/*" (change)="onFileChange('shop_image', $event)"/>
             <small>{{ fileLabel('shop_image') }}</small>
+            <ng-container *ngTemplateOutlet="attachThumbs; context: { $implicit: 'shop_image' }"></ng-container>
           </div>
           <div class="modal-field">
             <label>Profile Image</label>
             <input type="file" accept="image/*" (change)="onFileChange('profile_image', $event)"/>
             <small>{{ fileLabel('profile_image') }}</small>
+            <ng-container *ngTemplateOutlet="attachThumbs; context: { $implicit: 'profile_image' }"></ng-container>
           </div>
         </div>
 
@@ -287,11 +289,13 @@
             <label>Upload Additional Documents</label>
             <input type="file" accept="image/*,.pdf,application/pdf" multiple (change)="onFileChange('documents', $event, true)"/>
             <small>{{ fileLabel('documents') }}</small>
+            <ng-container *ngTemplateOutlet="attachThumbs; context: { $implicit: 'documents' }"></ng-container>
           </div>
           <div class="modal-field">
             <label>Upload MOU</label>
             <input type="file" accept="image/*,.pdf,application/pdf" (change)="onFileChange('mou_file', $event)"/>
             <small>{{ fileLabel('mou_file') }}</small>
+            <ng-container *ngTemplateOutlet="attachThumbs; context: { $implicit: 'mou_file' }"></ng-container>
           </div>
         </div>
 
@@ -396,6 +400,7 @@
             <label>GST Attachment</label>
             <input type="file" accept="image/*,.pdf,application/pdf" (change)="onFileChange('gst_attachment', $event)"/>
             <small>{{ fileLabel('gst_attachment') }}</small>
+            <ng-container *ngTemplateOutlet="attachThumbs; context: { $implicit: 'gst_attachment' }"></ng-container>
           </div>
           <div class="modal-field">
             <label>PAN Number</label>
@@ -405,6 +410,7 @@
             <label>PAN Attachment</label>
             <input type="file" accept="image/*,.pdf,application/pdf" (change)="onFileChange('pan_attachment', $event)"/>
             <small>{{ fileLabel('pan_attachment') }}</small>
+            <ng-container *ngTemplateOutlet="attachThumbs; context: { $implicit: 'pan_attachment' }"></ng-container>
           </div>
           <div class="modal-field">
             <label>Aadhaar Number</label>
@@ -414,6 +420,7 @@
             <label>Aadhaar Card Attachment</label>
             <input type="file" accept="image/*,.pdf,application/pdf" (change)="onFileChange('aadhar_attachment', $event)"/>
             <small>{{ fileLabel('aadhar_attachment') }}</small>
+            <ng-container *ngTemplateOutlet="attachThumbs; context: { $implicit: 'aadhar_attachment' }"></ng-container>
           </div>
         </div>
 
@@ -447,11 +454,13 @@
             <label>Blank Cheque / Passbook Attachment</label>
             <input type="file" accept="image/*,.pdf,application/pdf" (change)="onFileChange('bank_proof', $event)"/>
             <small>{{ fileLabel('bank_proof') }}</small>
+            <ng-container *ngTemplateOutlet="attachThumbs; context: { $implicit: 'bank_proof' }"></ng-container>
           </div>
           <div class="modal-field">
             <label>Shop Photo</label>
             <input type="file" accept="image/*" (change)="onFileChange('shop_photo', $event)"/>
             <small>{{ fileLabel('shop_photo') }}</small>
+            <ng-container *ngTemplateOutlet="attachThumbs; context: { $implicit: 'shop_photo' }"></ng-container>
           </div>
           <div class="modal-field wide-field">
             <label>GPS Location Updates</label>
@@ -544,5 +553,35 @@
         {{ dialog.confirmLabel }}
       </button>
     </div>
+  </div>
+</div>
+
+<!-- Reusable attachment thumbnails: saved + newly picked, with delete and click-to-enlarge -->
+<ng-template #attachThumbs let-key>
+  <div class="attach-previews" *ngIf="hasAttachments(key)">
+    <div class="attach-thumb" *ngFor="let a of savedAttachments(key)" (click)="openAttachmentPreview(a.url, a.isPdf)" title="Saved attachment - click to enlarge">
+      <img *ngIf="!a.isPdf" [src]="a.url" alt="attachment"/>
+      <span *ngIf="a.isPdf" class="material-icons pdf">picture_as_pdf</span>
+      <button type="button" class="attach-del" title="Remove" (click)="$event.stopPropagation(); removeSavedAttachment(key, a.path)"><span class="material-icons">close</span></button>
+    </div>
+    <div class="attach-thumb is-new" *ngFor="let a of (newPreviews[key] || []); let i = index" (click)="openAttachmentPreview(a.url, a.isPdf)" title="New - not saved yet">
+      <img *ngIf="!a.isPdf" [src]="a.url" alt="attachment"/>
+      <span *ngIf="a.isPdf" class="material-icons pdf">picture_as_pdf</span>
+      <span class="new-tag">NEW</span>
+      <button type="button" class="attach-del" title="Remove" (click)="$event.stopPropagation(); removeNewAttachment(key, i)"><span class="material-icons">close</span></button>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Enlarged attachment preview -->
+<div class="attach-overlay" *ngIf="attachmentPreview as p" (click)="closeAttachmentPreview()">
+  <div class="attach-viewer" (click)="$event.stopPropagation()">
+    <button type="button" class="attach-close" (click)="closeAttachmentPreview()"><span class="material-icons">close</span></button>
+    <img *ngIf="!p.isPdf" [src]="p.url" alt="Attachment"/>
+    <div *ngIf="p.isPdf" class="attach-pdf-note">
+      <span class="material-icons">picture_as_pdf</span>
+      <p>PDF document</p>
+    </div>
+    <a class="attach-open" [href]="p.url" target="_blank" rel="noopener">Open in new tab</a>
   </div>
 </div>

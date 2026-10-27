@@ -69,7 +69,7 @@ export class UsersComponent implements OnInit {
   appliedSearchQuery = '';
   selectedUserType = 'employee';
   selectedActive = '';
-  selectedDivisionId: number | null = null;
+  selectedZoneIds: number[] = [];
   selectedBranchId = '';
   selectedDepartmentId: number | null = null;
   selectedDesignationId: number | null = null;
@@ -237,8 +237,8 @@ export class UsersComponent implements OnInit {
   /** The branches of the zone being filtered on - every branch while no zone is picked.
    *  A branch whose zone has not been set yet shows only in that unfiltered list. */
   get zoneBranches(): UserOption[] {
-    return this.selectedDivisionId
-      ? this.branches.filter(branch => Number(branch.zoneId) === Number(this.selectedDivisionId))
+    return this.selectedZoneIds.length
+      ? this.branches.filter(branch => this.selectedZoneIds.includes(Number(branch.zoneId)))
       : this.branches;
   }
 
@@ -262,7 +262,7 @@ export class UsersComponent implements OnInit {
     if (this.searchTimeoutId) window.clearTimeout(this.searchTimeoutId);
     this.selectedUserType = 'employee';
     this.selectedActive = '';
-    this.selectedDivisionId = null;
+    this.selectedZoneIds = [];
     this.selectedBranchId = '';
     this.selectedDepartmentId = null;
     this.selectedDesignationId = null;
@@ -509,7 +509,7 @@ export class UsersComponent implements OnInit {
       userType: this.selectedUserType || undefined,
       search: this.appliedSearchQuery || undefined,
       active: this.selectedActive || undefined,
-      divisionId: this.selectedDivisionId,
+      divisionIds: this.selectedZoneIds,
       branchId: this.selectedBranchId || undefined,
       departmentId: this.selectedDepartmentId,
       designationId: this.selectedDesignationId

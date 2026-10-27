@@ -65,7 +65,7 @@ export class PromotionalActivitiesComponent implements OnInit {
   status: string | null = null;
   userId: number | null = null;
   branchId: number | null = null;
-  zoneId: number | null = null;
+  zoneIds: number[] = [];
   startDate = '';
   endDate = '';
 
@@ -121,7 +121,7 @@ export class PromotionalActivitiesComponent implements OnInit {
   }
 
   get hasActiveFilters(): boolean {
-    return !!(this.status || this.userId || this.branchId || this.zoneId || this.startDate || this.endDate);
+    return !!(this.status || this.userId || this.branchId || this.zoneIds.length || this.startDate || this.endDate);
   }
 
   loadRows(): void {
@@ -159,7 +159,7 @@ export class PromotionalActivitiesComponent implements OnInit {
   /** The branches of the zone being filtered on - every branch while no zone is picked.
    *  A branch whose zone has not been set yet shows only in that unfiltered list. */
   get zoneBranches(): Option[] {
-    return this.zoneId ? this.options.branches.filter(branch => Number(branch.zone_id) === Number(this.zoneId)) : this.options.branches;
+    return this.zoneIds.length ? this.options.branches.filter(branch => this.zoneIds.includes(Number(branch.zone_id))) : this.options.branches;
   }
 
   onZoneFilterChange(): void {
@@ -180,7 +180,7 @@ export class PromotionalActivitiesComponent implements OnInit {
     this.status = null;
     this.userId = null;
     this.branchId = null;
-    this.zoneId = null;
+    this.zoneIds = [];
     this.startDate = '';
     this.endDate = '';
     this.applyFilters();
@@ -435,7 +435,7 @@ export class PromotionalActivitiesComponent implements OnInit {
       status: this.status,
       userId: this.userId,
       branchId: this.branchId,
-      zoneId: this.zoneId,
+      zoneIds: this.zoneIds,
       startDate: this.startDate,
       endDate: this.endDate
     };

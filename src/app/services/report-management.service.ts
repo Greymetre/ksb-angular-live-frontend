@@ -33,7 +33,7 @@ export interface AsrReportFilters {
   employeeId?: number | null;
   /** "Y", "N" or empty for both. */
   employeeStatus?: string | null;
-  divisionId?: number | null;
+  divisionId?: number[];
   branchId?: number | null;
   designationId?: number | null;
   segmentId?: number | null;
@@ -45,7 +45,7 @@ export interface RatingReportFilters {
   year: number;
   /** A month number, 'weekly', 'fy' for the April-March year, or null for January-December. */
   month?: number | 'weekly' | 'fy' | null;
-  divisionId?: number | null;
+  divisionId?: number[];
   branchId?: number | null;
   segmentId?: number | null;
   /** "Y", "N" or empty for both. */
@@ -53,7 +53,7 @@ export interface RatingReportFilters {
 }
 export interface RatingDashboardFilters {
   designationId: number;
-  divisionId?: number | null;
+  divisionId?: number[];
   branchId?: number | null;
   /** "Y", "N" or empty for both. */
   employeeStatus?: string | null;
@@ -131,7 +131,7 @@ export class ReportManagementService {
       .set('designation_id', String(filters.designationId))
       .set('page', String(filters.page))
       .set('page_size', String(filters.pageSize));
-    if (filters.divisionId) params = params.set('division_id', String(filters.divisionId));
+    (filters.divisionId || []).forEach(id => params = params.append('division_id', String(id)));
     if (filters.branchId) params = params.set('branch_id', String(filters.branchId));
     if (filters.search?.trim()) params = params.set('search', filters.search.trim());
     if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);
@@ -165,7 +165,7 @@ export class ReportManagementService {
       .set('start_date', filters.startDate)
       .set('end_date', filters.endDate);
     if (filters.employeeId) params = params.set('employee_id', filters.employeeId);
-    if (filters.divisionId) params = params.set('division_id', filters.divisionId);
+    (filters.divisionId || []).forEach(id => params = params.append('division_id', String(id)));
     if (filters.branchId) params = params.set('branch_id', filters.branchId);
     if (filters.designationId) params = params.set('designation_id', filters.designationId);
     if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);
@@ -208,7 +208,11 @@ export class ReportManagementService {
   /** Every filter is optional - nothing set means every retailer the caller may see. */
   downloadRfm(kind: RfmDownloadKind, filters: Record<string, any>): Observable<Blob> {
     let params = new HttpParams();
-    Object.entries(filters).forEach(([key, value]) => { if (value !== null && value !== undefined && value !== '') params = params.set(key, String(value)); });
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === '') return;
+      if (Array.isArray(value)) { value.forEach(item => { if (item !== null && item !== undefined && item !== '') params = params.append(key, String(item)); }); return; }
+      params = params.set(key, String(value));
+    });
     return this.http.get(`${API_BASE_URL}/reports/rfm/${kind}-export`, { headers: this.headers(), params, responseType: 'blob' });
   }
 
@@ -217,12 +221,12 @@ export class ReportManagementService {
   }
 
   downloadActivity(kind: 'sales-engineer' | 'distributor' | 'gift-summary', filters: Record<string, any>): Observable<Blob> {
-    let params = new HttpParams(); Object.entries(filters).forEach(([key, value]) => { if (value !== null && value !== undefined && value !== '') params = params.set(key, String(value)); });
+    let params = new HttpParams(); Object.entries(filters).forEach(([key, value]) => { if (Array.isArray(value)) value.forEach(item => { if (item !== null && item !== undefined && item !== '') params = params.append(key, String(item)); }); else if (value !== null && value !== undefined && value !== '') params = params.set(key, String(value)); });
     return this.http.get(`${API_BASE_URL}/reports/activity-report/${kind}-export`, { headers: this.headers(), params, responseType: 'blob' });
   }
 
   activityPreview(filters: Record<string, any>): Observable<any> {
-    let params = new HttpParams(); Object.entries(filters).forEach(([key, value]) => { if (value !== null && value !== undefined && value !== '') params = params.set(key, String(value)); });
+    let params = new HttpParams(); Object.entries(filters).forEach(([key, value]) => { if (Array.isArray(value)) value.forEach(item => { if (item !== null && item !== undefined && item !== '') params = params.append(key, String(item)); }); else if (value !== null && value !== undefined && value !== '') params = params.set(key, String(value)); });
     return this.http.get<any>(`${API_BASE_URL}/reports/activity-report/preview`, { headers: this.headers(), params }).pipe(map(response => response.data || {}));
   }
 
@@ -237,7 +241,7 @@ export class ReportManagementService {
       if (filters.month === 'fy') params = params.set('period', 'fy');
       else if (filters.month) params = params.set('month', filters.month);
     }
-    if (filters.divisionId) params = params.set('division_id', filters.divisionId);
+    (filters.divisionId || []).forEach(id => params = params.append('division_id', String(id)));
     if (filters.branchId) params = params.set('branch_id', filters.branchId);
     if (filters.segmentId) params = params.set('segment_id', String(filters.segmentId));
     if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);

@@ -95,6 +95,7 @@ export class HrComponent implements OnInit {
   get isAttendance(): boolean { return this.config.mode === 'attendance-details'; }
   get isSummary(): boolean { return this.config.mode === 'attendance-summary'; }
   get userSelectOptions(): SearchableSelectOption[] { return this.toSelectOptions(this.options.users); }
+  get divisionSelectOptions(): SearchableSelectOption[] { return this.toSelectOptions(this.options.divisions); }
   get tourDistrictSelectOptions(): SearchableSelectOption[] { return this.toSelectOptions(this.tourDistrictOptions); }
   get tourCitySelectOptions(): SearchableSelectOption[] { return this.toSelectOptions(this.tourCityOptions); }
   get holidayTargetLabel(): string { return this.form['holiday_for'] === 'division' ? 'Zone' : 'Branch'; }
@@ -440,7 +441,7 @@ export class HrComponent implements OnInit {
 
   onHolidayFilterForChange(): void {
     this.filter['branch_id'] = '';
-    this.filter['division_id'] = '';
+    this.filter['division_id'] = [];
     this.refreshView();
   }
 

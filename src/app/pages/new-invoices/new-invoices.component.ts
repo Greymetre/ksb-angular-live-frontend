@@ -71,8 +71,8 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
   /** The branches of the zone being filtered on, or every branch while no zone is picked.
    *  A branch whose zone has not been set yet shows only in that unfiltered list. */
   get zoneBranchOptions(): SelectOption[] {
-    const zoneId = Number(this.filter.zone_id || 0);
-    return zoneId > 0 ? this.branchFilterOptions.filter(option => Number(option.zoneId) === zoneId) : this.branchFilterOptions;
+    const zones = this.filter.zone_ids || [];
+    return zones.length > 0 ? this.branchFilterOptions.filter(option => zones.includes(Number(option.zoneId))) : this.branchFilterOptions;
   }
   dealerFilterOptions: SelectOption[] = [];
   filter: NewInvoiceFilter = {};
@@ -267,9 +267,8 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
     this.loadInvoices();
   }
 
-  onZoneFilterChange(value: number | string | null): void {
-    const id = Number(value || 0);
-    this.filter.zone_id = id > 0 ? id : null;
+  onZoneFilterChange(value: Array<number | string> | number | string | null): void {
+    this.filter.zone_ids = (Array.isArray(value) ? value : value ? [value] : []).map(v => Number(v)).filter(v => v > 0);
     // A branch of another zone would contradict the zone just picked.
     if (this.filter.branch_id && !this.zoneBranchOptions.some(option => Number(option.id) === Number(this.filter.branch_id))) this.filter.branch_id = null;
     this.resetPage();
@@ -810,7 +809,7 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
       // build can never reach the API. page and page_size are set per request.
       const allowed: (keyof NewInvoiceFilter)[] = [
         'scheme_id', 'retailer_search', 'invoice_number', 'approval_status',
-        'zone_id', 'branch_id', 'user_id', 'dealer_id', 'from_date', 'to_date', 'search'
+        'zone_ids', 'branch_id', 'user_id', 'dealer_id', 'from_date', 'to_date', 'search'
       ];
       const restored: NewInvoiceFilter = {};
       for (const key of allowed) {

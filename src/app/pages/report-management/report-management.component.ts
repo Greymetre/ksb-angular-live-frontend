@@ -23,7 +23,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   employeeId: number | null = null;
   /** Employee Status filter: '' both, 'Y' active only, 'N' inactive only. */
   employeeStatus = '';
-  divisionId: number | null = null;
+  divisionIds: number[] = [];
   branchId: number | null = null;
   designationId: number | null = null;
   designationIds: number[] = [];
@@ -41,8 +41,8 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   activityOptions: { zones: Array<{id:number;name:string}>; branches: Array<{id:number;name:string;zone_id?:number}>; meets: Array<{id:string;name:string}> } = { zones: [], branches: [], meets: [] };
   /** The branches of the zone that is filtered on - every branch while no zone is picked.
    *  A branch whose zone is not set yet shows only in that unfiltered list. */
-  get zoneBranches(): BranchOption[] { return this.divisionId ? this.asrOptions.branches.filter(x => Number(x.zone_id) === Number(this.divisionId)) : this.asrOptions.branches; }
-  get activityBranches(): Array<{id:number;name:string;zone_id?:number}> { return this.divisionId ? this.activityOptions.branches.filter(x => Number(x.zone_id) === Number(this.divisionId)) : this.activityOptions.branches; }
+  get zoneBranches(): BranchOption[] { return this.divisionIds.length ? this.asrOptions.branches.filter(x => this.divisionIds.includes(Number(x.zone_id))) : this.asrOptions.branches; }
+  get activityBranches(): Array<{id:number;name:string;zone_id?:number}> { return this.divisionIds.length ? this.activityOptions.branches.filter(x => this.divisionIds.includes(Number(x.zone_id))) : this.activityOptions.branches; }
   meet = 'retailer';
   activityPreview: any = { summary: {}, sales_engineer_wise: [], distributor_wise: [], gift_summary: [] };
   activityView: 'sales'|'distributor'|'gifts' = 'sales';
@@ -120,7 +120,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
       return null;
     }
     return {
-      designationId: this.designationId, divisionId: this.divisionId, branchId: this.branchId,
+      designationId: this.designationId, divisionId: this.divisionIds, branchId: this.branchId,
       employeeStatus: this.employeeStatus || null,
       search: this.ratingSearch, page: this.ratingPage, pageSize: this.ratingPageSize
     };
@@ -131,7 +131,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
       this.error = this.month === 'weekly' ? 'Designation is required.' : 'Designation and year are required.';
       return null;
     }
-    return { designationId: this.designationId, year: this.year, month: this.month, divisionId: this.divisionId, branchId: this.branchId, segmentId: this.selectedSegmentId, employeeStatus: this.employeeStatus || null };
+    return { designationId: this.designationId, year: this.year, month: this.month, divisionId: this.divisionIds, branchId: this.branchId, segmentId: this.selectedSegmentId, employeeStatus: this.employeeStatus || null };
   }
 
   loadRatingDashboard(): void {
@@ -244,7 +244,7 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
     if (this.ratingSearchTimer) { clearTimeout(this.ratingSearchTimer); this.ratingSearchTimer = null; }
     this.designationId = this.asrOptions.default_designation_id;
     this.year = new Date().getFullYear(); this.month = new Date().getMonth() + 1;
-    this.divisionId = null; this.branchId = null; this.ratingSearch = ''; this.ratingPage = 1; this.ratingPageSize = 10;
+    this.divisionIds = []; this.branchId = null; this.ratingSearch = ''; this.ratingPage = 1; this.ratingPageSize = 10;
     this.loadRatingDashboard();
   }
 
@@ -260,13 +260,13 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
     if (!this.designationId || !this.startDate || !this.endDate) { this.error = 'Designation, start date and end date are required.'; return; }
     if (this.startDate > this.endDate) { this.error = 'Start date cannot be after end date.'; return; }
     this.loading = true; this.error = '';
-    this.service.downloadAsr({ employeeId: this.employeeId, divisionId: this.divisionId, branchId: this.branchId, designationId: this.designationId, segmentId: this.selectedSegmentId, employeeStatus: this.employeeStatus || null, startDate: this.startDate, endDate: this.endDate })
+    this.service.downloadAsr({ employeeId: this.employeeId, divisionId: this.divisionIds, branchId: this.branchId, designationId: this.designationId, segmentId: this.selectedSegmentId, employeeStatus: this.employeeStatus || null, startDate: this.startDate, endDate: this.endDate })
       .pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); }))
       .subscribe({ next: blob => this.saveBlob(blob, 'Asr_performance_report.xlsx'), error: error => this.handleBlobError(error) });
   }
 
   loadActivityOptions(): void { this.loading = true; this.error = ''; this.service.activityOptions().pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); })).subscribe({ next: options => { this.activityOptions = options; this.loadActivityPreview(); }, error: error => this.error = error?.error?.message || error.message || 'Unable to load activity report filters.' }); }
-  activityFilters(): Record<string, any> { return { start_date: this.startDate, end_date: this.endDate, zone_id: this.divisionId, branch_id: this.branchId, meet: this.meet, employee_status: this.employeeStatus }; }
+  activityFilters(): Record<string, any> { return { start_date: this.startDate, end_date: this.endDate, zone_id: this.divisionIds, branch_id: this.branchId, meet: this.meet, employee_status: this.employeeStatus }; }
   activityFilterChanged(): void { if (this.startDate && this.endDate && this.meet && this.startDate <= this.endDate) this.loadActivityPreview(); }
   loadActivityPreview(): void { if (!this.meet) return; this.previewLoading = true; this.error = ''; this.service.activityPreview(this.activityFilters()).pipe(finalize(() => { this.previewLoading = false; this.cdr.detectChanges(); })).subscribe({ next: data => this.activityPreview = { summary: data.summary || {}, sales_engineer_wise: data.sales_engineer_wise || [], distributor_wise: data.distributor_wise || [], gift_summary: data.gift_summary || [] }, error: error => this.error = error?.error?.message || error.message || 'Unable to load activity report preview.' }); }
   downloadActivity(kind: 'sales-engineer'|'distributor'|'gift-summary'): void { if (!this.startDate || !this.endDate) { this.error = 'Date range is required.'; return; } if (!this.meet) { this.error = 'Please select a meet before downloading the report.'; return; } if (this.startDate > this.endDate) { this.error = 'Start date cannot be after end date.'; return; } this.loading = true; this.error = ''; this.service.downloadActivity(kind, this.activityFilters()).pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); })).subscribe({ next: blob => this.saveBlob(blob, `${this.selectedMeetName.replace(/\s*\/\s*|\s+/g, '_')}_${kind}_${this.startDate}_${this.endDate}.xlsx`), error: error => this.handleBlobError(error) }); }
@@ -291,11 +291,11 @@ export class ReportManagementComponent implements OnInit, OnDestroy {
   }
 
   downloadProductivity(): void {
-    if (this.mode === 'retailer' && !this.divisionId) { this.error = 'Please select a zone before downloading the report.'; return; }
+    if (this.mode === 'retailer' && !this.divisionIds.length) { this.error = 'Please select a zone before downloading the report.'; return; }
     this.loading = true; this.error = '';
     const filters: Record<string, any> = { employee_id: this.employeeId, dealer_id: this.dealerId, year: this.year, designation_id: this.designationIds, employee_status: this.employeeStatus, segment_id: this.selectedSegmentId };
-    if (this.mode === 'retailer') Object.assign(filters, { retailer_id: this.retailerId, zone_id: this.divisionId, state_id: this.stateId });
-    else Object.assign(filters, { division_id: this.divisionId, branch_id: this.branchId });
+    if (this.mode === 'retailer') Object.assign(filters, { retailer_id: this.retailerId, zone_id: this.divisionIds, state_id: this.stateId });
+    else Object.assign(filters, { division_id: this.divisionIds, branch_id: this.branchId });
     this.service.downloadProductivity(this.mode as 'retailer' | 'dealer', filters).pipe(finalize(() => { this.loading = false; this.cdr.detectChanges(); })).subscribe({
       next: blob => this.saveBlob(blob, this.mode === 'retailer' ? 'Retailer_Productivity_Report.xlsx' : 'Distributors_Productivity_Report.xlsx'), error: error => this.handleBlobError(error)
     });

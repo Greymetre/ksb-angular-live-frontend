@@ -15,8 +15,8 @@
       <app-searchable-select [options]="users" labelKey="name" [selected]="selectedUserId" placeholder="Select User" (selectedChange)="selectedUserId=$event; applyFilters()"></app-searchable-select>
     </div>
     <div class="filter-field">
-      <label>Division</label>
-      <app-searchable-select [options]="divisions" labelKey="name" [selected]="selectedDivisionId" placeholder="Select Division" (selectedChange)="selectedDivisionId=$event; applyFilters()"></app-searchable-select>
+      <label>Zone</label>
+      <app-searchable-select [options]="divisions" labelKey="name" [selected]="selectedZoneIds" [multiple]="true" placeholder="Select Zone" (selectedChange)="selectedZoneIds=$event; applyFilters()"></app-searchable-select>
     </div>
     <div class="filter-field">
       <label>Segment</label>

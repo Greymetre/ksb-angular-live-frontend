@@ -29,7 +29,7 @@ export class RfmReportComponent implements OnInit {
   year: number = new Date().getFullYear();
   month: number = new Date().getMonth() + 1;
 
-  zoneId: number | null = null;
+  zoneIds: number[] = [];
   branchId: number | null = null;
   stateId: number | null = null;
   districtId: number | null = null;
@@ -57,7 +57,7 @@ export class RfmReportComponent implements OnInit {
   }
 
   get zoneBranches(): BranchOption[] {
-    return this.zoneId ? this.options.branches.filter(x => Number(x.zone_id) === Number(this.zoneId)) : this.options.branches;
+    return this.zoneIds.length ? this.options.branches.filter(x => this.zoneIds.includes(Number(x.zone_id))) : this.options.branches;
   }
 
   get years(): number[] {
@@ -89,7 +89,7 @@ export class RfmReportComponent implements OnInit {
     this.error = '';
     this.downloading = kind;
     this.service.downloadRfm(kind, {
-      zone_id: this.zoneId,
+      zone_id: this.zoneIds,
       branch_id: this.branchId,
       state_id: this.stateId,
       district_id: this.districtId,

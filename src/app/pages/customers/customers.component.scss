@@ -503,3 +503,47 @@
 .confirm-cancel { background: #eef2f7; color: var(--text-dark); &:hover { background: #e2e8f0; } }
 .confirm-go { background: var(--primary-blue); color: white; &:hover { background: var(--primary-blue-dark); }
   &.danger { background: var(--danger-red); &:hover { background: #b91c1c; } } }
+
+/* ---- Attachment thumbnails + enlarge preview ---- */
+.attach-previews {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+}
+.attach-thumb {
+  position: relative; width: 52px; height: 52px; border-radius: 8px; overflow: hidden;
+  border: 1px solid #d9dee6; background: #f5f7fa; cursor: pointer; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  transition: box-shadow .15s, border-color .15s;
+}
+.attach-thumb:hover { border-color: #1E88E5; box-shadow: 0 2px 8px rgba(30,136,229,.25); }
+.attach-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.attach-thumb .material-icons.pdf { color: #c0392b; font-size: 26px; }
+.attach-thumb.is-new { border-color: #267a66; }
+.attach-thumb .new-tag {
+  position: absolute; left: 0; bottom: 0; background: #267a66; color: #fff; font-size: 7px;
+  font-weight: 700; letter-spacing: .3px; padding: 1px 3px; border-top-right-radius: 5px;
+}
+.attach-thumb .attach-del {
+  position: absolute; top: -2px; right: -2px; width: 18px; height: 18px; border: none; cursor: pointer;
+  background: #c0392b; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  padding: 0; line-height: 1;
+}
+.attach-thumb .attach-del .material-icons { font-size: 13px; }
+
+.attach-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 1200;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.attach-viewer {
+  position: relative; background: #fff; border-radius: 12px; padding: 14px;
+  max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.attach-viewer img { max-width: 84vw; max-height: 76vh; object-fit: contain; border-radius: 6px; }
+.attach-viewer .attach-close {
+  position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border: none; cursor: pointer;
+  background: #eef1f5; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+}
+.attach-viewer .attach-pdf-note { text-align: center; color: #555; padding: 30px 40px; }
+.attach-viewer .attach-pdf-note .material-icons { font-size: 60px; color: #c0392b; }
+.attach-viewer .attach-open {
+  font-size: 13px; color: #1E88E5; text-decoration: none; font-weight: 500;
+}

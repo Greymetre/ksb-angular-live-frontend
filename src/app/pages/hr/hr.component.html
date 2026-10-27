@@ -32,17 +32,11 @@
       </div>
       <div class="filter-field" *ngIf="isHoliday && filter['holiday_for'] === 'division'">
         <label>Zone</label>
-        <select [(ngModel)]="filter['division_id']" (ngModelChange)="loadRows()">
-          <option value="">All Zones</option>
-          <option *ngFor="let division of options.divisions" [value]="division.id">{{ division.name | firstCaps }}</option>
-        </select>
+        <app-searchable-select [options]="divisionSelectOptions" [selected]="filter['division_id'] || []" [multiple]="true" placeholder="All Zones" (selectedChange)="filter['division_id']=$event; loadRows()"></app-searchable-select>
       </div>
       <div class="filter-field" *ngIf="isTour">
         <label>Zone</label>
-        <select [(ngModel)]="filter['division_id']" (ngModelChange)="loadRows()">
-          <option value="">All Zones</option>
-          <option *ngFor="let division of options.divisions" [value]="division.id">{{ division.name | firstCaps }}</option>
-        </select>
+        <app-searchable-select [options]="divisionSelectOptions" [selected]="filter['division_id'] || []" [multiple]="true" placeholder="All Zones" (selectedChange)="filter['division_id']=$event; loadRows()"></app-searchable-select>
       </div>
       <div class="filter-field" *ngIf="isAttendance || isSummary">
         <label>Employee Status</label>

@@ -37,7 +37,7 @@ export class UserTargetsComponent implements OnInit {
   /** Employee Status filter: '' both, 'Y' active only, 'N' inactive only. */
   selectedEmployeeStatus = '';
   selectedUserId: number | null = null;
-  selectedDivisionId: number | null = null;
+  selectedZoneIds: number[] = [];
   selectedType = '';
   selectedMonth = '';
   selectedFinancialYear = '';
@@ -147,8 +147,8 @@ export class UserTargetsComponent implements OnInit {
   /** The branches of the zone being filtered on - every branch while no zone is picked.
    *  A branch whose zone has not been set yet shows only in that unfiltered list. */
   get zoneBranches(): UserOption[] {
-    return this.selectedDivisionId
-      ? this.branches.filter(branch => Number(branch.zoneId) === Number(this.selectedDivisionId))
+    return this.selectedZoneIds.length
+      ? this.branches.filter(branch => this.selectedZoneIds.includes(Number(branch.zoneId)))
       : this.branches;
   }
 
@@ -171,7 +171,7 @@ export class UserTargetsComponent implements OnInit {
     if (this.searchTimeoutId) window.clearTimeout(this.searchTimeoutId);
     this.selectedBranchId = null;
     this.selectedUserId = null;
-    this.selectedDivisionId = null;
+    this.selectedZoneIds = [];
     this.selectedType = '';
     this.selectedMonth = '';
     this.selectedFinancialYear = '';
@@ -310,7 +310,7 @@ export class UserTargetsComponent implements OnInit {
     return {
       branchId: this.selectedBranchId,
       userId: this.selectedUserId,
-      divisionId: this.selectedDivisionId,
+      divisionIds: this.selectedZoneIds,
       type: this.selectedType || null,
       month: this.selectedMonth || null,
       financialYear: this.selectedFinancialYear || null,

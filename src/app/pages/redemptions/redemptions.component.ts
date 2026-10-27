@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { finalize, timeout } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { RedemptionCustomerOption, RedemptionFilter, RedemptionItem, RedemptionSchemeOption, RedemptionService, RedemptionSummary } from '../../services/redemption.service';
+import { RedemptionCustomerOption, RedemptionFilter, RedemptionImportResult, RedemptionItem, RedemptionSchemeOption, RedemptionService, RedemptionSummary } from '../../services/redemption.service';
 import { formatKolkataDate, kolkataTodayInput } from '../../shared/utils/date-time';
 
 interface SelectOption {
@@ -19,6 +19,7 @@ export class RedemptionsComponent implements OnInit {
   redemptions: RedemptionItem[] = [];
   customers: RedemptionCustomerOption[] = [];
   customerOptions: SelectOption[] = [];
+  customersLoading = false;
   filter: RedemptionFilter = {};
   summary: RedemptionSummary = { totalRequests: 0, approved: 0, pending: 0, rejectedOrHold: 0 };
   loading = false;
@@ -64,11 +65,54 @@ export class RedemptionsComponent implements OnInit {
   }
 
   get canCreate(): boolean {
-    return this.authService.hasPermission('redemption_create');
+    return this.authService.hasPermission('redemption.create');
   }
 
   get canExport(): boolean {
     return this.authService.hasPermission('redemption.export');
+  }
+
+  get canImport(): boolean {
+    return this.authService.hasPermission('redemption.import');
+  }
+
+  importing = false;
+  importResult: RedemptionImportResult | null = null;
+  showImportResult = false;
+
+  downloadTemplate(): void {
+    this.redemptionService.downloadTemplate().subscribe({
+      next: blob => this.downloadBlob(blob, 'Redemption Import Template.xlsx'),
+      error: error => this.showToast(error.message, 'error')
+    });
+  }
+
+  onImportFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.importing = true;
+    this.refreshView();
+    this.redemptionService.import(file).pipe(finalize(() => {
+      this.importing = false;
+      input.value = '';
+      this.refreshView();
+    })).subscribe({
+      next: result => {
+        this.importResult = result;
+        this.showImportResult = true;
+        this.loadRedemptions();
+        this.showToast(`Import done: ${result.created} created, ${result.failed} failed.`, result.failed > 0 ? 'error' : 'success');
+        this.refreshView();
+      },
+      error: error => this.showToast(error.message, 'error')
+    });
+  }
+
+  closeImportResult(): void {
+    this.showImportResult = false;
+    this.importResult = null;
+    this.refreshView();
   }
 
   get availableSchemes(): RedemptionSchemeOption[] {
@@ -105,7 +149,12 @@ export class RedemptionsComponent implements OnInit {
   }
 
   loadCustomers(search = ''): void {
-    this.redemptionService.customers(search).subscribe({
+    this.customersLoading = true;
+    this.refreshView();
+    this.redemptionService.customers(search).pipe(finalize(() => {
+      this.customersLoading = false;
+      this.refreshView();
+    })).subscribe({
       next: customers => {
         this.customers = customers;
         this.customerOptions = customers.map(customer => ({ id: customer.id, label: this.customerLabel(customer) }));
@@ -121,7 +170,7 @@ export class RedemptionsComponent implements OnInit {
       this.exporting = false;
       this.refreshView();
     })).subscribe({
-      next: blob => this.downloadBlob(blob, `redemptions-${this.dateStamp()}.xlsx`),
+      next: blob => this.downloadBlob(blob, 'Redemption Report.xlsx'),
       error: error => this.showToast(error.message, 'error')
     });
   }

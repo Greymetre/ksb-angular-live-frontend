@@ -10,7 +10,7 @@
 
   <form class="asr-filter-card" (ngSubmit)="$event.preventDefault()">
     <label><span class="field-label">Zone</span>
-      <app-searchable-select [options]="options.zones" labelKey="name" [selected]="zoneId" placeholder="All Zones" allOption="All Zones" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading zones..." (selectedChange)="zoneId=$event;branchId=null"></app-searchable-select>
+      <app-searchable-select [options]="options.zones" labelKey="name" [selected]="zoneIds" [multiple]="true" placeholder="All Zones" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading zones..." (selectedChange)="zoneIds=$event;branchId=null"></app-searchable-select>
     </label>
     <label><span class="field-label">Branch</span>
       <app-searchable-select [options]="zoneBranches" labelKey="name" [selected]="branchId" placeholder="All Branches" allOption="All Branches" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading branches..." (selectedChange)="branchId=$event"></app-searchable-select>

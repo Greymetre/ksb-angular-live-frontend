@@ -78,7 +78,7 @@ export interface UserFilters {
   search?: string;
   userType?: string;
   active?: string;
-  divisionId?: number | null;
+  divisionIds?: number[];
   branchId?: string | null;
   departmentId?: number | null;
   designationId?: number | null;
@@ -261,7 +261,7 @@ export class UserService {
     if (filters.search?.trim()) params = params.set('search', filters.search.trim());
     if (filters.userType) params = params.set('user_type', filters.userType);
     if (filters.active) params = params.set('active', filters.active);
-    if (filters.divisionId) params = params.set('division_id', String(filters.divisionId));
+    (filters.divisionIds || []).forEach(id => params = params.append('division_id', String(id)));
     if (filters.branchId) params = params.set('branch_id', filters.branchId);
     if (filters.departmentId) params = params.set('department_id', String(filters.departmentId));
     if (filters.designationId) params = params.set('designation_id', String(filters.designationId));

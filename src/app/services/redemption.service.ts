@@ -81,6 +81,20 @@ export interface RedemptionListResult {
   summary: RedemptionSummary;
 }
 
+export interface RedemptionImportRowResult {
+  row: number;
+  success: boolean;
+  customerId: number;
+  message: string;
+}
+
+export interface RedemptionImportResult {
+  total: number;
+  created: number;
+  failed: number;
+  rows: RedemptionImportRowResult[];
+}
+
 type ApiResponse = Record<string, unknown>;
 
 @Injectable({ providedIn: 'root' })
@@ -123,6 +137,38 @@ export class RedemptionService {
       params: this.filterParams(filter),
       responseType: 'blob'
     }).pipe(catchError(error => this.handleError(error)));
+  }
+
+  downloadTemplate(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/import-template`, {
+      headers: this.authHeaders(),
+      responseType: 'blob'
+    }).pipe(catchError(error => this.handleError(error)));
+  }
+
+  import(file: File): Observable<RedemptionImportResult> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<ApiResponse>(`${this.baseUrl}/import`, form, { headers: this.authHeaders() }).pipe(
+      map(response => {
+        const r = this.asRecord(this.asRecord(response)['result']);
+        return {
+          total: this.readNumber(r['total']),
+          created: this.readNumber(r['created']),
+          failed: this.readNumber(r['failed']),
+          rows: (Array.isArray(r['rows']) ? r['rows'] : []).map((x: unknown) => {
+            const row = this.asRecord(x);
+            return {
+              row: this.readNumber(row['row']),
+              success: row['success'] === true,
+              customerId: this.readNumber(row['customer_id'] ?? row['customerId']),
+              message: this.readString(row['message'])
+            };
+          })
+        } as RedemptionImportResult;
+      }),
+      catchError(error => this.handleError(error))
+    );
   }
 
   private normalizeItem(value: unknown): RedemptionItem {

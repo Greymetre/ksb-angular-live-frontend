@@ -20,10 +20,7 @@
     </div>
     <div class="filter-field">
       <label>Zone</label>
-      <select [(ngModel)]="zoneId" (ngModelChange)="onZoneFilterChange()">
-        <option [ngValue]="null">All</option>
-        <option *ngFor="let zone of options.zones" [ngValue]="zone.id">{{ zone.name }}</option>
-      </select>
+      <app-searchable-select [options]="options.zones" labelKey="name" [selected]="zoneIds" [multiple]="true" placeholder="Select Zones" (selectedChange)="zoneIds=$event; onZoneFilterChange()"></app-searchable-select>
     </div>
     <div class="filter-field">
       <label>Branch</label>

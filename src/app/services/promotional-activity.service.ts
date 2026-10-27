@@ -98,6 +98,7 @@ export interface ActivityFilters {
   userId?: number | null;
   branchId?: number | null;
   zoneId?: number | null;
+  zoneIds?: number[];
   startDate?: string;
   endDate?: string;
 }
@@ -287,7 +288,7 @@ export class PromotionalActivityService {
     set('status', filters.status);
     set('user_id', filters.userId);
     set('branch_id', filters.branchId);
-    set('zone_id', filters.zoneId);
+    (filters.zoneIds || []).forEach(id => { params = params.append('zone_id', String(id)); });
     set('start_date', filters.startDate);
     set('end_date', filters.endDate);
     return params;

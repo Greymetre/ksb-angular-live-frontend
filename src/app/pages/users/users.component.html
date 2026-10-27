@@ -31,10 +31,7 @@
     </div>
     <div class="filter-field">
       <label>Zone</label>
-      <select [(ngModel)]="selectedDivisionId" (ngModelChange)="onZoneFilterChange()">
-        <option [ngValue]="null">All</option>
-        <option *ngFor="let division of divisions" [ngValue]="division.id">{{ division.name | firstCaps }}</option>
-      </select>
+      <app-searchable-select [options]="divisions" labelKey="name" [selected]="selectedZoneIds" [multiple]="true" placeholder="Select Zone" (selectedChange)="selectedZoneIds=$event; onZoneFilterChange()"></app-searchable-select>
     </div>
     <div class="filter-field">
       <label>Branch</label>

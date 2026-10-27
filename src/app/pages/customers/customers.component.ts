@@ -10,6 +10,7 @@ import { hasOnlyPdfOrImageFiles } from '../../shared/utils/file-validation';
 import { formatKolkataDateTime } from '../../shared/utils/date-time';
 import { onlyMobileDigits } from '../../shared/utils/mobile-number';
 import { BANK_ACCOUNT_TYPES, normalizeBankAccountType } from '../../shared/utils/bank-account-type';
+import { API_ORIGIN } from '../../config/api.config';
 
 interface CustomerTypeOption {
   id: number;
@@ -859,6 +860,7 @@ export class CustomersComponent implements OnInit {
       return;
     }
     this.form.files[key] = multiple ? files : files[0] || null;
+    this.buildNewPreviews(key);
     this.refreshView();
   }
 
@@ -867,6 +869,75 @@ export class CustomersComponent implements OnInit {
     if (Array.isArray(value) && value.length > 0) return `${value.length} file selected`;
     if (value instanceof File) return value.name;
     return this.field(key) ? 'Current file saved' : 'No file selected';
+  }
+
+  // ---- Attachment previews: saved + just-picked thumbnails, delete, click-to-enlarge ----
+  newPreviews: Record<string, { url: string; isPdf: boolean; name: string }[]> = {};
+  attachmentPreview: { url: string; isPdf: boolean } | null = null;
+
+  private buildNewPreviews(key: string): void {
+    const value = this.form.files[key];
+    const files = Array.isArray(value) ? value : value ? [value] : [];
+    this.newPreviews[key] = files.map(file => ({
+      url: URL.createObjectURL(file),
+      isPdf: /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name),
+      name: file.name
+    }));
+  }
+
+  savedAttachments(key: string): { url: string; path: string; isPdf: boolean }[] {
+    const raw = this.field(key);
+    if (!raw) return [];
+    return raw.split(',').map(p => p.trim()).filter(Boolean).map(path => ({
+      url: this.mediaUrl(path),
+      path,
+      isPdf: /\.pdf($|\?)/i.test(path)
+    }));
+  }
+
+  hasAttachments(key: string): boolean {
+    return this.savedAttachments(key).length > 0 || (this.newPreviews[key]?.length ?? 0) > 0;
+  }
+
+  removeSavedAttachment(key: string, path: string): void {
+    const remaining = this.savedAttachments(key).map(x => x.path).filter(p => p !== path);
+    this.setField(key, remaining.join(','));
+    this.refreshView();
+  }
+
+  removeNewAttachment(key: string, index: number): void {
+    const value = this.form.files[key];
+    if (Array.isArray(value)) {
+      value.splice(index, 1);
+      this.form.files[key] = value;
+    } else {
+      this.form.files[key] = null;
+    }
+    const prev = this.newPreviews[key];
+    if (prev?.[index]) { try { URL.revokeObjectURL(prev[index].url); } catch {} prev.splice(index, 1); }
+    this.refreshView();
+  }
+
+  openAttachmentPreview(url: string, isPdf: boolean): void {
+    this.attachmentPreview = { url, isPdf };
+    this.refreshView();
+  }
+
+  closeAttachmentPreview(): void {
+    this.attachmentPreview = null;
+    this.refreshView();
+  }
+
+  mediaUrl(value?: string | null): string {
+    if (!value) return '';
+    const path = value.trim();
+    if (!path) return '';
+    if (/^(https?:)?\/\//i.test(path) || path.startsWith('data:') || path.startsWith('blob:')) return path;
+    if (path.startsWith('/assets/')) return path.slice(1);
+    if (path.startsWith('assets/')) return path;
+    const normalizedPath = /^(secondary-customers|secondary_customers|distributors)\//i.test(path) ? `storage/${path}` : path;
+    const cleanPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+    return `${API_ORIGIN}${cleanPath}`;
   }
 
   field(key: string): string {

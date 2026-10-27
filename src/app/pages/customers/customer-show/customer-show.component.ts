@@ -509,7 +509,7 @@ export class CustomerShowComponent implements OnInit {
     this.refreshView();
     this.checkinService.list({
       page: this.checkinsPage, pageSize: this.pageSize, search: '', startDate: '', endDate: '',
-      userId: null, divisionId: null, branchId: null, designationIds: [],
+      userId: null, divisionIds: [], branchId: null, designationIds: [],
       customerId: this.customer.id
     }).pipe(
       finalize(() => {

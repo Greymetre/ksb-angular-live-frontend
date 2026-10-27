@@ -58,7 +58,7 @@ export class OrdersComponent implements OnInit {
   selectedRetailerId: number | null = null;
   selectedDistributorId: number | null = null;
   selectedUserId: number | null = null;
-  selectedDivisionId: number | null = null;
+  selectedZoneIds: number[] = [];
   selectedSegmentId: number | null = null;
   selectedDesignationIds: number[] = [];
   selectedStatus: number | null = null;
@@ -233,7 +233,7 @@ export class OrdersComponent implements OnInit {
     this.selectedRetailerId = null;
     this.selectedDistributorId = null;
     this.selectedUserId = null;
-    this.selectedDivisionId = null;
+    this.selectedZoneIds = [];
     this.selectedSegmentId = null;
     this.selectedDesignationIds = [];
     this.selectedStatus = null;
@@ -555,7 +555,7 @@ export class OrdersComponent implements OnInit {
       retailersId: this.selectedRetailerId,
       distributorId: this.selectedDistributorId,
       userId: this.selectedUserId,
-      divisionId: this.selectedDivisionId,
+      divisionIds: this.selectedZoneIds,
       segmentId: this.selectedSegmentId,
       designationIds: this.selectedDesignationIds,
       pendingStatus: this.selectedStatus,

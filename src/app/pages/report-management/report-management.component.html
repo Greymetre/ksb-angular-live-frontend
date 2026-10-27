@@ -7,11 +7,8 @@
     <label>User
       <app-searchable-select [options]="asrOptions.users" labelKey="name" [selected]="employeeId" placeholder="All Users" [pageSize]="25" (selectedChange)="employeeId=$event"></app-searchable-select>
     </label>
-    <label>Division
-      <select [(ngModel)]="divisionId" name="divisionId" (ngModelChange)="branchId = null">
-        <option [ngValue]="null">All Divisions</option>
-        <option *ngFor="let item of asrOptions.divisions" [ngValue]="item.id">{{ item.name }}</option>
-      </select>
+    <label>Zone
+      <app-searchable-select [options]="asrOptions.divisions" labelKey="name" [selected]="divisionIds" [multiple]="true" placeholder="All Zones" [pageSize]="25" (selectedChange)="divisionIds=$event;branchId=null"></app-searchable-select>
     </label>
     <label>Branch
       <select [(ngModel)]="branchId" name="branchId">
@@ -54,7 +51,7 @@
       <app-searchable-select [options]="asrOptions.designations" labelKey="name" [selected]="designationId" placeholder="Select Designation" [pageSize]="25" (selectedChange)="designationId=$event"></app-searchable-select>
     </label>
     <label>Zone
-      <app-searchable-select [options]="asrOptions.divisions" labelKey="name" [selected]="divisionId" placeholder="All Zones" [pageSize]="25" (selectedChange)="divisionId=$event;branchId=null"></app-searchable-select>
+      <app-searchable-select [options]="asrOptions.divisions" labelKey="name" [selected]="divisionIds" [multiple]="true" placeholder="All Zones" [pageSize]="25" (selectedChange)="divisionIds=$event;branchId=null"></app-searchable-select>
     </label>
     <label>Branch
       <app-searchable-select [options]="zoneBranches" labelKey="name" [selected]="branchId" placeholder="All Branches" allOption="All Branches" [pageSize]="25" (selectedChange)="branchId=$event"></app-searchable-select>
@@ -229,7 +226,7 @@
     <label><span class="field-label">Start Date <span class="required">*</span></span><input type="date" [(ngModel)]="startDate" name="activityStartDate" (ngModelChange)="activityFilterChanged()" required></label>
     <label><span class="field-label">End Date <span class="required">*</span></span><input type="date" [(ngModel)]="endDate" name="activityEndDate" (ngModelChange)="activityFilterChanged()" required></label>
     <label>Zone
-      <app-searchable-select [options]="activityOptions.zones" labelKey="name" [selected]="divisionId" placeholder="All Zones" [pageSize]="25" (selectedChange)="divisionId=$event;branchId=null;activityFilterChanged()"></app-searchable-select>
+      <app-searchable-select [options]="activityOptions.zones" labelKey="name" [selected]="divisionIds" [multiple]="true" placeholder="All Zones" [pageSize]="25" (selectedChange)="divisionIds=$event;branchId=null;activityFilterChanged()"></app-searchable-select>
     </label>
     <label>Branch
       <app-searchable-select [options]="activityBranches" labelKey="name" [selected]="branchId" placeholder="All Branches" [pageSize]="25" (selectedChange)="branchId=$event;activityFilterChanged()"></app-searchable-select>
@@ -296,8 +293,8 @@
     <label>Segment
       <app-searchable-select [options]="segments" labelKey="name" [selected]="selectedSegmentId" placeholder="All Segments" allOption="All Segments" [pageSize]="25" (selectedChange)="selectedSegmentId=$event"></app-searchable-select>
     </label>
-    <label>{{mode === 'retailer' ? 'Zone *' : 'Division'}}
-      <select [(ngModel)]="divisionId" name="productivityDivisionId" (ngModelChange)="branchId = null"><option [ngValue]="null">{{mode === 'retailer' ? 'Select Zone' : 'All Divisions'}}</option><option *ngFor="let item of asrOptions.divisions" [ngValue]="item.id">{{item.name}}</option></select>
+    <label>{{mode === 'retailer' ? 'Zone *' : 'Zone'}}
+      <app-searchable-select [options]="asrOptions.divisions" labelKey="name" [selected]="divisionIds" [multiple]="true" [placeholder]="mode === 'retailer' ? 'Select Zone' : 'All Zones'" [pageSize]="25" (selectedChange)="divisionIds=$event;branchId=null"></app-searchable-select>
     </label>
     <label *ngIf="mode === 'retailer'">State
       <select [(ngModel)]="stateId" name="stateId"><option [ngValue]="null">All States</option><option *ngFor="let item of asrOptions.states" [ngValue]="item.id">{{item.name}}</option></select>

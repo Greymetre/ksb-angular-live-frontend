@@ -21,6 +21,7 @@ export interface Expense {
   branchId?: number | null;
   branchName?: string | null;
   divisionId?: number | null;
+  divisionIds?: number[];
   divisionName?: string | null;
   payroll?: string | null;
   date: string;
@@ -60,6 +61,7 @@ export interface ExpensePayload {
 }
 
 export interface ExpenseFilters {
+  divisionIds?: number[];
   page?: number;
   pageSize?: number;
   executiveId?: number | null;
@@ -175,7 +177,7 @@ export class ExpenseService {
     if (filters.executiveId) params = params.set('executive_id', String(filters.executiveId));
     if (filters.expensesType) params = params.set('expenses_type', String(filters.expensesType));
     if (filters.branchId) params = params.set('branch_id', String(filters.branchId));
-    if (filters.divisionId) params = params.set('division_id', String(filters.divisionId));
+    (filters.divisionIds || []).forEach(id => params = params.append('division_id', String(id)));
     if (filters.payroll) params = params.set('payroll', filters.payroll);
     if (filters.status !== null && filters.status !== undefined) params = params.set('status', String(filters.status));
     if (filters.startDate) params = params.set('start_date', filters.startDate);
