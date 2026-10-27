@@ -34,6 +34,7 @@ import { BeatDetailComponent } from './pages/beat-detail/beat-detail.component';
 import { CheckinReportsComponent } from './pages/checkin-reports/checkin-reports.component';
 import { ReportManagementComponent } from './pages/report-management/report-management.component';
 import { LoyaltyPerformanceReportComponent } from './pages/loyalty-performance-report/loyalty-performance-report.component';
+import { WalletReportComponent } from './pages/wallet-report/wallet-report.component';
 import { RfmReportComponent } from './pages/rfm-report/rfm-report.component';
 import { BeatRouteOptimizerComponent } from './pages/beat-route-optimizer/beat-route-optimizer.component';
 import { FieldKonnectAppSettingComponent } from './pages/field-konnect-app-setting/field-konnect-app-setting.component';
@@ -107,6 +108,7 @@ const routes: Routes = [
       { path: 'reports/rfm-movement', component: RfmReportComponent, canActivate: [authGuard], data: { permission: 'rfm_movement_report.view', rfmMode: 'movement' } },
       { path: 'reports/rfm-activation', component: RfmReportComponent, canActivate: [authGuard], data: { permission: 'rfm_activation_report.view', rfmMode: 'activation' } },
       { path: 'reports/loyalty-performance', component: LoyaltyPerformanceReportComponent, canActivate: [authGuard], data: { permission: 'loyalty_performance_report.view' } },
+      { path: 'reports/wallet-report', component: WalletReportComponent, canActivate: [authGuard], data: { permission: 'loyalty_performance_report.export_wallet' } },
       { path: 'loyalty-app-setting', component: LoyaltyAppSettingComponent, canActivate: [authGuard], data: { permission: 'app_setting.view' } },
       { path: 'field-konnect-app-setting', component: FieldKonnectAppSettingComponent, canActivate: [authGuard], data: { permission: 'app_setting.view' } },
       { path: 'user-app-details', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'user_app.view', mode: 'apps' } },

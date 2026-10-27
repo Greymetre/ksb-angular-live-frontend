@@ -173,7 +173,15 @@
             </small>
           </div>
           <div class="modal-field">
-            <label>Redemption</label>
+            <label>Redemption CRM</label>
+            <label class="redemption-toggle">
+              <input type="checkbox" [(ngModel)]="form.redemptionCrmEnabled"/>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <strong>{{ form.redemptionCrmEnabled ? 'On' : 'Off' }}</strong>
+            </label>
+          </div>
+          <div class="modal-field">
+            <label>Redemption App</label>
             <label class="redemption-toggle">
               <input type="checkbox" [(ngModel)]="form.redemptionEnabled"/>
               <span class="toggle-track"><span class="toggle-thumb"></span></span>

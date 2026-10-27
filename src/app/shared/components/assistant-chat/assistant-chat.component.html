@@ -1,0 +1,39 @@
+<button class="assistant-fab" [class.open]="open" (click)="toggle()" title="Ask the assistant">
+  <span class="fab-pulse" *ngIf="!open"></span>
+  <span class="material-icons">{{ open ? 'close' : 'smart_toy' }}</span>
+</button>
+
+<div class="assistant-panel" [class.open]="open">
+  <div class="assistant-head">
+    <div class="assistant-avatar"><span class="material-icons">smart_toy</span></div>
+    <div class="assistant-head-text">
+      <span class="assistant-title">KSB Assistant</span>
+      <span class="assistant-status"><span class="dot"></span> Online</span>
+    </div>
+    <button class="assistant-close" type="button" (click)="toggle()"><span class="material-icons">close</span></button>
+  </div>
+
+  <div class="assistant-messages">
+    <div *ngFor="let m of messages" class="assistant-msg" [class.user]="m.from === 'user'" [class.bot]="m.from === 'bot'">
+      <div class="msg-avatar" *ngIf="m.from === 'bot'"><span class="material-icons">smart_toy</span></div>
+      <div class="msg-body">
+        <div class="bubble">{{ m.text }}</div>
+        <div class="chips" *ngIf="m.chips && m.chips.length">
+          <button *ngFor="let c of m.chips" type="button" class="chip" (click)="sendChip(c.send)">{{ c.label }}</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="assistant-msg bot" *ngIf="sending">
+      <div class="msg-avatar"><span class="material-icons">smart_toy</span></div>
+      <div class="msg-body">
+        <div class="bubble typing"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <form class="assistant-input" (ngSubmit)="send()">
+    <input [(ngModel)]="input" name="assistantInput" placeholder="Ask me anything about your data…" autocomplete="off">
+    <button type="submit" [disabled]="sending" title="Send"><span class="material-icons">send</span></button>
+  </form>
+</div>

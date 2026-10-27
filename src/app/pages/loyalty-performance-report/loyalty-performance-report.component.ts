@@ -18,7 +18,7 @@ type LoyaltyDownload = 'asr' | 'dealer' | 'retailer';
   styleUrls: ['./loyalty-performance-report.component.scss']
 })
 export class LoyaltyPerformanceReportComponent implements OnInit {
-  options: LoyaltyPerformanceOptions = { segments: [], zones: [], schemes: [] };
+  options: LoyaltyPerformanceOptions = { segments: [], zones: [], schemes: [], branches: [] };
   schemeOptions: ReportOption[] = [];
   optionsLoading = false;
 

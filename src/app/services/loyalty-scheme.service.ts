@@ -50,6 +50,7 @@ export interface LoyaltyScheme {
   schemeType: string;
   basedOn: string;
   redemptionEnabled: boolean;
+  redemptionCrmEnabled: boolean;
   status: string;
   workflowStatus: string;
   brochurePath?: string | null;
@@ -86,6 +87,7 @@ export interface LoyaltySchemePayload {
   scheme_type: string;
   based_on: string;
   redemption_enabled: boolean;
+  redemption_crm_enabled: boolean;
   slabs: Array<{
     tier_name: string;
     value_from: number;
@@ -329,6 +331,7 @@ export class LoyaltySchemeService {
       schemeType: this.readString(row['scheme_type'] ?? row['schemeType']) || 'Invoice',
       basedOn: this.readString(row['based_on'] ?? row['basedOn']) || 'Value',
       redemptionEnabled: this.readBoolean(row['redemption_enabled'] ?? row['redemptionEnabled'], false),
+      redemptionCrmEnabled: this.readBoolean(row['redemption_crm_enabled'] ?? row['redemptionCrmEnabled'], false),
       status: this.readString(row['status']) || 'Draft',
       workflowStatus: this.readString(row['workflow_status'] ?? row['workflowStatus'] ?? row['status']) || 'Draft',
       brochurePath: this.readNullableString(row['brochure_path'] ?? row['brochurePath']),

@@ -1,0 +1,32 @@
+<section class="page">
+  <header>
+    <div><h1>Wallet Report</h1><p>Download each retailer's wallet points by zone, branch and scheme.</p></div>
+  </header>
+
+  <form class="asr-filter-card" (ngSubmit)="$event.preventDefault()">
+    <label><span class="field-label">Zone <span class="required">*</span></span>
+      <app-searchable-select [options]="options.zones" labelKey="name" [selected]="zoneIds" [multiple]="true" placeholder="Select Zones" [loading]="optionsLoading" loadingText="Loading zones..." (selectedChange)="onZoneChange($event)"></app-searchable-select>
+    </label>
+    <label><span class="field-label">Branch</span>
+      <app-searchable-select [options]="zoneBranches" labelKey="name" [selected]="branchId" placeholder="All Branches" allOption="All Branches" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading branches..." (selectedChange)="branchId=$event"></app-searchable-select>
+    </label>
+    <label><span class="field-label">Scheme Name <span class="required">*</span></span>
+      <app-searchable-select [options]="schemeOptions" labelKey="name" [selected]="schemeId" placeholder="Select Scheme" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading schemes..." (selectedChange)="schemeId=$event"></app-searchable-select>
+    </label>
+    <label><span class="field-label">Employee Status</span>
+      <select [(ngModel)]="employeeStatus" name="employeeStatus">
+        <option value="">All</option>
+        <option value="Y">Active</option>
+        <option value="N">Inactive</option>
+      </select>
+    </label>
+
+    <div class="download-wrap" *ngIf="auth.hasPermission('loyalty_performance_report.export_wallet')">
+      <button class="primary" type="button" [disabled]="downloading" (click)="download()">
+        <span class="material-icons">download</span>{{ downloading ? 'Preparing...' : 'Export' }}
+      </button>
+    </div>
+  </form>
+
+  <div class="error" *ngIf="error">{{ error }}</div>
+</section>

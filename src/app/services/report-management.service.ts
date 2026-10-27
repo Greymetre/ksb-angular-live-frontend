@@ -15,7 +15,8 @@ export interface DistrictOption extends ReportOption { state_id?: number | null;
 export type RfmDownloadKind = 'retailer' | 'dealer' | 'movement' | 'activation-asr' | 'activation-dealer';
 export interface RfmReportOptions { zones: ReportOption[]; branches: BranchOption[]; states: ReportOption[]; districts: DistrictOption[]; }
 export interface LoyaltyPerformanceScheme extends ReportOption { code: string; start_date: string; end_date: string; }
-export interface LoyaltyPerformanceOptions { segments: ReportOption[]; zones: ReportOption[]; schemes: LoyaltyPerformanceScheme[]; }
+export interface LoyaltyPerformanceOptions { segments: ReportOption[]; zones: ReportOption[]; schemes: LoyaltyPerformanceScheme[]; branches: BranchOption[]; }
+export interface WalletReportFilters { zoneIds: number[]; branchId: number | null; schemeId: number; employeeStatus?: string | null; }
 export interface LoyaltyPerformanceFilters { segmentId: number | null; zoneIds: number[]; schemeId: number; startDate: string; endDate: string; employeeStatus?: string | null; }
 export interface AsrReportOptions {
   users: ReportOption[];
@@ -179,8 +180,18 @@ export class ReportManagementService {
     return this.http.get<any>(`${API_BASE_URL}/reports/loyalty-performance/options`, { headers: this.headers() }).pipe(map(response => ({
       segments: this.array(response.segments),
       zones: this.array(response.zones),
-      schemes: this.array(response.schemes)
+      schemes: this.array(response.schemes),
+      branches: this.array(response.branches)
     })));
+  }
+
+  downloadWalletReport(filters: WalletReportFilters): Observable<Blob> {
+    let params = new HttpParams().set('scheme_id', String(filters.schemeId));
+    // Each selected zone goes as its own zone_id param; the export covers them all.
+    filters.zoneIds.forEach(id => params = params.append('zone_id', String(id)));
+    if (filters.branchId) params = params.set('branch_id', String(filters.branchId));
+    if (filters.employeeStatus) params = params.set('employee_status', filters.employeeStatus);
+    return this.http.get(`${API_BASE_URL}/reports/loyalty-performance/wallet-export`, { headers: this.headers(), params, responseType: 'blob' });
   }
 
   downloadLoyaltyPerformance(kind: 'asr' | 'dealer' | 'retailer', filters: LoyaltyPerformanceFilters): Observable<Blob> {
