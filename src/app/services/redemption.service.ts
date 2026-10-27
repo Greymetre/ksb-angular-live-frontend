@@ -27,6 +27,10 @@ export interface RedemptionItem {
   status: number;
   statusLabel: string;
   remark?: string | null;
+  payoutTransactionNo?: string | null;
+  payoutAmount?: number | null;
+  tdsPercent?: number | null;
+  paymentDate?: string | null;
   createdByName?: string | null;
   createdAt?: string | null;
 }
@@ -36,6 +40,9 @@ export interface RedemptionSummary {
   approved: number;
   pending: number;
   rejectedOrHold: number;
+  hold: number;
+  success: number;
+  failed: number;
 }
 
 export interface RedemptionFilter {
@@ -131,6 +138,41 @@ export class RedemptionService {
     );
   }
 
+  update(id: number, payload: { customer_id: number; loyalty_scheme_id?: number | null; wallet_type: string; redeem_mode: string; points: number; bank_confirmed: boolean }): Observable<string> {
+    return this.http.put<ApiResponse>(`${this.baseUrl}/${id}`, payload, { headers: this.authHeaders() }).pipe(
+      map(response => this.responseMessage(response) || 'Redemption updated successfully'),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  payout(id: number, body: { state: string; remark?: string; transaction_no?: string; tds_percent?: number }): Observable<string> {
+    return this.http.post<ApiResponse>(`${this.baseUrl}/${id}/payout`, body, { headers: this.authHeaders() }).pipe(
+      map(response => this.responseMessage(response) || 'Redemption updated.'),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  approve(id: number): Observable<string> {
+    return this.http.post<ApiResponse>(`${this.baseUrl}/${id}/approve`, {}, { headers: this.authHeaders() }).pipe(
+      map(response => this.responseMessage(response) || 'Redemption approved.'),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  reject(id: number, remark?: string): Observable<string> {
+    return this.http.post<ApiResponse>(`${this.baseUrl}/${id}/reject`, { remark: remark ?? '' }, { headers: this.authHeaders() }).pipe(
+      map(response => this.responseMessage(response) || 'Redemption rejected.'),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  delete(id: number): Observable<string> {
+    return this.http.delete<ApiResponse>(`${this.baseUrl}/${id}`, { headers: this.authHeaders() }).pipe(
+      map(response => this.responseMessage(response) || 'Redemption deleted.'),
+      catchError(error => this.handleError(error))
+    );
+  }
+
   export(filter: RedemptionFilter): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/export`, {
       headers: this.authHeaders(),
@@ -150,6 +192,31 @@ export class RedemptionService {
     const form = new FormData();
     form.append('file', file);
     return this.http.post<ApiResponse>(`${this.baseUrl}/import`, form, { headers: this.authHeaders() }).pipe(
+      map(response => {
+        const r = this.asRecord(this.asRecord(response)['result']);
+        return {
+          total: this.readNumber(r['total']),
+          created: this.readNumber(r['created']),
+          failed: this.readNumber(r['failed']),
+          rows: (Array.isArray(r['rows']) ? r['rows'] : []).map((x: unknown) => {
+            const row = this.asRecord(x);
+            return {
+              row: this.readNumber(row['row']),
+              success: row['success'] === true,
+              customerId: this.readNumber(row['customer_id'] ?? row['customerId']),
+              message: this.readString(row['message'])
+            };
+          })
+        } as RedemptionImportResult;
+      }),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  updateImport(file: File): Observable<RedemptionImportResult> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<ApiResponse>(`${this.baseUrl}/update-import`, form, { headers: this.authHeaders() }).pipe(
       map(response => {
         const r = this.asRecord(this.asRecord(response)['result']);
         return {
@@ -195,6 +262,10 @@ export class RedemptionService {
       status: this.readNumber(row['status']),
       statusLabel: this.readString(row['status_label'] ?? row['statusLabel']),
       remark: this.readNullableString(row['remark']),
+      payoutTransactionNo: this.readNullableString(row['payout_transaction_no'] ?? row['payoutTransactionNo']),
+      payoutAmount: this.readNumber(row['payout_amount'] ?? row['payoutAmount']) || null,
+      tdsPercent: this.readNumber(row['tds_percent'] ?? row['tdsPercent']) || null,
+      paymentDate: this.readNullableString(row['payment_date'] ?? row['paymentDate']),
       createdByName: this.readNullableString(row['created_by_name'] ?? row['createdByName']),
       createdAt: this.readNullableString(row['created_at'] ?? row['createdAt'])
     };
@@ -244,7 +315,10 @@ export class RedemptionService {
       totalRequests: this.readNumber(row['total_requests'] ?? row['totalRequests']),
       approved: this.readNumber(row['approved']),
       pending: this.readNumber(row['pending']),
-      rejectedOrHold: this.readNumber(row['rejected_or_hold'] ?? row['rejectedOrHold'])
+      rejectedOrHold: this.readNumber(row['rejected_or_hold'] ?? row['rejectedOrHold']),
+      hold: this.readNumber(row['hold']),
+      success: this.readNumber(row['success']),
+      failed: this.readNumber(row['failed'])
     };
   }
 

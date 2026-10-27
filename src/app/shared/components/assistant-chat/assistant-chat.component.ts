@@ -86,9 +86,18 @@ export class AssistantChatComponent {
           this.scrollSoon();
         },
         error: () => {
-          this.messages.push({ from: 'bot', text: 'Could not generate the file - a filter may be missing or you may not have access.' });
-          this.cdr.detectChanges();
-          this.scrollSoon();
+          // The export needs a filter (or isn't allowed from here) - open its page so the user
+          // can set the filters and export it the usual way.
+          if (action.route) {
+            this.messages.push({ from: 'bot', text: 'This one needs a filter first — opening its page for you so you can set it and export there.' });
+            this.cdr.detectChanges();
+            this.scrollSoon();
+            setTimeout(() => { this.router.navigateByUrl(action.route); this.open = false; this.cdr.detectChanges(); }, 900);
+          } else {
+            this.messages.push({ from: 'bot', text: 'Could not generate the file - a filter may be missing or you may not have access.' });
+            this.cdr.detectChanges();
+            this.scrollSoon();
+          }
         }
       });
     } else if (action.type === 'navigate' && action.route) {

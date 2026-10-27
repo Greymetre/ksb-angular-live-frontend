@@ -30,10 +30,13 @@
   </div>
 
   <div class="summary-grid">
-    <div class="summary-tile gold"><span>Total Requests</span><strong>{{ summary.totalRequests }}</strong></div>
-    <div class="summary-tile success"><span>Approved</span><strong>{{ summary.approved }}</strong></div>
-    <div class="summary-tile pending"><span>Pending</span><strong>{{ summary.pending }}</strong></div>
-    <div class="summary-tile danger"><span>Rejected / Hold</span><strong>{{ summary.rejectedOrHold }}</strong></div>
+    <div class="summary-tile gold clickable" [class.active]="filter.status === null || filter.status === undefined" (click)="filterByStatus(null)"><span>Total Requests</span><strong>{{ summary.totalRequests }}</strong></div>
+    <div class="summary-tile pending clickable" [class.active]="filter.status === 0" (click)="filterByStatus(0)"><span>Pending</span><strong>{{ summary.pending }}</strong></div>
+    <div class="summary-tile success clickable" [class.active]="filter.status === 1" (click)="filterByStatus(1)"><span>Approved</span><strong>{{ summary.approved }}</strong></div>
+    <div class="summary-tile hold clickable" [class.active]="filter.status === 3" (click)="filterByStatus(3)"><span>Hold</span><strong>{{ summary.hold }}</strong></div>
+    <div class="summary-tile paid clickable" [class.active]="filter.status === 4" (click)="filterByStatus(4)"><span>Success</span><strong>{{ summary.success }}</strong></div>
+    <div class="summary-tile failed clickable" [class.active]="filter.status === 5" (click)="filterByStatus(5)"><span>Failed</span><strong>{{ summary.failed }}</strong></div>
+    <div class="summary-tile danger clickable" [class.active]="filter.status === 2" (click)="filterByStatus(2)"><span>Rejected</span><strong>{{ summary.rejectedOrHold }}</strong></div>
   </div>
 
   <div class="table-toolbar">
@@ -48,6 +51,10 @@
       <span class="material-icons">{{ importing ? 'hourglass_top' : 'cloud_upload' }}</span>
     </button>
     <input #importInput type="file" accept=".xlsx,.xls" hidden (change)="onImportFile($event)"/>
+    <button class="btn-icon-round" [title]="importing ? 'Updating...' : 'Update redemptions (upload the exported file)'" (click)="updateInput.click()" [disabled]="importing" *ngIf="canUpdateImport">
+      <span class="material-icons">{{ importing ? 'hourglass_top' : 'published_with_changes' }}</span>
+    </button>
+    <input #updateInput type="file" accept=".xlsx,.xls,.csv" hidden (change)="onUpdateImportFile($event)"/>
     <button class="btn-icon-round" title="New Redemption" (click)="openCreateModal()" *ngIf="canCreate"><span class="material-icons">add</span></button>
   </div>
 
@@ -79,6 +86,7 @@
     <table class="data-table">
       <thead>
         <tr>
+          <th *ngIf="showActionsColumn" class="action-col">Action</th>
           <th>Date</th>
           <th>Transaction ID</th>
           <th>Customer ID</th>
@@ -91,11 +99,28 @@
           <th>Wallet</th>
           <th>Scheme</th>
           <th>Points</th>
+          <th>TDS %</th>
+          <th>TDS Amt</th>
+          <th>Payable Points</th>
+          <th>UTR No</th>
           <th>Status</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let row of redemptions">
+          <td *ngIf="showActionsColumn" class="action-col">
+            <div class="row-actions">
+              <button type="button" class="row-action view" title="View" *ngIf="canView" (click)="openDetail(row)">
+                <span class="material-icons">visibility</span>
+              </button>
+              <button type="button" class="row-action edit" title="Edit" *ngIf="canEditRow(row)" (click)="openEdit(row)">
+                <span class="material-icons">edit</span>
+              </button>
+              <button type="button" class="row-action delete" title="Delete" *ngIf="canDeleteRow(row)" [disabled]="actionBusy" (click)="deleteRow(row)">
+                <span class="material-icons">delete</span>
+              </button>
+            </div>
+          </td>
           <td>{{ formatDate(row.createdAt) }}</td>
           <td class="txid">{{ row.transactionNo }}</td>
           <td>{{ row.customerCode }}</td>
@@ -108,10 +133,14 @@
           <td>{{ row.walletType }}</td>
           <td>{{ row.schemeName }}</td>
           <td><strong>{{ row.points | number:'1.0-2' }}</strong></td>
+          <td>{{ (row.tdsPercent || 0) | number:'1.0-2' }}</td>
+          <td>{{ rowTdsAmount(row) | number:'1.0-2' }}</td>
+          <td><strong>{{ rowPayable(row) | number:'1.0-2' }}</strong></td>
+          <td>{{ row.payoutTransactionNo || '-' }}</td>
           <td><span class="status-badge" [ngClass]="statusClass(row.status)">{{ row.statusLabel }}</span></td>
         </tr>
         <tr *ngIf="!loading && redemptions.length === 0">
-          <td colspan="13" class="empty-row">No redemptions found</td>
+          <td [attr.colspan]="showActionsColumn ? 18 : 17" class="empty-row">No redemptions found</td>
         </tr>
       </tbody>
     </table>
@@ -122,7 +151,7 @@
   <div class="modal-box" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <div>
-        <h3>New Redemption Request</h3>
+        <h3>{{ editId ? 'Edit Redemption' : 'New Redemption Request' }}</h3>
         <small>Step {{ step }} of 5 - {{ stepTitle() }}</small>
       </div>
       <button class="modal-close-btn" (click)="closeModal()" [disabled]="saving"><span class="material-icons">close</span></button>
@@ -214,7 +243,96 @@
         <span class="material-icons">{{ step === 1 ? 'close' : 'arrow_back' }}</span>{{ step === 1 ? 'Cancel' : 'Back' }}
       </button>
       <button class="btn-submit" *ngIf="step < 5" (click)="setStep(step + 1)" [disabled]="(step === 1 && !selectedCustomer) || (step === 2 && !selectedCustomer?.kycApproved) || (step === 3 && !selectedScheme) || (step === 4 && !redeemMode)">Next</button>
-      <button class="btn-submit" *ngIf="step === 5" (click)="submit()" [disabled]="saving || !canSubmit">{{ saving ? 'Saving...' : 'Submit Redemption' }}</button>
+      <button class="btn-submit" *ngIf="step === 5" (click)="submit()" [disabled]="saving || !canSubmit">{{ saving ? 'Saving...' : (editId ? 'Update Redemption' : 'Submit Redemption') }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Redemption detail (View) with Approve / Reject -->
+<div class="modal-overlay" *ngIf="showDetail && detailRow as row" (click)="closeDetail()">
+  <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:620px">
+    <div class="modal-header">
+      <div>
+        <h3>Redemption Detail</h3>
+        <small>{{ row.transactionNo }} &middot; {{ formatDate(row.createdAt) }}</small>
+      </div>
+      <button class="modal-close-btn" (click)="closeDetail()" [disabled]="actionBusy"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="detail-status">
+        <span class="status-badge" [ngClass]="statusClass(row.status)">{{ row.statusLabel }}</span>
+      </div>
+      <div class="detail-grid">
+        <div><span>Customer</span><strong>{{ row.customerName }}</strong></div>
+        <div><span>Customer ID</span><strong>{{ row.customerCode || '-' }}</strong></div>
+        <div><span>Type</span><strong>{{ row.customerTypeName || '-' }}</strong></div>
+        <div><span>Mobile</span><strong>{{ row.mobileNumber || '-' }}</strong></div>
+        <div><span>City</span><strong>{{ row.cityName || '-' }}</strong></div>
+        <div><span>Dealer</span><strong>{{ row.distributorName || '-' }}</strong></div>
+        <div><span>Wallet</span><strong>{{ row.walletType }}</strong></div>
+        <div><span>Scheme</span><strong>{{ row.schemeName || '-' }}</strong></div>
+        <div><span>Mode</span><strong>{{ row.redeemMode }}</strong></div>
+        <div><span>Points</span><strong>{{ row.points | number:'1.0-2' }}</strong></div>
+        <div><span>Account Holder</span><strong>{{ row.accountHolder || '-' }}</strong></div>
+        <div><span>Bank</span><strong>{{ row.bankName || '-' }}</strong></div>
+        <div><span>Account Number</span><strong>{{ row.accountNumber || '-' }}</strong></div>
+        <div><span>IFSC</span><strong>{{ row.ifscCode || '-' }}</strong></div>
+        <div><span>TDS %</span><strong>{{ (row.tdsPercent || 0) | number:'1.0-2' }}</strong></div>
+        <div><span>TDS Amount</span><strong>{{ rowTdsAmount(row) | number:'1.0-2' }}</strong></div>
+        <div><span>Payable Points</span><strong>{{ rowPayable(row) | number:'1.0-2' }}</strong></div>
+        <div><span>UTR No</span><strong>{{ row.payoutTransactionNo || '-' }}</strong></div>
+        <div *ngIf="row.paymentDate"><span>Payment Date</span><strong>{{ formatDate(row.paymentDate) }}</strong></div>
+        <div class="span-2" *ngIf="row.remark"><span>{{ row.status === STATUS_REJECTED ? 'Rejection Reason' : 'Note' }}</span><strong>{{ row.remark }}</strong></div>
+        <div><span>Created By</span><strong>{{ row.createdByName || '-' }}</strong></div>
+      </div>
+    </div>
+
+    <!-- Pending: approve / reject. After approval: the payout actions. Rejected: nothing (terminal). -->
+    <div class="modal-actions" *ngIf="row.status === STATUS_PENDING && (canApprove || canReject)">
+      <button type="button" class="btn-reject" *ngIf="canReject" [disabled]="actionBusy" (click)="rejectRow(row)">
+        <span class="material-icons">close</span>Reject
+      </button>
+      <button type="button" class="btn-approve" *ngIf="canApprove" [disabled]="actionBusy" (click)="approveRow(row)">
+        <span class="material-icons">check</span>Approve
+      </button>
+    </div>
+    <div class="modal-actions payout" *ngIf="row.status !== STATUS_PENDING && row.status !== STATUS_REJECTED && canApprove && payoutActions(row.status).length">
+      <button type="button" class="btn-payout" [ngClass]="state" *ngFor="let state of payoutActions(row.status)" [disabled]="actionBusy" (click)="payoutRow(row, state)">
+        <span class="material-icons">{{ payoutIcon(state) }}</span>{{ payoutLabel(state) }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SweetAlert-style popup -->
+<div class="swal-overlay" *ngIf="swal.visible" (click)="cancelSwal()">
+  <div class="swal-box" (click)="$event.stopPropagation()">
+    <div class="swal-icon" [class.warning]="swal.icon === 'warning'" [class.success]="swal.icon === 'success'" [class.error]="swal.icon === 'error'" [class.info]="swal.icon === 'info'" [class.question]="swal.icon === 'question'">
+      <span class="material-icons" *ngIf="swal.icon === 'warning'">priority_high</span>
+      <span class="material-icons" *ngIf="swal.icon === 'success'">check</span>
+      <span class="material-icons" *ngIf="swal.icon === 'error'">close</span>
+      <span class="material-icons" *ngIf="swal.icon === 'info'">info</span>
+      <span class="material-icons" *ngIf="swal.icon === 'question'">help_outline</span>
+    </div>
+    <h3>{{ swal.title }}</h3>
+    <p *ngIf="swal.text">{{ swal.text }}</p>
+    <div class="swal-field" *ngIf="swal.input">
+      <label *ngIf="swal.inputLabel">{{ swal.inputLabel }}</label>
+      <input [type]="swal.inputType" [(ngModel)]="swal.inputValue" [placeholder]="swal.inputPlaceholder" class="swal-input" autofocus/>
+    </div>
+    <div class="swal-field" *ngIf="swal.input2">
+      <label *ngIf="swal.input2Label">{{ swal.input2Label }}</label>
+      <input [type]="swal.input2Type" [(ngModel)]="swal.input2Value" (ngModelChange)="onSwalChange()" [placeholder]="swal.input2Placeholder" class="swal-input"/>
+    </div>
+    <div class="swal-final" *ngIf="swal.showFinal">
+      <span>Redeem Points</span><strong>{{ swal.points | number:'1.0-2' }}</strong>
+      <span>Final Payable</span><strong>{{ swalFinalPayable() | number:'1.0-2' }}</strong>
+    </div>
+    <div class="swal-error" *ngIf="swal.inputError">{{ swal.inputError }}</div>
+    <div class="swal-actions">
+      <button type="button" class="swal-btn cancel" *ngIf="swal.showCancel" (click)="cancelSwal()">{{ swal.cancelText }}</button>
+      <button type="button" class="swal-btn confirm" (click)="confirmSwal()">{{ swal.confirmText }}</button>
     </div>
   </div>
 </div>
