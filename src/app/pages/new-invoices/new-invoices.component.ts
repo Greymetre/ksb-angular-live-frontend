@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, timeout } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { InvoiceSchemeOption, NewInvoiceAttachment, NewInvoiceFilter, NewInvoiceItem, NewInvoicePayload, NewInvoiceService, NewInvoiceStageCounts, NewInvoiceSummary, RetailerDealerOption, RetailerOption } from '../../services/new-invoice.service';
+import { InvoiceSchemeOption, NewInvoiceAttachment, NewInvoiceFilter, NewInvoiceItem, NewInvoicePayload, NewInvoiceService, NewInvoiceStageCounts, NewInvoiceSummary, QuantityPointsPreview, RetailerDealerOption, RetailerOption } from '../../services/new-invoice.service';
 import { SearchableSelectOption } from '../../shared/components/searchable-select/searchable-select.component';
 import { API_ORIGIN } from '../../config/api.config';
 import { isPdfOrImageFile } from '../../shared/utils/file-validation';
@@ -63,6 +63,12 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
   retailerOptions: SelectOption[] = [];
   schemeOptions: InvoiceSchemeOption[] = [];
   schemeSelectOptions: SelectOption[] = [];
+
+  // Quantity Slab invoice: the product/quantity/price table and its live points preview.
+  quantityProductOptions: SelectOption[] = [];
+  quantityRows: Array<{ productId: number | null; quantity: number | null; price: number | null }> = [];
+  quantityPreview: QuantityPointsPreview | null = null;
+  quantityProductsLoading = false;
   schemeFilterOptions: SelectOption[] = [];
   zoneFilterOptions: SelectOption[] = [];
   branchFilterOptions: SelectOption[] = [];
@@ -512,6 +518,7 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
     this.form = this.emptyForm();
     this.selectedRetailer = null;
     this.resetAttachmentPicker();
+    this.resetQuantityState();
     this.showModal = true;
     this.refreshView();
   }
@@ -550,6 +557,10 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
         ...this.retailerOptions
       ];
     }
+    // Prefill the Quantity Slab lines before the scheme loads, so syncQuantityScheme keeps them
+    // rather than starting from a blank row.
+    this.quantityRows = (invoice.items ?? []).map(item => ({ productId: item.productId, quantity: item.quantity, price: item.price }));
+    this.quantityPreview = null;
     this.showModal = true;
     this.loadRetailerDealers(invoice.secondaryCustomerId, invoice.assignedDistributorId || null);
     this.loadSchemeOptions(false);
@@ -618,7 +629,101 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
   onSchemeChange(id: number | string | null): void {
     const schemeId = Number(id || 0);
     this.form.schemeId = schemeId > 0 ? schemeId : null;
+    this.syncQuantityScheme();
     this.refreshView();
+  }
+
+  /** The scheme currently chosen on the form. */
+  get selectedScheme(): InvoiceSchemeOption | null {
+    return this.schemeOptions.find(scheme => scheme.id === this.form.schemeId) ?? null;
+  }
+
+  /** A Quantity Slab scheme replaces the single amount box with a product/quantity/price table. */
+  get isQuantityScheme(): boolean {
+    return (this.selectedScheme?.schemeType ?? 'Invoice') === 'Quantity';
+  }
+
+  /** Loads the product list and starts the table when a Quantity Slab scheme is chosen; clears it
+   *  otherwise. */
+  private syncQuantityScheme(): void {
+    if (!this.isQuantityScheme || !this.form.schemeId) {
+      this.resetQuantityState();
+      return;
+    }
+    if (this.quantityRows.length === 0) this.quantityRows = [this.emptyQuantityRow()];
+    this.quantityProductsLoading = true;
+    this.newInvoiceService.schemeProducts(this.form.schemeId).subscribe({
+      next: products => {
+        this.quantityProductOptions = products.map(p => ({ id: p.id, label: p.code ? `${p.name} (${p.code})` : p.name }));
+        this.quantityProductsLoading = false;
+        this.runQuantityPreview();
+        this.refreshView();
+      },
+      error: error => { this.quantityProductsLoading = false; this.showToast(error.message, 'error'); this.refreshView(); }
+    });
+  }
+
+  private resetQuantityState(): void {
+    this.quantityRows = [];
+    this.quantityProductOptions = [];
+    this.quantityPreview = null;
+  }
+
+  private emptyQuantityRow(): { productId: number | null; quantity: number | null; price: number | null } {
+    return { productId: null, quantity: null, price: null };
+  }
+
+  addQuantityRow(): void {
+    this.quantityRows.push(this.emptyQuantityRow());
+    this.refreshView();
+  }
+
+  removeQuantityRow(index: number): void {
+    if (this.quantityRows.length === 1) { this.quantityRows[0] = this.emptyQuantityRow(); }
+    else this.quantityRows.splice(index, 1);
+    this.runQuantityPreview();
+    this.refreshView();
+  }
+
+  onQuantityRowProduct(row: { productId: number | null }, id: number | string | null): void {
+    row.productId = Number(id || 0) || null;
+    this.runQuantityPreview();
+  }
+
+  onQuantityRowChange(): void {
+    if (this.quantityPreviewTimer) window.clearTimeout(this.quantityPreviewTimer);
+    this.quantityPreviewTimer = window.setTimeout(() => this.runQuantityPreview(), 350);
+  }
+
+  private quantityPreviewTimer?: number;
+
+  /** Asks the server what the entered quantities earn, using the period's cumulative quantity. */
+  private runQuantityPreview(): void {
+    if (!this.isQuantityScheme || !this.form.schemeId || !this.form.secondaryCustomerId || !this.form.invoiceDate) {
+      this.quantityPreview = null;
+      return;
+    }
+    const lines = this.quantityRows
+      .filter(row => row.productId && Number(row.quantity) > 0)
+      .map(row => ({ product_id: Number(row.productId), quantity: Number(row.quantity) }));
+    if (lines.length === 0) { this.quantityPreview = null; this.refreshView(); return; }
+
+    this.newInvoiceService.previewQuantityPoints(
+      this.form.schemeId, this.form.secondaryCustomerId, this.form.invoiceDate, lines, this.form.id).subscribe({
+      next: preview => { this.quantityPreview = preview; this.refreshView(); },
+      error: () => { this.quantityPreview = null; this.refreshView(); }
+    });
+  }
+
+  /** The expected points for one table row, matched by product, for the inline display. */
+  quantityRowHint(row: { productId: number | null }): string | null {
+    const line = this.quantityPreview?.lines.find(l => l.productId === row.productId);
+    return line?.hint ?? null;
+  }
+
+  quantityRowPoints(row: { productId: number | null }): number {
+    const line = this.quantityPreview?.lines.find(l => l.productId === row.productId);
+    return line?.points ?? 0;
   }
 
   loadSchemeOptions(clearSelection: boolean): void {
@@ -638,6 +743,7 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
         }));
         if (!clearSelection && selected && schemes.some(scheme => scheme.id === selected)) this.form.schemeId = selected;
         else if (clearSelection) this.form.schemeId = null;
+        this.syncQuantityScheme();
         this.refreshView();
       },
       error: error => this.showToast(error.message, 'error')
@@ -1261,7 +1367,18 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
       this.showToast('Invoice date is required.', 'error');
       return null;
     }
-    if (!this.form.amount || this.form.amount <= 0) {
+    // A Quantity Slab invoice has no single amount - it is the sum of its lines' quantity x price,
+    // worked out on the server. Its product lines are validated instead.
+    let items: Array<{ product_id: number; quantity: number; price: number }> | undefined;
+    if (this.isQuantityScheme) {
+      items = this.quantityRows
+        .filter(row => row.productId && Number(row.quantity) > 0)
+        .map(row => ({ product_id: Number(row.productId), quantity: Number(row.quantity), price: Number(row.price) || 0 }));
+      if (items.length === 0) {
+        this.showToast('Add at least one product line with a quantity.', 'error');
+        return null;
+      }
+    } else if (!this.form.amount || this.form.amount <= 0) {
       this.showToast('Amount must be greater than 0.', 'error');
       return null;
     }
@@ -1279,10 +1396,11 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
       scheme_id: this.form.schemeId,
       invoice_number: this.form.invoiceNumber.trim(),
       invoice_date: this.form.invoiceDate,
-      amount: Number(this.form.amount),
+      amount: this.isQuantityScheme ? 0 : Number(this.form.amount),
       points: 0,
       attachment: this.form.attachment,
-      removed_attachment_ids: this.removedAttachmentIds
+      removed_attachment_ids: this.removedAttachmentIds,
+      items
     };
   }
 

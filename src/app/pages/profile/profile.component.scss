@@ -30,6 +30,33 @@
   .material-icons { font-size: 17px; }
   &:hover { background: rgba(255,255,255,.22); } }
 
+.profile-2fa { flex: none; display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 8px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.4); background: rgba(255,255,255,.12); color: white; font-size: 13px; font-weight: 600;
+  .material-icons { font-size: 17px; }
+  &:hover:not(:disabled) { background: rgba(255,255,255,.22); }
+  &:disabled { opacity: .6; cursor: default; }
+  &.on { background: #ecfdf5; border-color: #a7f3d0; color: #047857; } }
+
+.twofa-setup { margin: 0 0 16px; }
+.twofa-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.07); max-width: 560px;
+  h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 16px; font-weight: 600; color: var(--text-dark);
+    .material-icons { color: var(--primary-blue); } } }
+.twofa-steps { margin: 0 0 14px; padding-left: 20px; color: var(--text-muted); font-size: 13px; line-height: 1.7; }
+.twofa-body { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.twofa-qr { width: 164px; height: 164px; border: 1px solid #eef0f3; border-radius: 10px; background: white; }
+.twofa-key { display: flex; flex-direction: column; gap: 4px; min-width: 180px;
+  .twofa-key-label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+  code { font-family: monospace; font-size: 14px; font-weight: 600; letter-spacing: 1px; word-break: break-all; color: var(--text-dark);
+    background: #f5f7fa; padding: 8px 10px; border-radius: 8px; }
+  .twofa-account { font-size: 12px; color: var(--text-muted); } }
+.twofa-confirm { display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  input { width: 140px; padding: 10px 12px; border: 1px solid #d8dce2; border-radius: 8px; font-size: 15px; letter-spacing: 3px; text-align: center;
+    &:focus { outline: none; border-color: var(--primary-blue); } }
+  .twofa-verify { padding: 10px 18px; border: none; border-radius: 8px; background: var(--primary-blue); color: white; font-weight: 600; font-size: 13px; cursor: pointer;
+    &:disabled { opacity: .6; cursor: default; } }
+  .twofa-cancel { padding: 10px 14px; border: 1px solid #d8dce2; border-radius: 8px; background: white; color: var(--text-muted); font-weight: 600; font-size: 13px; cursor: pointer;
+    &:disabled { opacity: .6; cursor: default; } } }
+
 .profile-note { margin: 0 0 14px; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; background: #fffbeb; color: #b45309;
   &.success { background: #ecfdf5; color: #047857; } }
 .profile-loading { padding: 40px 0; text-align: center; color: var(--text-muted); font-size: 14px; }

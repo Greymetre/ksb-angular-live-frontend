@@ -159,8 +159,8 @@
               </option>
             </select>
             <small class="field-note">
-              Invoice reads the whole bill and pays by slab. Product and Quantity are read on the goods -
-              Product on their value, Quantity on how many were bought.
+              Invoice reads the whole bill and pays by slab. Product pays a flat rate on the goods' value.
+              Quantity Slab pays a per-unit rate that changes with how many of the product were bought.
             </small>
           </div>
           <div class="modal-field">
@@ -276,20 +276,42 @@
         </div>
       </div>
 
-      <div class="form-section" *ngIf="!readsProducts">
-        <div class="section-title">Slab Configuration</div>
+      <div class="form-section" *ngIf="showSlabs">
+        <div class="section-title product-lines-title">
+          <span>{{ isQuantitySlab ? 'Quantity Slabs' : 'Slab Configuration' }}</span>
+          <span class="line-tools" *ngIf="isQuantitySlab && !viewOnly">
+            <button type="button" class="mini-btn light" *ngIf="form.id" [disabled]="slabBusy === 'export'" (click)="exportSlabs()">
+              {{ slabBusy === 'export' ? 'Preparing...' : 'Export Slabs' }}
+            </button>
+            <button type="button" class="mini-btn light" [disabled]="slabBusy === 'template'" (click)="downloadSlabTemplate()">
+              {{ slabBusy === 'template' ? 'Preparing...' : 'Download Template' }}
+            </button>
+            <button type="button" class="mini-btn light" [disabled]="slabBusy === 'import'" (click)="chooseProductFile(slabFile)">
+              {{ slabBusy === 'import' ? 'Reading...' : 'Import' }}
+            </button>
+            <input #slabFile type="file" accept=".xlsx,.xls" hidden (change)="importSlabs($event)"/>
+          </span>
+        </div>
+        <small class="field-note" *ngIf="isQuantitySlab">
+          Each band is matched on the product's total quantity in the scheme period, and pays
+          Reward per Unit &times; quantity. The first band's "Qty From" is the minimum to qualify;
+          leave the last band's "Qty To" blank for no upper limit.
+        </small>
+        <ul class="import-problems" *ngIf="isQuantitySlab && slabImportProblems.length">
+          <li *ngFor="let problem of slabImportProblems">{{ problem }}</li>
+        </ul>
         <div class="slab-table">
           <div class="slab-row slab-head" [class.mixed]="isMixedScheme">
-            <span>Tier Name</span>
-            <span>Value From</span>
-            <span>Value To</span>
+            <span>{{ isQuantitySlab ? 'Slab Name' : 'Tier Name' }}</span>
+            <span>{{ slabFromLabel() }}</span>
+            <span>{{ slabToLabel() }}</span>
             <!-- Only a mixed scheme decides per slab; the others follow the scheme. -->
             <span *ngIf="isMixedScheme">Based On</span>
             <span>{{ rewardLabel() }}</span>
             <span></span>
           </div>
           <div class="slab-row" *ngFor="let slab of form.slabs; let index = index" [class.mixed]="isMixedScheme">
-            <input type="text" [(ngModel)]="slab.tierName" placeholder="Silver"/>
+            <input type="text" [(ngModel)]="slab.tierName" [placeholder]="isQuantitySlab ? 'Slab 1' : 'Silver'"/>
             <input type="number" [(ngModel)]="slab.valueFrom" min="0"/>
             <input type="number" [(ngModel)]="slab.valueTo" (ngModelChange)="onValueToChange(index)" min="0" placeholder="No limit"/>
             <select *ngIf="isMixedScheme" [(ngModel)]="slab.rewardType" (ngModelChange)="onSlabRewardTypeChange(slab)">
@@ -308,9 +330,9 @@
         <button type="button" class="mini-btn light add-slab-btn" (click)="addSlab()">Add Slab</button>
       </div>
 
-      <div class="form-section" *ngIf="readsProducts">
+      <div class="form-section" *ngIf="showProducts">
         <div class="section-title product-lines-title">
-          <span>{{ form.schemeType }} Configuration</span>
+          <span>{{ isQuantitySlab ? 'Products covered' : form.schemeType + ' Configuration' }}</span>
           <span class="line-tools" *ngIf="!viewOnly">
             <button type="button" class="mini-btn light" [disabled]="productLineBusy === 'template'" (click)="downloadProductTemplate()">
               {{ productLineBusy === 'template' ? 'Preparing...' : 'Download Template' }}
@@ -352,7 +374,7 @@
                 <option *ngFor="let type of slabRewardTypes" [value]="type">{{ type }}</option>
               </select>
             </label>
-            <label class="narrow">{{ productRewardLabel() }} <span class="req">*</span>
+            <label class="narrow" *ngIf="!isQuantitySlab">{{ productRewardLabel() }} <span class="req">*</span>
               <input type="number" [(ngModel)]="line.rewardValue" min="0" step="0.01"
                 [max]="lineIsPercentage(line) ? 99.9 : 10000000"
                 [attr.placeholder]="lineIsPercentage(line) ? '2.8' : '50'"/>

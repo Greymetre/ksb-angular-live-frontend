@@ -92,7 +92,8 @@ export class LoyaltySchemesComponent implements OnInit {
   schemeTypes: Array<{ value: string; label: string; available: boolean }> = [
     { value: 'Invoice', label: 'Invoice', available: true },
     { value: 'Product', label: 'Product', available: true },
-    { value: 'Quantity', label: 'Quantity', available: true }
+    // Value stays 'Quantity' (the backend SchemeType); only the label is "Quantity Slab".
+    { value: 'Quantity', label: 'Quantity Slab', available: true }
   ];
   statuses = ['Draft', 'Pending Approval', 'Approved', 'Rejected', 'Live', 'Expired'];
 
@@ -122,6 +123,8 @@ export class LoyaltySchemesComponent implements OnInit {
   segmentOptions: SelectOption[] = [];
   productLineBusy = '';
   importProblems: string[] = [];
+  slabBusy = '';
+  slabImportProblems: string[] = [];
   private toastTimeoutId?: number;
   private codeGenerateTimeoutId?: number;
   private searchTimeoutId?: number;
@@ -625,9 +628,14 @@ export class LoyaltySchemesComponent implements OnInit {
   }
 
   rewardLabel(): string {
+    if (this.isQuantitySlab) return 'Reward per Unit';
     if (this.isMixedScheme) return 'Reward';
     return this.form.basedOn === 'Percentage' ? 'Reward %' : 'Reward Amount';
   }
+
+  /** Slab column headings: a Quantity Slab counts units, an Invoice weighs rupees. */
+  slabFromLabel(): string { return this.isQuantitySlab ? 'Qty From' : 'Value From'; }
+  slabToLabel(): string { return this.isQuantitySlab ? 'Qty To' : 'Value To'; }
 
   /// Switching a row between the two clears the figure: 2.8 as a percentage and 2.8
   /// as rupees are not the same number, and keeping it invites the wrong one.
@@ -675,26 +683,29 @@ export class LoyaltySchemesComponent implements OnInit {
       based_on: this.form.basedOn,
       redemption_enabled: this.form.redemptionEnabled,
       redemption_crm_enabled: this.form.redemptionCrmEnabled,
-      products: this.readsProducts
+      products: this.showProducts
         ? this.form.productLines
             .filter(line => line.segmentIds.length || line.familyIds.length || line.productIds.length)
             .map(line => ({
               segment_ids: line.segmentIds,
               family_ids: line.familyIds,
               product_ids: line.productIds,
-              reward_value: Number(line.rewardValue ?? 0),
+              // A Quantity Slab line is scope only - the per-unit rate comes from the slabs.
+              reward_value: this.isQuantitySlab ? 0 : Number(line.rewardValue ?? 0),
               reward_type: this.isMixedScheme ? (line.rewardType || 'Value') : null
             }))
         : [],
-      slabs: this.form.slabs.map(slab => ({
-        tier_name: slab.tierName.trim(),
-        value_from: Number(slab.valueFrom ?? 0),
-        value_to: slab.valueTo === null || slab.valueTo === undefined ? null : Number(slab.valueTo),
-        reward_value: Number(slab.rewardValue ?? 0),
-        // Only a mixed scheme carries a per-slab type; the others follow the scheme,
-        // and sending one would be noise the server has to ignore.
-        reward_type: this.isMixedScheme ? (slab.rewardType || 'Value') : null
-      }))
+      slabs: this.showSlabs
+        ? this.form.slabs.map(slab => ({
+            tier_name: slab.tierName.trim(),
+            value_from: Number(slab.valueFrom ?? 0),
+            value_to: slab.valueTo === null || slab.valueTo === undefined ? null : Number(slab.valueTo),
+            reward_value: Number(slab.rewardValue ?? 0),
+            // Only a mixed scheme carries a per-slab type; the others follow the scheme,
+            // and sending one would be noise the server has to ignore.
+            reward_type: this.isMixedScheme ? (slab.rewardType || 'Value') : null
+          }))
+        : []
     };
   }
 
@@ -704,29 +715,35 @@ export class LoyaltySchemesComponent implements OnInit {
     if (!payload.start_date || !payload.end_date) return 'Start date and end date are required.';
     if (payload.area_scope !== 'All' && payload.area_values.length === 0) return 'Select at least one area value.';
 
-    // A Product or Quantity scheme is written as lines, not slabs, so only one of the two
-    // is ever checked.
-    if (this.readsProducts) {
-      if (payload.products.length === 0) return `A ${payload.scheme_type} scheme needs at least one product line.`;
-      if (payload.products.some(line => line.reward_value <= 0)) return 'Enter a reward on every product line.';
-      const limit = payload.based_on === 'Percentage' ? 99.9 : 10000000;
-      if (payload.products.some(line => line.reward_value > limit)) {
-        return payload.based_on === 'Percentage'
-          ? 'Reward percentage cannot be more than 99.9.'
-          : 'Reward amount cannot be greater than 1,00,00,000.';
+    // Product/Quantity Slab name the goods (product lines). Invoice/Quantity Slab carry slabs.
+    // Quantity Slab checks both: product scope, then the quantity bands.
+    if (this.showProducts) {
+      if (payload.products.length === 0) return `A ${this.isQuantitySlab ? 'Quantity Slab' : payload.scheme_type} scheme needs at least one product line.`;
+      // A Quantity Slab line carries no reward (the slab gives the per-unit rate); a Product line does.
+      if (!this.isQuantitySlab) {
+        if (payload.products.some(line => line.reward_value <= 0)) return 'Enter a reward on every product line.';
+        const limit = payload.based_on === 'Percentage' ? 99.9 : 10000000;
+        if (payload.products.some(line => line.reward_value > limit)) {
+          return payload.based_on === 'Percentage'
+            ? 'Reward percentage cannot be more than 99.9.'
+            : 'Reward amount cannot be greater than 1,00,00,000.';
+        }
       }
-      return '';
     }
 
-    if (payload.slabs.some(slab => !slab.tier_name || slab.value_from < 0 || slab.reward_value < 0)) return 'Complete all slab rows.';
-    if (payload.slabs.some(slab => slab.value_to !== null && slab.value_to < slab.value_from)) return 'Slab value to must be greater than value from.';
-    for (let index = 1; index < payload.slabs.length; index++) {
-      const previousTo = payload.slabs[index - 1].value_to;
-      if (previousTo === null) return 'A slab with no upper limit must be the final slab.';
-      if (payload.slabs[index].value_from !== previousTo + 1) return `Slab ${index + 1} must start at ${previousTo + 1} to avoid overlaps or gaps.`;
+    if (this.showSlabs) {
+      const rowLabel = this.isQuantitySlab ? 'quantity slab' : 'slab';
+      if (payload.slabs.length === 0) return this.isQuantitySlab ? 'Add at least one quantity slab.' : 'At least one slab is required.';
+      if (payload.slabs.some(slab => !slab.tier_name || slab.value_from < 0 || slab.reward_value < 0)) return `Complete all ${rowLabel} rows.`;
+      if (payload.slabs.some(slab => slab.value_to !== null && slab.value_to < slab.value_from)) return this.isQuantitySlab ? 'Quantity to must be greater than or equal to quantity from.' : 'Slab value to must be greater than value from.';
+      for (let index = 1; index < payload.slabs.length; index++) {
+        const previousTo = payload.slabs[index - 1].value_to;
+        if (previousTo === null) return `A ${rowLabel} with no upper limit must be the final one.`;
+        if (payload.slabs[index].value_from !== previousTo + 1) return `${this.isQuantitySlab ? 'Quantity slab' : 'Slab'} ${index + 1} must start at ${previousTo + 1} to avoid overlaps or gaps.`;
+      }
+      if (!this.isQuantitySlab && payload.based_on === 'Percentage' && payload.slabs.some(slab => slab.reward_value > 99.9)) return 'Reward percentage can contain a maximum of four characters including the decimal (maximum 99.9).';
+      if ((this.isQuantitySlab || payload.based_on === 'Value') && payload.slabs.some(slab => slab.reward_value > 10000000)) return this.isQuantitySlab ? 'Reward per unit cannot be greater than 1,00,00,000.' : 'Reward amount cannot be greater than 1,00,00,000.';
     }
-    if (payload.based_on === 'Percentage' && payload.slabs.some(slab => slab.reward_value > 99.9)) return 'Reward percentage can contain a maximum of four characters including the decimal (maximum 99.9).';
-    if (payload.based_on === 'Value' && payload.slabs.some(slab => slab.reward_value > 10000000)) return 'Reward amount cannot be greater than 1,00,00,000.';
     return '';
   }
 
@@ -794,6 +811,21 @@ export class LoyaltySchemesComponent implements OnInit {
     return this.form.schemeType === 'Product' || this.form.schemeType === 'Quantity';
   }
 
+  /** Quantity Slab: product scope + quantity slab bands (per-unit reward). */
+  get isQuantitySlab(): boolean {
+    return this.form.schemeType === 'Quantity';
+  }
+
+  /** The product-scope section shows for Product and Quantity Slab. */
+  get showProducts(): boolean {
+    return this.readsProducts;
+  }
+
+  /** The slab table shows for Invoice (rupee bands) and Quantity Slab (quantity bands). */
+  get showSlabs(): boolean {
+    return this.form.schemeType === 'Invoice' || this.form.schemeType === 'Quantity';
+  }
+
   /** A quantity scheme pays a rate per unit, so a percentage of it means nothing. */
   get basedOnChoices(): string[] {
     return this.form.schemeType === 'Quantity' ? ['Value'] : this.basedOnOptions;
@@ -812,7 +844,8 @@ export class LoyaltySchemesComponent implements OnInit {
   onSchemeTypeChange(): void {
     // Quantity has only one basis, so a scheme switched to it cannot keep a percentage.
     if (this.form.schemeType === 'Quantity' && this.form.basedOn !== 'Value') this.form.basedOn = 'Value';
-    if (this.readsProducts && this.form.productLines.length === 0) this.form.productLines = [this.emptyProductLine()];
+    if (this.showProducts && this.form.productLines.length === 0) this.form.productLines = [this.emptyProductLine()];
+    if (this.showSlabs && this.form.slabs.length === 0) this.form.slabs = [this.emptySlab()];
     this.scheduleGenerateCode();
   }
 
@@ -934,6 +967,59 @@ export class LoyaltySchemesComponent implements OnInit {
             }
             return line;
           });
+          this.showToast(result.message, result.problems.length ? 'error' : 'success');
+        },
+        error: error => this.showToast(error.message, 'error')
+      });
+  }
+
+  // ---- Quantity Slab: the quantity-band sheet ----
+
+  downloadSlabTemplate(): void {
+    this.slabBusy = 'template';
+    this.schemeService.quantitySlabTemplate()
+      .pipe(finalize(() => { this.slabBusy = ''; this.refreshView(); }))
+      .subscribe({
+        next: blob => this.download(blob, 'scheme-quantity-slabs-template.xlsx'),
+        error: error => this.showToast(error.message, 'error')
+      });
+  }
+
+  exportSlabs(): void {
+    if (!this.form.id) return;
+    this.slabBusy = 'export';
+    this.schemeService.exportQuantitySlabs(this.form.id)
+      .pipe(finalize(() => { this.slabBusy = ''; this.refreshView(); }))
+      .subscribe({
+        next: blob => this.download(blob, `${this.form.schemeCode || 'scheme'}-quantity-slabs.xlsx`),
+        error: error => this.showToast(error.message, 'error')
+      });
+  }
+
+  /** The sheet becomes the slab table. Contiguity is checked when the scheme is saved. */
+  importSlabs(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    this.slabBusy = 'import';
+    this.slabImportProblems = [];
+    this.schemeService.importQuantitySlabs(file)
+      .pipe(finalize(() => { this.slabBusy = ''; input.value = ''; this.refreshView(); }))
+      .subscribe({
+        next: result => {
+          this.slabImportProblems = result.problems;
+          if (result.slabs.length === 0) {
+            this.showToast(result.message, 'error');
+            return;
+          }
+          this.form.slabs = result.slabs.map(slab => ({
+            tierName: slab.tierName,
+            valueFrom: slab.valueFrom,
+            valueTo: slab.valueTo,
+            rewardValue: slab.rewardValue,
+            rewardType: 'Value'
+          }));
           this.showToast(result.message, result.problems.length ? 'error' : 'success');
         },
         error: error => this.showToast(error.message, 'error')

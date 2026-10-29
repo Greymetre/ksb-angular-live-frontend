@@ -31,6 +31,18 @@ export class ProfileComponent implements OnInit {
   photoError = '';
   photoMessage = '';
 
+  twoFactorEnabled = false;
+  twoFactorBusy = false;
+  twoFactorError = '';
+  twoFactorMessage = '';
+
+  // Authenticator-app setup panel.
+  showTwoFactorSetup = false;
+  setupQr = '';
+  setupSecret = '';
+  setupAccount = '';
+  setupCode = '';
+
   private static readonly maxPhotoBytes = 5 * 1024 * 1024;
   private static readonly allowedPhotoTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -50,6 +62,16 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit(): void {
     this.applyStoredUser();
+
+    // Re-read the profile payload so the 2FA switch reflects the server, even if it was
+    // toggled in another session.
+    this.authService.refreshCurrentUser().subscribe({
+      next: () => {
+        this.twoFactorEnabled = this.authService.isTwoFactorEnabled();
+        this.cdr.detectChanges();
+      },
+      error: () => { /* keep the stored value */ }
+    });
 
     this.userService.getMyProfile().subscribe({
       next: user => {
@@ -121,9 +143,95 @@ export class ProfileComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
+  /** Enable: fetch the QR + secret and open the setup panel. */
+  onEnableTwoFactor(): void {
+    if (this.twoFactorBusy) return;
+    this.twoFactorError = '';
+    this.twoFactorMessage = '';
+    this.twoFactorBusy = true;
+
+    this.authService.setupTwoFactor().subscribe({
+      next: setup => {
+        this.setupQr = setup.qrDataUrl;
+        this.setupSecret = setup.secret;
+        this.setupAccount = setup.account;
+        this.setupCode = '';
+        this.showTwoFactorSetup = true;
+        this.twoFactorBusy = false;
+        this.cdr.detectChanges();
+      },
+      error: error => {
+        this.twoFactorError = error?.message || 'Could not start two-factor setup.';
+        this.twoFactorBusy = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  /** Confirm setup with the first code from the app. */
+  onConfirmTwoFactor(): void {
+    if (this.twoFactorBusy) return;
+    this.twoFactorError = '';
+    const code = (this.setupCode || '').replace(/\D/g, '').slice(0, 6);
+    if (code.length !== 6) {
+      this.twoFactorError = 'Enter the 6-digit code from your authenticator app.';
+      return;
+    }
+    this.twoFactorBusy = true;
+    this.authService.confirmTwoFactor(code).subscribe({
+      next: () => {
+        this.twoFactorEnabled = true;
+        this.showTwoFactorSetup = false;
+        this.setupQr = '';
+        this.setupSecret = '';
+        this.setupCode = '';
+        this.twoFactorBusy = false;
+        this.twoFactorMessage = "Two-factor authentication is on. You'll enter a code from your app the next time you sign in.";
+        this.cdr.detectChanges();
+      },
+      error: error => {
+        this.twoFactorError = error?.message || 'That code is incorrect.';
+        this.twoFactorBusy = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  cancelTwoFactorSetup(): void {
+    this.showTwoFactorSetup = false;
+    this.setupQr = '';
+    this.setupSecret = '';
+    this.setupCode = '';
+    this.twoFactorError = '';
+    this.cdr.detectChanges();
+  }
+
+  /** Disable: turn 2FA off and forget the secret. */
+  onDisableTwoFactor(): void {
+    if (this.twoFactorBusy) return;
+    this.twoFactorError = '';
+    this.twoFactorMessage = '';
+    this.twoFactorBusy = true;
+    this.authService.disableTwoFactor().subscribe({
+      next: () => {
+        this.twoFactorEnabled = false;
+        this.twoFactorBusy = false;
+        this.twoFactorMessage = 'Two-factor authentication is off.';
+        this.cdr.detectChanges();
+      },
+      error: error => {
+        this.twoFactorError = error?.message || 'Could not turn off two-factor authentication.';
+        this.twoFactorBusy = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   private applyStoredUser(): void {
     const user = this.authService.getCurrentUser();
     if (!user) return;
+
+    this.twoFactorEnabled = this.authService.isTwoFactorEnabled();
 
     this.name = user.name || user.email || user.mobile || 'User';
     this.initials = this.buildInitials(this.name);

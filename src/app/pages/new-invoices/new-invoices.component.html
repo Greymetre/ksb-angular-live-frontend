@@ -133,6 +133,18 @@
               </div>
             </div>
 
+            <div class="detail-items" *ngIf="selectedInvoice.items?.length">
+              <div class="section-title">Products &amp; Quantity</div>
+              <div class="qty-table">
+                <div class="qty-row qty-head detail-item-row"><span>Product</span><span>Quantity</span><span>Price</span></div>
+                <div class="qty-row detail-item-row" *ngFor="let item of selectedInvoice.items">
+                  <span>{{ item.productName }}{{ item.productCode ? ' (' + item.productCode + ')' : '' }}</span>
+                  <span>{{ item.quantity | number:'1.0-2' }}</span>
+                  <span>{{ formatMoney(item.price) }}</span>
+                </div>
+              </div>
+            </div>
+
             <div class="modal-actions detail-actions">
               <button class="btn-secondary" (click)="backToList()">
                 <span class="material-icons">arrow_back</span>
@@ -684,13 +696,45 @@
           <small *ngIf="form.secondaryCustomerId && form.invoiceDate && schemeOptions.length === 0">No active scheme is
             available for this invoice date.</small>
         </div>
-        <div class="modal-field">
+        <div class="modal-field" *ngIf="!isQuantityScheme">
           <label>Pre-GST Amount <span class="req">*</span></label>
           <input type="number" [(ngModel)]="form.amount" min="0.01" step="0.01" />
           <small class="pre-gst-inline-info" role="note">
             <span class="material-icons" aria-hidden="true">info</span>
             Enter the pre-GST invoice amount only. Do not include GST.
           </small>
+        </div>
+
+        <div class="modal-field qty-slab-field" *ngIf="isQuantityScheme">
+          <label>Products &amp; Quantity <span class="req">*</span></label>
+          <small class="pre-gst-inline-info" role="note">
+            <span class="material-icons" aria-hidden="true">info</span>
+            Points are earned on quantity. Price is your own figure, kept only to cross-check the attached invoice.
+          </small>
+          <div class="qty-table">
+            <div class="qty-row qty-head">
+              <span>Product</span><span>Quantity</span><span>Price</span><span>Expected</span><span></span>
+            </div>
+            <div class="qty-row" *ngFor="let row of quantityRows; let i = index">
+              <app-searchable-select class="qty-product" [options]="quantityProductOptions" [selected]="row.productId"
+                [loading]="quantityProductsLoading" loadingText="Loading products..." placeholder="Select product"
+                (selectedChange)="onQuantityRowProduct(row, $event)">
+              </app-searchable-select>
+              <input type="number" min="0" step="1" placeholder="Qty" [(ngModel)]="row.quantity" (ngModelChange)="onQuantityRowChange()" />
+              <input type="number" min="0" step="0.01" placeholder="Price" [(ngModel)]="row.price" />
+              <span class="qty-points">{{ quantityRowPoints(row) | number:'1.0-2' }}</span>
+              <button type="button" class="qty-remove" title="Remove" (click)="removeQuantityRow(i)">
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+          </div>
+          <div class="qty-row-hints">
+            <small *ngFor="let row of quantityRows" class="qty-hint" [class.show]="!!quantityRowHint(row)">{{ quantityRowHint(row) }}</small>
+          </div>
+          <button type="button" class="mini-btn light qty-add" (click)="addQuantityRow()">Add Product</button>
+          <div class="qty-total" *ngIf="quantityPreview">
+            Total expected reward: <strong>{{ quantityPreview.totalPoints | number:'1.0-2' }}</strong> points
+          </div>
         </div>
         <div class="modal-field">
           <label>Attachments <span class="req">*</span></label>

@@ -37,6 +37,8 @@ export interface NewInvoiceItem {
   schemeHintMessage?: string | null;
   attachment?: string | null;
   attachments: NewInvoiceAttachment[];
+  /** Quantity Slab product lines (product, quantity, price). Empty for other scheme types. */
+  items: InvoiceItemRow[];
   approvalStatus: number;
   approvalStatusLabel: string;
   approvalRemark?: string | null;
@@ -87,6 +89,8 @@ export interface NewInvoicePayload {
   attachment?: string | null;
   /** Ids of already-saved attachments the user removed while editing. */
   removed_attachment_ids?: number[];
+  /** Quantity Slab product lines; omitted for other scheme types. */
+  items?: InvoiceItemLine[];
 }
 
 export interface InvoiceSchemeOption {
@@ -95,6 +99,45 @@ export interface InvoiceSchemeOption {
   code: string;
   startDate: string;
   endDate: string;
+  /** "Invoice" or "Quantity". A Quantity Slab scheme shows the product/quantity/price table. */
+  schemeType?: string;
+}
+
+/** A product the dropdown offers for a Quantity Slab scheme. */
+export interface SchemeProductOption {
+  id: number;
+  name: string;
+  code: string | null;
+}
+
+/** One product line on a Quantity Slab invoice. */
+export interface InvoiceItemLine {
+  product_id: number;
+  quantity: number;
+  price: number;
+}
+
+/** A stored product line read back on an invoice (with the product name, for display/edit). */
+export interface InvoiceItemRow {
+  productId: number;
+  productName: string;
+  productCode: string | null;
+  quantity: number;
+  price: number;
+}
+
+/** The live points preview for the entered quantities. */
+export interface QuantityPointsPreview {
+  totalPoints: number;
+  lines: Array<{
+    productId: number;
+    productName: string;
+    quantity: number;
+    cumulativeQuantity: number;
+    rate: number | null;
+    points: number;
+    hint: string | null;
+  }>;
 }
 
 export interface DealerOption {
@@ -244,9 +287,50 @@ export class NewInvoiceService {
           name: this.readString(row['name']),
           code: this.readString(row['code']),
           startDate: this.readString(row['start_date'] ?? row['startDate']),
-          endDate: this.readString(row['end_date'] ?? row['endDate'])
+          endDate: this.readString(row['end_date'] ?? row['endDate']),
+          schemeType: this.readString(row['scheme_type'] ?? row['schemeType']) || 'Invoice'
         };
       })),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  /** The products a Quantity Slab scheme covers, for the invoice table's product dropdown. */
+  schemeProducts(schemeId: number): Observable<SchemeProductOption[]> {
+    const params = new HttpParams().set('scheme_id', schemeId);
+    return this.http.get<ApiResponse>(`${this.baseUrl}/scheme-products`, { headers: this.authHeaders(), params }).pipe(
+      map(response => this.pickArray(response, ['products', 'data.products', 'data']).map(value => {
+        const row = this.asRecord(value);
+        return { id: this.readNumber(row['id']), name: this.readString(row['name']), code: (row['code'] as string) ?? null };
+      })),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  /** Live preview of the points the entered quantities would earn on a Quantity Slab scheme. */
+  previewQuantityPoints(schemeId: number, customerId: number, invoiceDate: string,
+    lines: Array<{ product_id: number; quantity: number }>, exceptInvoiceId?: number | null): Observable<QuantityPointsPreview> {
+    const body = { scheme_id: schemeId, customer_id: customerId, invoice_date: invoiceDate, except_invoice_id: exceptInvoiceId ?? null, lines };
+    return this.http.post<ApiResponse>(`${this.baseUrl}/quantity-points`, body, { headers: this.authHeaders() }).pipe(
+      map(response => {
+        const preview = this.asRecord(this.pickFirstValue(response, ['preview', 'data.preview', 'data']) ?? response);
+        const rawLines = Array.isArray(preview['lines']) ? preview['lines'] as unknown[] : [];
+        return {
+          totalPoints: this.readNumber(preview['total_points'] ?? preview['totalPoints']),
+          lines: rawLines.map(value => {
+            const row = this.asRecord(value);
+            return {
+              productId: this.readNumber(row['product_id'] ?? row['productId']),
+              productName: this.readString(row['product_name'] ?? row['productName']),
+              quantity: this.readNumber(row['quantity']),
+              cumulativeQuantity: this.readNumber(row['cumulative_quantity'] ?? row['cumulativeQuantity']),
+              rate: row['rate'] === null || row['rate'] === undefined ? null : this.readNumber(row['rate']),
+              points: this.readNumber(row['points']),
+              hint: (row['hint'] as string) ?? null
+            };
+          })
+        };
+      }),
       catchError(error => this.handleError(error))
     );
   }
@@ -377,6 +461,8 @@ export class NewInvoiceService {
     this.append(form, 'attachment', payload.attachment);
     for (const file of files ?? []) form.append('attachment_files', file, file.name);
     for (const id of payload.removed_attachment_ids ?? []) form.append('removed_attachment_ids', String(id));
+    // Quantity Slab product lines travel as a single JSON field.
+    if (payload.items && payload.items.length > 0) form.append('items', JSON.stringify(payload.items));
     return form;
   }
 
@@ -417,6 +503,7 @@ export class NewInvoiceService {
       schemeHintMessage: this.readNullableString(row['scheme_hint_message'] ?? row['schemeHintMessage']),
       attachment: this.readNullableString(row['attachment']),
       attachments: this.normalizeAttachments(row),
+      items: this.normalizeItems(row),
       approvalStatus: this.readNumber(row['approval_status'] ?? row['approvalStatus']),
       approvalStatusLabel: this.readString(row['approval_status_label'] ?? row['approvalStatusLabel']) || 'Pending',
       approvalRemark: this.readNullableString(row['approval_remark'] ?? row['approvalRemark']),
@@ -451,6 +538,19 @@ export class NewInvoiceService {
     }
     const legacy = this.readNullableString(row['attachment']);
     return legacy ? [{ id: 0, filePath: legacy, fileName: null, mimeType: null, fileSize: null }] : [];
+  }
+
+  private normalizeItems(row: Record<string, unknown>): InvoiceItemRow[] {
+    return this.pickArray(row, ['items']).map(value => {
+      const item = this.asRecord(value);
+      return {
+        productId: this.readNumber(item['product_id'] ?? item['productId']),
+        productName: this.readString(item['product_name'] ?? item['productName']),
+        productCode: this.readNullableString(item['product_code'] ?? item['productCode']),
+        quantity: this.readNumber(item['quantity']),
+        price: this.readNumber(item['price'])
+      };
+    }).filter(item => item.productId > 0);
   }
 
   private normalizeApprovalLog(value: unknown): NewInvoiceApprovalLog {

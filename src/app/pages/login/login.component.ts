@@ -2,9 +2,9 @@ import { ChangeDetectorRef, Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
-import { AuthService } from '../../services/auth.service';
+import { AuthService, isMfaChallenge } from '../../services/auth.service';
 
-type LoginMode = 'login' | 'forgot' | 'reset';
+type LoginMode = 'login' | 'forgot' | 'reset' | 'mfa';
 
 @Component({
   standalone: false,
@@ -16,12 +16,16 @@ export class LoginComponent {
   loginForm: FormGroup;
   forgotForm: FormGroup;
   resetForm: FormGroup;
+  mfaForm: FormGroup;
   mode: LoginMode = 'login';
   loading = false;
   errorMessage = '';
   successMessage = '';
   showPassword = false;
   showNewPassword = false;
+
+  /** Two-factor step state, set after a login that needs an authenticator code. */
+  mfaUsername = '';
 
   constructor(
     private fb: FormBuilder,
@@ -41,11 +45,15 @@ export class LoginComponent {
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', [Validators.required]]
     });
+    this.mfaForm = this.fb.group({
+      code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]]
+    });
   }
 
   get subtitle(): string {
     if (this.mode === 'forgot') return 'Reset your password';
     if (this.mode === 'reset') return 'Enter the code from your email';
+    if (this.mode === 'mfa') return 'Two-factor verification';
     return 'Please log in to your account';
   }
 
@@ -70,6 +78,41 @@ export class LoginComponent {
     this.loading = true;
 
     this.authService.login(username.trim(), password).pipe(
+      finalize(() => {
+        this.loading = false;
+        this.changeDetector.detectChanges();
+      })
+    ).subscribe({
+      next: result => {
+        if (isMfaChallenge(result)) {
+          // Password accepted, but this user has 2FA on - switch to the authenticator-code step.
+          this.mfaUsername = result.username;
+          this.successMessage = result.message || 'Enter the 6-digit code from your authenticator app.';
+          this.mfaForm.reset({ code: '' });
+          this.mode = 'mfa';
+          this.changeDetector.detectChanges();
+          return;
+        }
+        this.router.navigate(['/dashboard']);
+      },
+      error: (error: unknown) => {
+        this.errorMessage = this.readErrorMessage(error);
+        this.changeDetector.detectChanges();
+      }
+    });
+  }
+
+  /** Two-factor step: send the emailed code and, on success, enter the app. */
+  onVerifyMfa(): void {
+    this.clearMessages();
+    if (this.mfaForm.invalid) {
+      this.mfaForm.markAllAsTouched();
+      return;
+    }
+
+    const { code } = this.mfaForm.getRawValue();
+    this.loading = true;
+    this.authService.verifyTwoFactor(this.mfaUsername, (code || '').trim()).pipe(
       finalize(() => {
         this.loading = false;
         this.changeDetector.detectChanges();

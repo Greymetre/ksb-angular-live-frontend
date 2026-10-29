@@ -1397,3 +1397,17 @@
   line-height: 1.5;
   white-space: pre-line;
 }
+
+.qty-slab-field{grid-column:1/-1}
+.qty-table{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.qty-row{display:grid;grid-template-columns:minmax(180px,2fr) 90px 100px 80px 32px;gap:8px;align-items:center}
+.qty-row input{padding:8px 10px;border:1px solid #d8dce2;border-radius:8px;font-size:13px;width:100%}
+.qty-row.qty-head{font-size:11px;text-transform:uppercase;color:#6b7280;font-weight:600}
+.qty-points{font-weight:600;font-size:13px;color:#047857;text-align:right}
+.qty-remove{border:none;background:#fee2e2;color:#b91c1c;border-radius:8px;width:30px;height:30px;cursor:pointer}
+.qty-row-hints{display:flex;flex-direction:column;gap:2px;margin:4px 0}
+.qty-hint{color:#b45309;font-size:12px;display:none}.qty-hint.show{display:block}
+.qty-add{margin-top:6px}
+.qty-total{margin-top:10px;padding:8px 12px;background:#ecfdf5;border-radius:8px;color:#047857;font-size:13px}
+.detail-items{margin:14px 0}
+.detail-item-row{grid-template-columns:2fr 1fr 1fr!important;font-size:13px}

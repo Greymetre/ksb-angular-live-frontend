@@ -30,6 +30,14 @@ export interface LoyaltySchemeProductLine {
   sortOrder?: number;
 }
 
+/** One quantity-slab row read back from a Quantity Slab import, ready to merge into the form. */
+export interface SchemeSlabImport {
+  tierName: string;
+  valueFrom: number;
+  valueTo: number | null;
+  rewardValue: number;
+}
+
 export interface LoyaltyScheme {
   id: number;
   active: string;
@@ -227,6 +235,50 @@ export class LoyaltySchemeService {
       }),
       catchError(error => this.handleError(error))
     );
+  }
+
+  /** The template, import and export for a Quantity Slab scheme's quantity bands.
+   *  The import saves nothing - it hands the rows back for the form to merge. */
+  quantitySlabTemplate(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/quantity-slabs/template`, { headers: this.authHeaders(), responseType: 'blob' })
+      .pipe(catchError(error => this.handleError(error)));
+  }
+
+  exportQuantitySlabs(schemeId: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/${schemeId}/quantity-slabs/export`, { headers: this.authHeaders(), responseType: 'blob' })
+      .pipe(catchError(error => this.handleError(error)));
+  }
+
+  importQuantitySlabs(file: File): Observable<{ slabs: SchemeSlabImport[]; problems: string[]; message: string }> {
+    const data = new FormData();
+    data.append('import_file', file);
+    return this.http.post<ApiResponse>(`${this.baseUrl}/quantity-slabs/import`, data, { headers: this.authHeaders() }).pipe(
+      map(response => {
+        const payload = this.pickFirstValue(response, ['slabs', 'data.slabs', 'data']) ?? response;
+        const row = this.asRecord(payload);
+        return {
+          slabs: this.pickArray(row, ['slabs']).map(slab => this.normalizeSlabImport(slab)),
+          problems: this.pickArray(row, ['problems']).map(value => String(value)),
+          message: String(row['message'] ?? 'Import read.')
+        };
+      }),
+      catchError(error => this.handleError(error))
+    );
+  }
+
+  private normalizeSlabImport(raw: unknown): SchemeSlabImport {
+    const r = this.asRecord(raw);
+    const num = (value: unknown): number | null => {
+      if (value === null || value === undefined || value === '') return null;
+      const n = Number(value);
+      return Number.isFinite(n) ? n : null;
+    };
+    return {
+      tierName: String(r['tier_name'] ?? r['tierName'] ?? ''),
+      valueFrom: num(r['value_from'] ?? r['valueFrom']) ?? 0,
+      valueTo: num(r['value_to'] ?? r['valueTo']),
+      rewardValue: num(r['reward_value'] ?? r['rewardValue']) ?? 0
+    };
   }
 
   generateCode(schemeName: string, schemeTag: string, basedOn: string, schemeType: string): Observable<string> {

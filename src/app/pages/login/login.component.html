@@ -164,6 +164,36 @@
           <button type="button" class="link-btn" (click)="backToLogin()">Back to login</button>
         </div>
       </form>
+
+      <form *ngIf="mode === 'mfa'" [formGroup]="mfaForm" (ngSubmit)="onVerifyMfa()" novalidate>
+        <p class="form-note">
+          Open your authenticator app (Google Authenticator, Authy, ...) and enter the current
+          6-digit code for KSB FieldKonnect.
+        </p>
+
+        <div class="field-group">
+          <label for="mfa-code">6-digit code</label>
+          <input
+            id="mfa-code"
+            type="text"
+            inputmode="numeric"
+            maxlength="6"
+            formControlName="code"
+            placeholder="Enter code"
+            autocomplete="one-time-code"
+            (input)="mfaForm.patchValue({ code: onlyDigits($any($event.target).value) })"
+            [class.invalid]="mfaForm.get('code')?.invalid && mfaForm.get('code')?.touched"
+          />
+        </div>
+
+        <button type="submit" class="login-btn" [disabled]="loading">
+          {{ loading ? 'Verifying...' : 'Verify and sign in' }}
+        </button>
+
+        <div class="form-links centered">
+          <button type="button" class="link-btn" (click)="backToLogin()">Back to login</button>
+        </div>
+      </form>
     </div>
 
     <div class="login-footer">&copy; 2025 Field Konnect. All rights reserved</div>

@@ -16,12 +16,39 @@ interface LoginUserInfo {
   permissions?: string[];
   user_type?: string[];
   profile_image?: string | null;
+  two_factor_enabled?: boolean;
 }
 
 interface LoginResponse {
   status: string;
   message?: unknown;
   userinfo?: LoginUserInfo;
+}
+
+/** Returned by login() when the user has 2FA on: no token yet, they enter the app code next. */
+export interface MfaChallenge {
+  mfaRequired: true;
+  username: string;
+  message?: string;
+}
+
+interface MfaResponse {
+  status: string;
+  message?: unknown;
+  username?: string;
+}
+
+/** The QR + secret to add to an authenticator app during setup. */
+export interface TwoFactorSetup {
+  secret: string;
+  otpauthUri: string;
+  qrDataUrl: string;
+  account: string;
+  message: string;
+}
+
+export function isMfaChallenge(value: LoginUserInfo | MfaChallenge): value is MfaChallenge {
+  return (value as MfaChallenge).mfaRequired === true;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -44,8 +71,8 @@ export class AuthService {
 
   constructor(private http: HttpClient) {}
 
-  login(username: string, password: string): Observable<LoginUserInfo> {
-    return this.http.post<LoginResponse>(this.loginUrl, {
+  login(username: string, password: string): Observable<LoginUserInfo | MfaChallenge> {
+    return this.http.post<LoginResponse & MfaResponse>(this.loginUrl, {
       username,
       password,
       unique_id: this.getDeviceId(),
@@ -55,21 +82,116 @@ export class AuthService {
       login_at: new Date().toISOString()
     }).pipe(
       map(response => {
+        // 2FA on: no token yet. The screen switches to the authenticator-code step.
+        if (response.status === 'mfa_required') {
+          return {
+            mfaRequired: true,
+            username: response.username ?? username.trim(),
+            message: this.readMessage(response.message)
+          } as MfaChallenge;
+        }
+
         const userinfo = response.userinfo;
         const token = userinfo?.access_token ?? userinfo?.token;
-
         if (response.status !== 'success' || !userinfo || !token) {
           throw new Error(this.readMessage(response.message) || 'Login failed. Please try again.');
         }
 
-        localStorage.setItem(this.tokenKey, token);
-        localStorage.setItem(this.userKey, JSON.stringify(userinfo));
-        localStorage.setItem(this.permissionSchemaKey, this.permissionSchemaVersion);
-        this.permissionRefresh$ = undefined;
+        this.persistSession(userinfo, token);
         return userinfo;
       }),
       catchError(error => throwError(() => new Error(this.getErrorMessage(error))))
     );
+  }
+
+  /** Step two of a 2FA sign-in: posts the emailed code and, on success, stores the session. */
+  verifyTwoFactor(username: string, code: string): Observable<LoginUserInfo> {
+    return this.http.post<LoginResponse>(`${API_BASE_URL}/verify-2fa`, { username, code }).pipe(
+      map(response => {
+        const userinfo = response.userinfo;
+        const token = userinfo?.access_token ?? userinfo?.token;
+        if (response.status !== 'success' || !userinfo || !token) {
+          throw new Error(this.readMessage(response.message) || 'The code is invalid or has expired.');
+        }
+        this.persistSession(userinfo, token);
+        return userinfo;
+      }),
+      catchError(error => throwError(() => new Error(this.getErrorMessage(error))))
+    );
+  }
+
+  /** Begins authenticator-app enrolment: returns the QR + secret to add to the app. */
+  setupTwoFactor(): Observable<TwoFactorSetup> {
+    return this.http.post<{ status: string; message?: unknown; secret?: string; otpauth_uri?: string; qr_data_url?: string; account?: string }>(
+      `${API_BASE_URL}/two-factor/setup`, {}, { headers: this.authHeaders() }
+    ).pipe(
+      map(response => {
+        if (response.status !== 'success' || !response.qr_data_url || !response.secret) {
+          throw new Error(this.readMessage(response.message) || 'Could not start two-factor setup.');
+        }
+        return {
+          secret: response.secret,
+          otpauthUri: response.otpauth_uri ?? '',
+          qrDataUrl: response.qr_data_url,
+          account: response.account ?? '',
+          message: this.readMessage(response.message)
+        };
+      }),
+      catchError(error => throwError(() => new Error(this.getErrorMessage(error))))
+    );
+  }
+
+  /** Finishes enrolment with the first code from the app; turns 2FA on. */
+  confirmTwoFactor(code: string): Observable<boolean> {
+    return this.http.post<{ status: string; message?: unknown }>(
+      `${API_BASE_URL}/two-factor/confirm`, { code }, { headers: this.authHeaders() }
+    ).pipe(
+      map(response => {
+        if (response.status !== 'success') {
+          throw new Error(this.readMessage(response.message) || 'That code is incorrect.');
+        }
+        this.setStoredTwoFactor(true);
+        return true;
+      }),
+      catchError(error => throwError(() => new Error(this.getErrorMessage(error))))
+    );
+  }
+
+  /** Turns 2FA off and forgets the secret. */
+  disableTwoFactor(): Observable<boolean> {
+    return this.http.post<{ status: string; message?: unknown }>(
+      `${API_BASE_URL}/two-factor/disable`, {}, { headers: this.authHeaders() }
+    ).pipe(
+      map(response => {
+        if (response.status !== 'success') {
+          throw new Error(this.readMessage(response.message) || 'Could not turn off two-factor authentication.');
+        }
+        this.setStoredTwoFactor(false);
+        return false;
+      }),
+      catchError(error => throwError(() => new Error(this.getErrorMessage(error))))
+    );
+  }
+
+  private authHeaders(): HttpHeaders {
+    const token = this.getToken();
+    return new HttpHeaders(token ? { Authorization: `Bearer ${token}` } : {});
+  }
+
+  private setStoredTwoFactor(enabled: boolean): void {
+    const user = this.getCurrentUser();
+    if (user) localStorage.setItem(this.userKey, JSON.stringify({ ...user, two_factor_enabled: enabled }));
+  }
+
+  isTwoFactorEnabled(): boolean {
+    return this.getCurrentUser()?.two_factor_enabled === true;
+  }
+
+  private persistSession(userinfo: LoginUserInfo, token: string): void {
+    localStorage.setItem(this.tokenKey, token);
+    localStorage.setItem(this.userKey, JSON.stringify(userinfo));
+    localStorage.setItem(this.permissionSchemaKey, this.permissionSchemaVersion);
+    this.permissionRefresh$ = undefined;
   }
 
   /** Mails a 6-digit reset code. The server answers the same way for any address. */

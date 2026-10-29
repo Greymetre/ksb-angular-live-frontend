@@ -26,11 +26,49 @@
         <span class="chip status" [class.inactive]="!active">{{ active ? 'Active' : 'Inactive' }}</span>
       </div>
     </div>
+    <button type="button" class="profile-2fa" [class.on]="twoFactorEnabled" [disabled]="twoFactorBusy"
+      (click)="twoFactorEnabled ? onDisableTwoFactor() : onEnableTwoFactor()"
+      [title]="twoFactorEnabled ? 'Turn off two-factor sign-in' : 'Turn on two-factor sign-in'">
+      <span class="material-icons">{{ twoFactorBusy ? 'hourglass_top' : (twoFactorEnabled ? 'verified_user' : 'shield') }}</span>
+      {{ twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA' }}
+    </button>
     <button type="button" class="profile-logout" (click)="logout()">
       <span class="material-icons">logout</span>
       Logout
     </button>
   </section>
+
+  <p class="profile-note success" *ngIf="twoFactorMessage">{{ twoFactorMessage }}</p>
+  <p class="profile-note" *ngIf="twoFactorError">{{ twoFactorError }}</p>
+
+  <div class="twofa-setup" *ngIf="showTwoFactorSetup">
+    <div class="twofa-card">
+      <h3><span class="material-icons">qr_code_2</span> Set up your authenticator app</h3>
+      <ol class="twofa-steps">
+        <li>Open Google Authenticator, Authy or any TOTP app.</li>
+        <li>Scan this QR code (or enter the key below).</li>
+        <li>Enter the 6-digit code the app shows to finish.</li>
+      </ol>
+
+      <div class="twofa-body">
+        <img class="twofa-qr" [src]="setupQr" alt="Authenticator QR code" />
+        <div class="twofa-key">
+          <span class="twofa-key-label">Setup key</span>
+          <code>{{ setupSecret }}</code>
+          <span class="twofa-account" *ngIf="setupAccount">Account: {{ setupAccount }}</span>
+        </div>
+      </div>
+
+      <div class="twofa-confirm">
+        <input type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code"
+          [(ngModel)]="setupCode" [disabled]="twoFactorBusy" />
+        <button type="button" class="twofa-verify" [disabled]="twoFactorBusy" (click)="onConfirmTwoFactor()">
+          {{ twoFactorBusy ? 'Verifying...' : 'Verify & turn on' }}
+        </button>
+        <button type="button" class="twofa-cancel" [disabled]="twoFactorBusy" (click)="cancelTwoFactorSetup()">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <p class="profile-note success" *ngIf="photoMessage">{{ photoMessage }}</p>
   <p class="profile-note" *ngIf="photoError">{{ photoError }}</p>
