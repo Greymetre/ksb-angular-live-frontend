@@ -1400,7 +1400,7 @@
 
 .qty-slab-field{grid-column:1/-1}
 .qty-table{display:flex;flex-direction:column;gap:6px;margin-top:8px}
-.qty-row{display:grid;grid-template-columns:minmax(180px,2fr) 90px 100px 80px 32px;gap:8px;align-items:center}
+.qty-row{display:grid;grid-template-columns:minmax(180px,2fr) 90px 100px 32px;gap:8px;align-items:center}
 .qty-row input{padding:8px 10px;border:1px solid #d8dce2;border-radius:8px;font-size:13px;width:100%}
 .qty-row.qty-head{font-size:11px;text-transform:uppercase;color:#6b7280;font-weight:600}
 .qty-points{font-weight:600;font-size:13px;color:#047857;text-align:right}

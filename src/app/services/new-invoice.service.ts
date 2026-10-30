@@ -43,11 +43,18 @@ export interface NewInvoiceItem {
   approvalStatusLabel: string;
   approvalRemark?: string | null;
   ssApprovedAmount?: number | null;
+  ssApprovedQuantity?: number | null;
   ssApprovalRemark?: string | null;
   salesApprovedAmount?: number | null;
+  salesApprovedQuantity?: number | null;
   salesApprovalRemark?: string | null;
   hoApprovedAmount?: number | null;
+  hoApprovedQuantity?: number | null;
   hoApprovalRemark?: string | null;
+  /** True for a Quantity Slab invoice: approved on a total quantity, not an amount. */
+  isQuantityScheme?: boolean;
+  /** The invoice's total quantity (all product lines summed). */
+  totalQuantity?: number | null;
   createdBy: number;
   createdByName?: string | null;
   createdAt?: string | null;
@@ -73,6 +80,7 @@ export interface NewInvoiceApprovalLog {
   fromStatus?: number | null;
   toStatus?: number | null;
   approvedAmount?: number | null;
+  approvedQuantity?: number | null;
   remark?: string | null;
   createdAt?: string | null;
 }
@@ -129,6 +137,11 @@ export interface InvoiceItemRow {
 /** The live points preview for the entered quantities. */
 export interface QuantityPointsPreview {
   totalPoints: number;
+  totalQuantity: number;
+  cumulativeQuantity: number;
+  rate: number | null;
+  tierName: string | null;
+  hint: string | null;
   lines: Array<{
     productId: number;
     productName: string;
@@ -317,6 +330,11 @@ export class NewInvoiceService {
         const rawLines = Array.isArray(preview['lines']) ? preview['lines'] as unknown[] : [];
         return {
           totalPoints: this.readNumber(preview['total_points'] ?? preview['totalPoints']),
+          totalQuantity: this.readNumber(preview['total_quantity'] ?? preview['totalQuantity']),
+          cumulativeQuantity: this.readNumber(preview['cumulative_quantity'] ?? preview['cumulativeQuantity']),
+          rate: preview['rate'] === null || preview['rate'] === undefined ? null : this.readNumber(preview['rate']),
+          tierName: this.readNullableString(preview['tier_name'] ?? preview['tierName']),
+          hint: this.readNullableString(preview['hint']),
           lines: rawLines.map(value => {
             const row = this.asRecord(value);
             return {
@@ -408,8 +426,8 @@ export class NewInvoiceService {
     }).pipe(catchError(error => this.handleError(error)));
   }
 
-  approve(id: number, level: 'ss' | 'sales' | 'ho', remark = '', approvedAmount?: number | null): Observable<string> {
-    return this.http.post<ApiResponse>(`${this.baseUrl}/${id}/approve/${level}`, { remark, approved_amount: approvedAmount }, { headers: this.authHeaders() }).pipe(
+  approve(id: number, level: 'ss' | 'sales' | 'ho', remark = '', approvedAmount?: number | null, approvedQuantity?: number | null): Observable<string> {
+    return this.http.post<ApiResponse>(`${this.baseUrl}/${id}/approve/${level}`, { remark, approved_amount: approvedAmount, approved_quantity: approvedQuantity }, { headers: this.authHeaders() }).pipe(
       map(response => this.responseMessage(response) || 'Invoice approved successfully'),
       catchError(error => this.handleError(error))
     );
@@ -508,11 +526,16 @@ export class NewInvoiceService {
       approvalStatusLabel: this.readString(row['approval_status_label'] ?? row['approvalStatusLabel']) || 'Pending',
       approvalRemark: this.readNullableString(row['approval_remark'] ?? row['approvalRemark']),
       ssApprovedAmount: this.nullableNumber(row['ss_approved_amount'] ?? row['ssApprovedAmount']),
+      ssApprovedQuantity: this.nullableNumber(row['ss_approved_quantity'] ?? row['ssApprovedQuantity']),
       ssApprovalRemark: this.readNullableString(row['ss_approval_remark'] ?? row['ssApprovalRemark']),
       salesApprovedAmount: this.nullableNumber(row['sales_approved_amount'] ?? row['salesApprovedAmount']),
+      salesApprovedQuantity: this.nullableNumber(row['sales_approved_quantity'] ?? row['salesApprovedQuantity']),
       salesApprovalRemark: this.readNullableString(row['sales_approval_remark'] ?? row['salesApprovalRemark']),
       hoApprovedAmount: this.nullableNumber(row['ho_approved_amount'] ?? row['hoApprovedAmount']),
+      hoApprovedQuantity: this.nullableNumber(row['ho_approved_quantity'] ?? row['hoApprovedQuantity']),
       hoApprovalRemark: this.readNullableString(row['ho_approval_remark'] ?? row['hoApprovalRemark']),
+      isQuantityScheme: this.readBoolean(row['is_quantity_scheme'] ?? row['isQuantityScheme']),
+      totalQuantity: this.nullableNumber(row['total_quantity'] ?? row['totalQuantity']),
       createdBy: this.readNumber(row['created_by'] ?? row['createdBy']),
       createdByName: this.readNullableString(row['created_by_name'] ?? row['createdByName']),
       createdAt: this.readNullableString(row['created_at'] ?? row['createdAt']),
@@ -565,6 +588,7 @@ export class NewInvoiceService {
       fromStatus: this.readNumber(row['from_status'] ?? row['fromStatus']) || null,
       toStatus: this.readNumber(row['to_status'] ?? row['toStatus']) || null,
       approvedAmount: this.nullableNumber(row['approved_amount'] ?? row['approvedAmount']),
+      approvedQuantity: this.nullableNumber(row['approved_quantity'] ?? row['approvedQuantity']),
       remark: this.readNullableString(row['remark']),
       createdAt: this.readNullableString(row['created_at'] ?? row['createdAt'])
     };
@@ -681,6 +705,13 @@ export class NewInvoiceService {
   private nullableNumber(value: unknown): number | null {
     if (value === null || value === undefined || value === '') return null;
     return this.readNumber(value);
+  }
+
+  private readBoolean(value: unknown): boolean {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') return value === 'true' || value === '1';
+    return false;
   }
 
   private readString(value: unknown): string {

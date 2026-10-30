@@ -48,6 +48,8 @@ interface ApprovalDialogModel {
   invoice: NewInvoiceItem | null;
   level: 'ss' | 'sales' | 'ho' | 'hold' | 'reject' | null;
   approvedAmount: number | null;
+  /** Quantity Slab invoices are approved on a total quantity instead of an amount. */
+  approvedQuantity: number | null;
   remark: string;
 }
 
@@ -791,11 +793,14 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
   }
 
   openApprovalDialog(invoice: NewInvoiceItem, level: 'ss' | 'sales' | 'ho' | 'hold' | 'reject'): void {
+    const isQty = !!invoice.isQuantityScheme;
+    const isApproval = level !== 'reject' && level !== 'hold';
     this.approvalDialog = {
       visible: true,
       invoice,
       level,
-      approvedAmount: level === 'reject' || level === 'hold' ? null : this.lastApprovedAmount(invoice, level),
+      approvedAmount: isApproval && !isQty ? this.lastApprovedAmount(invoice, level) : null,
+      approvedQuantity: isApproval && isQty ? this.lastApprovedQuantity(invoice, level as 'ss' | 'sales' | 'ho') : null,
       remark: ''
     };
     this.refreshView();
@@ -819,7 +824,13 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
       this.showToast('Remark is required to put an invoice on hold.', 'error');
       return;
     }
-    if (level !== 'reject' && level !== 'hold' && (!this.approvalDialog.approvedAmount || this.approvalDialog.approvedAmount <= 0)) {
+    const isApproval = level !== 'reject' && level !== 'hold';
+    const isQty = !!invoice.isQuantityScheme;
+    if (isApproval && isQty && (!this.approvalDialog.approvedQuantity || this.approvalDialog.approvedQuantity <= 0)) {
+      this.showToast('Approved invoice quantity must be greater than 0.', 'error');
+      return;
+    }
+    if (isApproval && !isQty && (!this.approvalDialog.approvedAmount || this.approvalDialog.approvedAmount <= 0)) {
       this.showToast('Approved invoice amount must be greater than 0.', 'error');
       return;
     }
@@ -829,7 +840,10 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
       ? this.newInvoiceService.reject(invoice.id, this.approvalDialog.remark)
       : level === 'hold'
         ? this.newInvoiceService.hold(invoice.id, this.approvalDialog.remark)
-        : this.newInvoiceService.approve(invoice.id, level, this.approvalDialog.remark, Number(this.approvalDialog.approvedAmount));
+        : this.newInvoiceService.approve(
+            invoice.id, level, this.approvalDialog.remark,
+            isQty ? null : Number(this.approvalDialog.approvedAmount),
+            isQty ? Number(this.approvalDialog.approvedQuantity) : null);
 
     request.pipe(finalize(() => {
       this.saving = false;
@@ -1097,6 +1111,30 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
       return invoice.ssApprovedAmount ?? invoice.amount;
     }
     return invoice.amount;
+  }
+
+  /** The quantity to pre-fill the approve box with: the previous stage's approved quantity, or
+   * the invoice's own total quantity when this is the first stage. */
+  private lastApprovedQuantity(invoice: NewInvoiceItem, level: 'ss' | 'sales' | 'ho'): number {
+    const own = invoice.totalQuantity ?? 0;
+    if (level === 'ho') {
+      return invoice.salesApprovedQuantity ?? invoice.ssApprovedQuantity ?? own;
+    }
+    if (level === 'sales') {
+      return invoice.ssApprovedQuantity ?? own;
+    }
+    return own;
+  }
+
+  /** Approval-stage cell for a Quantity Slab invoice: the approved quantity, with any remark. */
+  approvalStageQtyText(quantity?: number | null, remark?: string | null): string {
+    const qtyText = quantity || quantity === 0 ? this.formatQuantity(quantity) : '-';
+    return remark ? `${qtyText} - ${remark}` : qtyText;
+  }
+
+  formatQuantity(value?: number | null): string {
+    const n = Number(value ?? 0);
+    return (Number.isInteger(n) ? n.toString() : n.toFixed(2)) + ' qty';
   }
 
   // Files come in a few at a time; each pick is added to what is already staged so
@@ -1455,6 +1493,7 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
       invoice: null,
       level: null,
       approvedAmount: null,
+      approvedQuantity: null,
       remark: ''
     };
   }
