@@ -81,6 +81,8 @@ export interface NewInvoiceApprovalLog {
   toStatus?: number | null;
   approvedAmount?: number | null;
   approvedQuantity?: number | null;
+  /** Per-group approved quantity for a GROUP Quantity Slab invoice; null otherwise. */
+  approvedQuantities?: Array<{ groupNo: number; quantity: number }> | null;
   remark?: string | null;
   createdAt?: string | null;
 }
@@ -134,6 +136,18 @@ export interface InvoiceItemRow {
   price: number;
 }
 
+/** One group's result in a Quantity Slab preview: its own ladder on its own products' quantity. */
+export interface QuantityPointsGroup {
+  groupNo: number;
+  quantity: number;
+  cumulativeQuantity: number;
+  rate: number | null;
+  tierName: string | null;
+  points: number;
+  hint: string | null;
+  lines: Array<{ productId: number; productName: string; quantity: number }>;
+}
+
 /** The live points preview for the entered quantities. */
 export interface QuantityPointsPreview {
   totalPoints: number;
@@ -142,6 +156,8 @@ export interface QuantityPointsPreview {
   rate: number | null;
   tierName: string | null;
   hint: string | null;
+  /** Per-group breakdown (one entry per group that earns). A single-group scheme has one entry. */
+  groups: QuantityPointsGroup[];
   lines: Array<{
     productId: number;
     productName: string;
@@ -328,6 +344,7 @@ export class NewInvoiceService {
       map(response => {
         const preview = this.asRecord(this.pickFirstValue(response, ['preview', 'data.preview', 'data']) ?? response);
         const rawLines = Array.isArray(preview['lines']) ? preview['lines'] as unknown[] : [];
+        const rawGroups = Array.isArray(preview['groups']) ? preview['groups'] as unknown[] : [];
         return {
           totalPoints: this.readNumber(preview['total_points'] ?? preview['totalPoints']),
           totalQuantity: this.readNumber(preview['total_quantity'] ?? preview['totalQuantity']),
@@ -335,6 +352,27 @@ export class NewInvoiceService {
           rate: preview['rate'] === null || preview['rate'] === undefined ? null : this.readNumber(preview['rate']),
           tierName: this.readNullableString(preview['tier_name'] ?? preview['tierName']),
           hint: this.readNullableString(preview['hint']),
+          groups: rawGroups.map(value => {
+            const row = this.asRecord(value);
+            const groupLines = Array.isArray(row['lines']) ? row['lines'] as unknown[] : [];
+            return {
+              groupNo: this.readNumber(row['group_no'] ?? row['groupNo']) || 1,
+              quantity: this.readNumber(row['quantity']),
+              cumulativeQuantity: this.readNumber(row['cumulative_quantity'] ?? row['cumulativeQuantity']),
+              rate: row['rate'] === null || row['rate'] === undefined ? null : this.readNumber(row['rate']),
+              tierName: this.readNullableString(row['tier_name'] ?? row['tierName']),
+              points: this.readNumber(row['points']),
+              hint: (row['hint'] as string) ?? null,
+              lines: groupLines.map(lineValue => {
+                const lineRow = this.asRecord(lineValue);
+                return {
+                  productId: this.readNumber(lineRow['product_id'] ?? lineRow['productId']),
+                  productName: this.readString(lineRow['product_name'] ?? lineRow['productName']),
+                  quantity: this.readNumber(lineRow['quantity'])
+                };
+              })
+            };
+          }),
           lines: rawLines.map(value => {
             const row = this.asRecord(value);
             return {
@@ -426,8 +464,8 @@ export class NewInvoiceService {
     }).pipe(catchError(error => this.handleError(error)));
   }
 
-  approve(id: number, level: 'ss' | 'sales' | 'ho', remark = '', approvedAmount?: number | null, approvedQuantity?: number | null): Observable<string> {
-    return this.http.post<ApiResponse>(`${this.baseUrl}/${id}/approve/${level}`, { remark, approved_amount: approvedAmount, approved_quantity: approvedQuantity }, { headers: this.authHeaders() }).pipe(
+  approve(id: number, level: 'ss' | 'sales' | 'ho', remark = '', approvedAmount?: number | null, approvedQuantity?: number | null, approvedQuantities?: Record<number, number> | null): Observable<string> {
+    return this.http.post<ApiResponse>(`${this.baseUrl}/${id}/approve/${level}`, { remark, approved_amount: approvedAmount, approved_quantity: approvedQuantity, approved_quantities: approvedQuantities ?? null }, { headers: this.authHeaders() }).pipe(
       map(response => this.responseMessage(response) || 'Invoice approved successfully'),
       catchError(error => this.handleError(error))
     );
@@ -589,9 +627,20 @@ export class NewInvoiceService {
       toStatus: this.readNumber(row['to_status'] ?? row['toStatus']) || null,
       approvedAmount: this.nullableNumber(row['approved_amount'] ?? row['approvedAmount']),
       approvedQuantity: this.nullableNumber(row['approved_quantity'] ?? row['approvedQuantity']),
+      approvedQuantities: this.readApprovedQuantities(row['approved_quantities'] ?? row['approvedQuantities']),
       remark: this.readNullableString(row['remark']),
       createdAt: this.readNullableString(row['created_at'] ?? row['createdAt'])
     };
+  }
+
+  /** The per-group approved quantities come back as { "1": 4, "2": 6 }; flatten to a sorted list. */
+  private readApprovedQuantities(value: unknown): Array<{ groupNo: number; quantity: number }> | null {
+    if (!value || typeof value !== 'object') return null;
+    const entries = Object.entries(value as Record<string, unknown>)
+      .map(([key, raw]) => ({ groupNo: Number(key), quantity: this.readNumber(raw) }))
+      .filter(entry => Number.isFinite(entry.groupNo))
+      .sort((a, b) => a.groupNo - b.groupNo);
+    return entries.length ? entries : null;
   }
 
   private normalizeRetailer(value: unknown): RetailerOption {

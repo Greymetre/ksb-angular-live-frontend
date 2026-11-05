@@ -50,6 +50,9 @@ interface ApprovalDialogModel {
   approvedAmount: number | null;
   /** Quantity Slab invoices are approved on a total quantity instead of an amount. */
   approvedQuantity: number | null;
+  /** A GROUP Quantity Slab invoice is approved per group - one quantity per group. */
+  approvedGroups: Array<{ groupNo: number; tierName: string | null; quantity: number | null }>;
+  groupsLoading: boolean;
   remark: string;
 }
 
@@ -801,9 +804,45 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
       level,
       approvedAmount: isApproval && !isQty ? this.lastApprovedAmount(invoice, level) : null,
       approvedQuantity: isApproval && isQty ? this.lastApprovedQuantity(invoice, level as 'ss' | 'sales' | 'ho') : null,
+      approvedGroups: [],
+      groupsLoading: isApproval && isQty,
       remark: ''
     };
+    // A Quantity Slab invoice is approved per group, so fetch the invoice's own per-group quantity
+    // (the default offered) from the preview on its stored items.
+    if (isApproval && isQty) this.loadApprovalGroups(invoice);
     this.refreshView();
+  }
+
+  /** Reads the invoice's per-group quantity breakdown (its own items run through the scheme) so the
+   *  approve dialog can offer one quantity field per group, prefilled with the invoice's figures. */
+  private loadApprovalGroups(invoice: NewInvoiceItem): void {
+    const lines = (invoice.items || [])
+      .filter(item => item.productId && Number(item.quantity) > 0)
+      .map(item => ({ product_id: Number(item.productId), quantity: Number(item.quantity) }));
+    if (!invoice.schemeId || !invoice.secondaryCustomerId || !invoice.invoiceDate || lines.length === 0) {
+      this.approvalDialog.groupsLoading = false;
+      this.refreshView();
+      return;
+    }
+    this.newInvoiceService.previewQuantityPoints(
+      invoice.schemeId, invoice.secondaryCustomerId, invoice.invoiceDate, lines, invoice.id).subscribe({
+      next: preview => {
+        if (this.approvalDialog.invoice?.id !== invoice.id) return; // dialog moved on
+        this.approvalDialog.approvedGroups = preview.groups.map(group => ({
+          groupNo: group.groupNo,
+          tierName: group.tierName,
+          quantity: group.quantity
+        }));
+        this.approvalDialog.groupsLoading = false;
+        this.refreshView();
+      },
+      error: () => {
+        if (this.approvalDialog.invoice?.id !== invoice.id) return;
+        this.approvalDialog.groupsLoading = false;
+        this.refreshView();
+      }
+    });
   }
 
   closeApprovalDialog(): void {
@@ -826,7 +865,19 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
     }
     const isApproval = level !== 'reject' && level !== 'hold';
     const isQty = !!invoice.isQuantityScheme;
-    if (isApproval && isQty && (!this.approvalDialog.approvedQuantity || this.approvalDialog.approvedQuantity <= 0)) {
+    const groups = this.approvalDialog.approvedGroups;
+    const usesGroups = isQty && groups.length > 0;
+
+    if (isApproval && usesGroups) {
+      if (groups.some(group => group.quantity === null || Number(group.quantity) < 0)) {
+        this.showToast('Enter an approved quantity for every group (0 or more).', 'error');
+        return;
+      }
+      if (groups.reduce((sum, group) => sum + Number(group.quantity || 0), 0) <= 0) {
+        this.showToast('Approved invoice quantity must be greater than 0.', 'error');
+        return;
+      }
+    } else if (isApproval && isQty && (!this.approvalDialog.approvedQuantity || this.approvalDialog.approvedQuantity <= 0)) {
       this.showToast('Approved invoice quantity must be greater than 0.', 'error');
       return;
     }
@@ -834,6 +885,10 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
       this.showToast('Approved invoice amount must be greater than 0.', 'error');
       return;
     }
+
+    const approvedQuantities = usesGroups
+      ? groups.reduce((map, group) => { map[group.groupNo] = Number(group.quantity || 0); return map; }, {} as Record<number, number>)
+      : null;
 
     this.saving = true;
     const request = level === 'reject'
@@ -843,7 +898,8 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
         : this.newInvoiceService.approve(
             invoice.id, level, this.approvalDialog.remark,
             isQty ? null : Number(this.approvalDialog.approvedAmount),
-            isQty ? Number(this.approvalDialog.approvedQuantity) : null);
+            isQty && !usesGroups ? Number(this.approvalDialog.approvedQuantity) : null,
+            approvedQuantities);
 
     request.pipe(finalize(() => {
       this.saving = false;
@@ -1494,6 +1550,8 @@ export class NewInvoicesComponent implements OnInit, OnDestroy {
       level: null,
       approvedAmount: null,
       approvedQuantity: null,
+      approvedGroups: [],
+      groupsLoading: false,
       remark: ''
     };
   }

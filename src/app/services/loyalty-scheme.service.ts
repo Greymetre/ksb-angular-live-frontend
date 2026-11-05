@@ -8,6 +8,8 @@ import { API_BASE_URL } from '../config/api.config';
 
 export interface LoyaltySchemeSlab {
   id?: number;
+  /** Quantity Slab: which group's ladder this band belongs to. 1 elsewhere. */
+  groupNo?: number;
   tierName: string;
   valueFrom: number;
   valueTo: number | null;
@@ -19,6 +21,8 @@ export interface LoyaltySchemeSlab {
 /** One line of a Product or Quantity scheme: the goods it covers and what they earn. */
 export interface LoyaltySchemeProductLine {
   id?: number;
+  /** Quantity Slab: which group this product line belongs to. 1 elsewhere. */
+  groupNo?: number;
   segmentIds: number[];
   segmentNames: string[];
   familyIds: number[];
@@ -32,6 +36,8 @@ export interface LoyaltySchemeProductLine {
 
 /** One quantity-slab row read back from a Quantity Slab import, ready to merge into the form. */
 export interface SchemeSlabImport {
+  /** Which group's ladder this band belongs to. 1 when the sheet leaves it blank. */
+  groupNo: number;
   tierName: string;
   valueFrom: number;
   valueTo: number | null;
@@ -97,13 +103,18 @@ export interface LoyaltySchemePayload {
   redemption_enabled: boolean;
   redemption_crm_enabled: boolean;
   slabs: Array<{
+    /** Quantity Slab: the group this band's ladder belongs to. Omitted/1 elsewhere. */
+    group_no?: number;
     tier_name: string;
     value_from: number;
     value_to: number | null;
     reward_value: number;
+    reward_type?: string | null;
   }>;
   /** Only a Product or Quantity scheme sends these; an Invoice scheme sends slabs. */
   products: Array<{
+    /** Quantity Slab: the group this product line belongs to. Omitted/1 elsewhere. */
+    group_no?: number;
     segment_ids: number[];
     family_ids: number[];
     product_ids: number[];
@@ -274,6 +285,7 @@ export class LoyaltySchemeService {
       return Number.isFinite(n) ? n : null;
     };
     return {
+      groupNo: num(r['group_no'] ?? r['groupNo']) || 1,
       tierName: String(r['tier_name'] ?? r['tierName'] ?? ''),
       valueFrom: num(r['value_from'] ?? r['valueFrom']) ?? 0,
       valueTo: num(r['value_to'] ?? r['valueTo']),
@@ -408,6 +420,7 @@ export class LoyaltySchemeService {
     const row = this.asRecord(value);
     return {
       id: this.readNumber(row['id']),
+      groupNo: this.readNumber(row['group_no'] ?? row['groupNo']) || 1,
       tierName: this.readString(row['tier_name'] ?? row['tierName']),
       valueFrom: this.readNumber(row['value_from'] ?? row['valueFrom']),
       valueTo: this.nullableNumber(row['value_to'] ?? row['valueTo']),
@@ -425,6 +438,7 @@ export class LoyaltySchemeService {
       this.pickArray(row, keys).map(item => this.readString(item)).filter(name => !!name);
     return {
       id: this.readNumber(row['id']),
+      groupNo: this.readNumber(row['group_no'] ?? row['groupNo']) || 1,
       segmentIds: ids(['segment_ids', 'segmentIds']),
       segmentNames: names(['segment_names', 'segmentNames']),
       familyIds: ids(['family_ids', 'familyIds']),

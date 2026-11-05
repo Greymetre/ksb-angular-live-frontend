@@ -1411,3 +1411,9 @@
 .qty-total{margin-top:10px;padding:8px 12px;background:#ecfdf5;border-radius:8px;color:#047857;font-size:13px}
 .detail-items{margin:14px 0}
 .detail-item-row{grid-template-columns:2fr 1fr 1fr!important;font-size:13px}
+
+/* Approve dialog: one quantity field per group (Quantity Slab group scheme) */
+.qty-group-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.qty-group-row .qty-group-label{flex:1;font-size:13px;font-weight:600;color:#374151}
+.qty-group-row .qty-group-label small{font-weight:400;color:#6b7280}
+.qty-group-row input{width:120px}

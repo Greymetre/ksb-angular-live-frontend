@@ -54,13 +54,24 @@ interface SchemeFormModel {
   brochure: File | null;
   brochurePath: string;
   productLines: SchemeProductLine[];
-  slabs: Array<{
-    tierName: string;
-    valueFrom: number | null;
-    valueTo: number | null;
-    rewardValue: number | string | null;
-    rewardType: string;
-  }>;
+  slabs: SchemeSlabRow[];
+  /** Quantity Slab only: several groups, each its own ladder (bands) + its own products.
+   *  Invoice/Product ignore this and use the flat slabs / productLines above. */
+  groups: SchemeGroup[];
+}
+
+type SchemeSlabRow = {
+  tierName: string;
+  valueFrom: number | null;
+  valueTo: number | null;
+  rewardValue: number | string | null;
+  rewardType: string;
+};
+
+/** One group of a Quantity Slab scheme: its own quantity ladder and its own products. */
+interface SchemeGroup {
+  slabs: SchemeSlabRow[];
+  productLines: SchemeProductLine[];
 }
 
 interface ToastModel {
@@ -368,11 +379,53 @@ export class LoyaltySchemesComponent implements OnInit {
         valueTo: slab.valueTo,
         rewardValue: slab.rewardValue,
         rewardType: slab.rewardType || 'Value'
-      })) : [this.emptySlab()]
+      })) : [this.emptySlab()],
+      groups: scheme.schemeType === 'Quantity'
+        ? this.groupsFromScheme(scheme)
+        : [this.emptyGroup()]
     };
     this.errorMessage = '';
     this.showModal = true;
     this.refreshView();
+  }
+
+  /** Rebuilds the group editor from a saved Quantity Slab scheme: every slab and product line
+   *  carries a group number, so they are bucketed back into the groups they were saved under. */
+  private groupsFromScheme(scheme: LoyaltyScheme): SchemeGroup[] {
+    const numbers = new Set<number>();
+    scheme.slabs.forEach(slab => numbers.add(slab.groupNo || 1));
+    scheme.products.forEach(line => numbers.add(line.groupNo || 1));
+    const ordered = [...numbers].sort((a, b) => a - b);
+    if (ordered.length === 0) return [this.emptyGroup()];
+
+    return ordered.map(groupNo => {
+      const slabs = scheme.slabs
+        .filter(slab => (slab.groupNo || 1) === groupNo)
+        .map(slab => ({
+          tierName: slab.tierName,
+          valueFrom: slab.valueFrom,
+          valueTo: slab.valueTo,
+          rewardValue: slab.rewardValue,
+          rewardType: slab.rewardType || 'Value'
+        } as SchemeSlabRow));
+      const productLines = scheme.products
+        .filter(line => (line.groupNo || 1) === groupNo)
+        .map(line => ({
+          segmentIds: [...line.segmentIds],
+          familyIds: [...line.familyIds],
+          productIds: [...line.productIds],
+          rewardValue: line.rewardValue,
+          rewardType: line.rewardType || 'Value',
+          familyOptions: line.familyIds.map((id, index) => ({ id, label: line.familyNames[index] ?? String(id) })),
+          productOptions: line.productIds.map((id, index) => ({ id, label: line.productNames[index] ?? String(id) })),
+          loadingFamilies: false,
+          loadingProducts: false
+        } as SchemeProductLine));
+      return {
+        slabs: slabs.length ? slabs : [this.emptySlab()],
+        productLines: productLines.length ? productLines : [this.emptyProductLine()]
+      };
+    });
   }
 
   openView(scheme: LoyaltyScheme): void {
@@ -474,6 +527,57 @@ export class LoyaltySchemesComponent implements OnInit {
 
   onValueToChange(index: number): void {
     this.syncFollowingSlab(index);
+  }
+
+  // ---- Quantity Slab groups: each group has its own ladder and its own products ----
+
+  addGroup(): void {
+    this.form.groups.push(this.emptyGroup());
+  }
+
+  removeGroup(groupIndex: number): void {
+    if (this.form.groups.length === 1) return;
+    this.form.groups.splice(groupIndex, 1);
+  }
+
+  addGroupSlab(groupIndex: number): void {
+    const slabs = this.form.groups[groupIndex].slabs;
+    const previous = slabs[slabs.length - 1];
+    const next = this.emptySlab();
+    if (previous?.valueTo !== null && previous?.valueTo !== undefined) {
+      next.valueFrom = Number(previous.valueTo) + 1;
+    }
+    slabs.push(next);
+  }
+
+  removeGroupSlab(groupIndex: number, slabIndex: number): void {
+    const slabs = this.form.groups[groupIndex].slabs;
+    if (slabs.length === 1) return;
+    slabs.splice(slabIndex, 1);
+    this.syncGroupSlab(groupIndex, slabIndex - 1);
+  }
+
+  onGroupValueToChange(groupIndex: number, slabIndex: number): void {
+    this.syncGroupSlab(groupIndex, slabIndex);
+  }
+
+  private syncGroupSlab(groupIndex: number, slabIndex: number): void {
+    const slabs = this.form.groups[groupIndex].slabs;
+    if (slabIndex < 0 || slabIndex >= slabs.length - 1) return;
+    const valueTo = slabs[slabIndex].valueTo;
+    if (valueTo !== null && valueTo !== undefined) {
+      slabs[slabIndex + 1].valueFrom = Number(valueTo) + 1;
+    }
+  }
+
+  addGroupProductLine(groupIndex: number): void {
+    this.form.groups[groupIndex].productLines.push(this.emptyProductLine());
+  }
+
+  removeGroupProductLine(groupIndex: number, lineIndex: number): void {
+    const lines = this.form.groups[groupIndex].productLines;
+    lines.splice(lineIndex, 1);
+    if (lines.length === 0) lines.push(this.emptyProductLine());
   }
 
   isAreaSelected(value: string): boolean {
@@ -666,6 +770,34 @@ export class LoyaltySchemesComponent implements OnInit {
   }
 
   private buildPayload(): LoyaltySchemePayload {
+    // Quantity Slab fans its groups out into flat slab + product lines, each stamped with its
+    // group number; every other scheme keeps the single flat ladder / product list.
+    const { products, slabs } = this.isQuantitySlab
+      ? this.buildGroupPayloadLines()
+      : {
+          products: this.showProducts
+            ? this.form.productLines
+                .filter(line => line.segmentIds.length || line.familyIds.length || line.productIds.length)
+                .map(line => ({
+                  segment_ids: line.segmentIds,
+                  family_ids: line.familyIds,
+                  product_ids: line.productIds,
+                  reward_value: Number(line.rewardValue ?? 0),
+                  reward_type: this.isMixedScheme ? (line.rewardType || 'Value') : null
+                }))
+            : [],
+          slabs: this.showSlabs
+            ? this.form.slabs.map(slab => ({
+                tier_name: slab.tierName.trim(),
+                value_from: Number(slab.valueFrom ?? 0),
+                value_to: slab.valueTo === null || slab.valueTo === undefined ? null : Number(slab.valueTo),
+                reward_value: Number(slab.rewardValue ?? 0),
+                // Only a mixed scheme carries a per-slab type; the others follow the scheme.
+                reward_type: this.isMixedScheme ? (slab.rewardType || 'Value') : null
+              }))
+            : []
+        };
+
     return {
       active: this.form.active,
       scheme_name: this.form.schemeName.trim(),
@@ -683,30 +815,38 @@ export class LoyaltySchemesComponent implements OnInit {
       based_on: this.form.basedOn,
       redemption_enabled: this.form.redemptionEnabled,
       redemption_crm_enabled: this.form.redemptionCrmEnabled,
-      products: this.showProducts
-        ? this.form.productLines
-            .filter(line => line.segmentIds.length || line.familyIds.length || line.productIds.length)
-            .map(line => ({
-              segment_ids: line.segmentIds,
-              family_ids: line.familyIds,
-              product_ids: line.productIds,
-              // A Quantity Slab line is scope only - the per-unit rate comes from the slabs.
-              reward_value: this.isQuantitySlab ? 0 : Number(line.rewardValue ?? 0),
-              reward_type: this.isMixedScheme ? (line.rewardType || 'Value') : null
-            }))
-        : [],
-      slabs: this.showSlabs
-        ? this.form.slabs.map(slab => ({
-            tier_name: slab.tierName.trim(),
-            value_from: Number(slab.valueFrom ?? 0),
-            value_to: slab.valueTo === null || slab.valueTo === undefined ? null : Number(slab.valueTo),
-            reward_value: Number(slab.rewardValue ?? 0),
-            // Only a mixed scheme carries a per-slab type; the others follow the scheme,
-            // and sending one would be noise the server has to ignore.
-            reward_type: this.isMixedScheme ? (slab.rewardType || 'Value') : null
-          }))
-        : []
+      products,
+      slabs
     };
+  }
+
+  /** Flattens the Quantity Slab group editor into the flat slab + product lines the API takes,
+   *  each tagged with its group number (1-based). A Quantity line is scope only (reward 0). */
+  private buildGroupPayloadLines(): Pick<LoyaltySchemePayload, 'products' | 'slabs'> {
+    const products: LoyaltySchemePayload['products'] = [];
+    const slabs: LoyaltySchemePayload['slabs'] = [];
+    this.form.groups.forEach((group, index) => {
+      const groupNo = index + 1;
+      group.slabs.forEach(slab => slabs.push({
+        group_no: groupNo,
+        tier_name: slab.tierName.trim(),
+        value_from: Number(slab.valueFrom ?? 0),
+        value_to: slab.valueTo === null || slab.valueTo === undefined ? null : Number(slab.valueTo),
+        reward_value: Number(slab.rewardValue ?? 0),
+        reward_type: null
+      }));
+      group.productLines
+        .filter(line => line.segmentIds.length || line.familyIds.length || line.productIds.length)
+        .forEach(line => products.push({
+          group_no: groupNo,
+          segment_ids: line.segmentIds,
+          family_ids: line.familyIds,
+          product_ids: line.productIds,
+          reward_value: 0,
+          reward_type: null
+        }));
+    });
+    return { products, slabs };
   }
 
   private validatePayload(payload: LoyaltySchemePayload): string {
@@ -714,6 +854,10 @@ export class LoyaltySchemesComponent implements OnInit {
     if (!payload.customer_type) return 'Customer type is required.';
     if (!payload.start_date || !payload.end_date) return 'Start date and end date are required.';
     if (payload.area_scope !== 'All' && payload.area_values.length === 0) return 'Select at least one area value.';
+
+    // A Quantity Slab scheme is a set of groups, each its own ladder + products; it is validated
+    // group by group rather than as one flat ladder.
+    if (this.isQuantitySlab) return this.validateQuantityGroups(payload);
 
     // Product/Quantity Slab name the goods (product lines). Invoice/Quantity Slab carry slabs.
     // Quantity Slab checks both: product scope, then the quantity bands.
@@ -747,6 +891,45 @@ export class LoyaltySchemesComponent implements OnInit {
     return '';
   }
 
+  /** Per-group validation for a Quantity Slab scheme: every group needs a ladder and products,
+   *  each group's bands are a contiguous ladder, and a product sits in only one group. */
+  private validateQuantityGroups(payload: LoyaltySchemePayload): string {
+    const groupNos = [...new Set([
+      ...payload.slabs.map(s => s.group_no ?? 1),
+      ...payload.products.map(p => p.group_no ?? 1)
+    ])].sort((a, b) => a - b);
+
+    if (groupNos.length === 0) return 'Add at least one group.';
+
+    for (const groupNo of groupNos) {
+      const slabs = payload.slabs.filter(s => (s.group_no ?? 1) === groupNo);
+      const products = payload.products.filter(p => (p.group_no ?? 1) === groupNo);
+      if (slabs.length === 0) return `Group ${groupNo} needs at least one quantity slab.`;
+      if (products.length === 0) return `Group ${groupNo} needs at least one product.`;
+      if (slabs.some(s => !s.tier_name || s.value_from < 0 || s.reward_value < 0)) return `Complete all quantity slab rows in group ${groupNo}.`;
+      if (slabs.some(s => s.value_to !== null && s.value_to < s.value_from)) return `Quantity to must be greater than or equal to quantity from in group ${groupNo}.`;
+      for (let i = 1; i < slabs.length; i++) {
+        const previousTo = slabs[i - 1].value_to;
+        if (previousTo === null) return `In group ${groupNo}, a quantity slab with no upper limit must be the final one.`;
+        if (slabs[i].value_from !== previousTo + 1) return `Group ${groupNo} slab ${i + 1} must start at ${previousTo + 1} to avoid overlaps or gaps.`;
+      }
+      if (slabs.some(s => s.reward_value > 10000000)) return 'Reward per unit cannot be greater than 1,00,00,000.';
+    }
+
+    // Only a specific PRODUCT may not be named in two groups. The same segment or family can repeat
+    // across groups, as long as the products chosen under them differ.
+    const seen = new Map<number, number>();
+    for (const line of payload.products) {
+      const groupNo = line.group_no ?? 1;
+      for (const id of line.product_ids) {
+        const first = seen.get(id);
+        if (first !== undefined && first !== groupNo) return 'The same product is used in more than one group. A product can belong to only one group.';
+        if (first === undefined) seen.set(id, groupNo);
+      }
+    }
+    return '';
+  }
+
   private emptyForm(): SchemeFormModel {
     return {
       id: null,
@@ -769,8 +952,13 @@ export class LoyaltySchemesComponent implements OnInit {
       brochure: null,
       brochurePath: '',
       productLines: [this.emptyProductLine()],
-      slabs: [this.emptySlab()]
+      slabs: [this.emptySlab()],
+      groups: [this.emptyGroup()]
     };
+  }
+
+  private emptyGroup(): SchemeGroup {
+    return { slabs: [this.emptySlab()], productLines: [this.emptyProductLine()] };
   }
 
   private emptyProductLine(): SchemeProductLine {
@@ -846,6 +1034,7 @@ export class LoyaltySchemesComponent implements OnInit {
     if (this.form.schemeType === 'Quantity' && this.form.basedOn !== 'Value') this.form.basedOn = 'Value';
     if (this.showProducts && this.form.productLines.length === 0) this.form.productLines = [this.emptyProductLine()];
     if (this.showSlabs && this.form.slabs.length === 0) this.form.slabs = [this.emptySlab()];
+    if (this.isQuantitySlab && this.form.groups.length === 0) this.form.groups = [this.emptyGroup()];
     this.scheduleGenerateCode();
   }
 
@@ -1029,6 +1218,78 @@ export class LoyaltySchemesComponent implements OnInit {
   private lineKey(line: SchemeProductLine): string {
     return [line.segmentIds, line.familyIds, line.productIds]
       .map(ids => [...ids].sort((a, b) => a - b).join(',')).join('|');
+  }
+
+  // ---- Quantity Slab groups: import the ladders and the products, each by group number ----
+
+  /** Grows the groups list so a group number from an import has somewhere to land. */
+  private ensureGroups(count: number): void {
+    while (this.form.groups.length < count) this.form.groups.push(this.emptyGroup());
+  }
+
+  /** The slab sheet (with a group column) fills each group's ladder. Groups not named in the sheet
+   *  keep whatever they already had, so slabs and products can be imported in either order. */
+  importGroupSlabs(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.slabBusy = 'import';
+    this.slabImportProblems = [];
+    this.schemeService.importQuantitySlabs(file)
+      .pipe(finalize(() => { this.slabBusy = ''; input.value = ''; this.refreshView(); }))
+      .subscribe({
+        next: result => {
+          this.slabImportProblems = result.problems;
+          if (result.slabs.length === 0) { this.showToast(result.message, 'error'); return; }
+          const byGroup = new Map<number, SchemeSlabRow[]>();
+          for (const slab of result.slabs) {
+            const g = slab.groupNo || 1;
+            if (!byGroup.has(g)) byGroup.set(g, []);
+            byGroup.get(g)!.push({
+              tierName: slab.tierName, valueFrom: slab.valueFrom, valueTo: slab.valueTo,
+              rewardValue: slab.rewardValue, rewardType: 'Value'
+            });
+          }
+          this.ensureGroups(Math.max(...byGroup.keys()));
+          byGroup.forEach((slabs, g) => this.form.groups[g - 1].slabs = slabs);
+          this.showToast(result.message, result.problems.length ? 'error' : 'success');
+        },
+        error: error => this.showToast(error.message, 'error')
+      });
+  }
+
+  /** The product sheet (with a group column) fills each group's products. */
+  importGroupProducts(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.productLineBusy = 'import';
+    this.importProblems = [];
+    this.schemeService.importProductLines(file)
+      .pipe(finalize(() => { this.productLineBusy = ''; input.value = ''; this.refreshView(); }))
+      .subscribe({
+        next: result => {
+          this.importProblems = result.problems;
+          if (result.lines.length === 0) { this.showToast(result.message, 'error'); return; }
+          const byGroup = new Map<number, SchemeProductLine[]>();
+          for (const imported of result.lines) {
+            const g = imported.groupNo || 1;
+            const line = this.emptyProductLine();
+            line.segmentIds = [...imported.segmentIds];
+            line.familyIds = [...imported.familyIds];
+            line.productIds = [...imported.productIds];
+            line.rewardType = 'Value';
+            line.familyOptions = imported.familyIds.map((id, index) => ({ id, label: imported.familyNames[index] ?? String(id) }));
+            line.productOptions = imported.productIds.map((id, index) => ({ id, label: imported.productNames[index] ?? String(id) }));
+            if (!byGroup.has(g)) byGroup.set(g, []);
+            byGroup.get(g)!.push(line);
+          }
+          this.ensureGroups(Math.max(...byGroup.keys()));
+          byGroup.forEach((lines, g) => this.form.groups[g - 1].productLines = lines);
+          this.showToast(result.message, result.problems.length ? 'error' : 'success');
+        },
+        error: error => this.showToast(error.message, 'error')
+      });
   }
 
   private download(blob: Blob, name: string): void {

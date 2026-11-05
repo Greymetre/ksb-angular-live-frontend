@@ -88,7 +88,7 @@
                     [value]="(selectedInvoice.cityName || '-') + ' / ' + (selectedInvoice.zoneName || '-')" readonly />
                 </div>
                 <div class="readonly-field emphasis">
-                  <label>Assigned Distributor</label>
+                  <label>Assigned Dealer</label>
                   <input type="text" [value]="selectedInvoice.assignedDistributorName || '-'" readonly />
                 </div>
                 <div class="readonly-field">
@@ -271,10 +271,14 @@
           <div class="approval-item" *ngFor="let log of selectedInvoice.approvalLogs">
             <strong>{{ titleCase(log.statusType) }}</strong>
             <div>{{ log.employeeCode || '' }} {{ log.createdByName || '-' }}</div>
-            <div *ngIf="log.approvedQuantity != null">
+            <div *ngIf="log.approvedQuantities?.length">
+              Approved Quantity:
+              <span *ngFor="let g of log.approvedQuantities; let last = last">Group {{ g.groupNo }} {{ formatQuantity(g.quantity) }}{{ last ? '' : ', ' }}</span>
+            </div>
+            <div *ngIf="!log.approvedQuantities?.length && log.approvedQuantity != null">
               Approved Quantity: {{ formatQuantity(log.approvedQuantity) }}
             </div>
-            <div *ngIf="log.approvedQuantity == null && log.approvedAmount"
+            <div *ngIf="log.approvedQuantity == null && !log.approvedQuantities?.length && log.approvedAmount"
               [ngClass]="approvalAmountClass(selectedInvoice, log.approvedAmount)">
               Approved Amount: {{ formatMoney(log.approvedAmount) }}
             </div>
@@ -492,7 +496,7 @@
             <th class="points-column">Reward</th>
             <th>Customer</th>
             <th>Mobile</th>
-            <th>Assigned Distributor</th>
+            <th>Assigned Dealer</th>
             <th>Assigned Employee</th>
             <th>City</th>
             <th>Zone</th>
@@ -847,10 +851,24 @@
       <div class="modal-field wide-field" *ngIf="approvalDialog.level !== 'reject' && approvalDialog.level !== 'hold'">
         <ng-container *ngIf="approvalDialog.invoice?.isQuantityScheme; else approveAmountField">
           <label>Approved Invoice Quantity <span class="req">*</span></label>
-          <input type="number" inputmode="decimal" [(ngModel)]="approvalDialog.approvedQuantity" min="0.01" step="1" />
-          <small class="field-hint" *ngIf="approvalDialog.invoice">
-            Invoice quantity: {{ formatQuantity(approvalDialog.invoice.totalQuantity) }} — points follow the scheme's quantity slabs.
-          </small>
+          <div *ngIf="approvalDialog.groupsLoading" class="field-hint">Loading groups…</div>
+          <ng-container *ngIf="!approvalDialog.groupsLoading">
+            <ng-container *ngIf="approvalDialog.approvedGroups.length; else singleQty">
+              <div class="qty-group-row" *ngFor="let group of approvalDialog.approvedGroups">
+                <span class="qty-group-label">Group {{ group.groupNo }}<small *ngIf="group.tierName"> · {{ group.tierName }}</small></span>
+                <input type="number" inputmode="decimal" [(ngModel)]="group.quantity" min="0" step="1" />
+              </div>
+              <small class="field-hint">
+                Each group's points follow its own quantity slabs. Adjust a group's quantity if the physical invoice differs.
+              </small>
+            </ng-container>
+            <ng-template #singleQty>
+              <input type="number" inputmode="decimal" [(ngModel)]="approvalDialog.approvedQuantity" min="0.01" step="1" />
+              <small class="field-hint" *ngIf="approvalDialog.invoice">
+                Invoice quantity: {{ formatQuantity(approvalDialog.invoice.totalQuantity) }} — points follow the scheme's quantity slabs.
+              </small>
+            </ng-template>
+          </ng-container>
         </ng-container>
         <ng-template #approveAmountField>
           <label>Approved Invoice Amount <span class="req">*</span></label>

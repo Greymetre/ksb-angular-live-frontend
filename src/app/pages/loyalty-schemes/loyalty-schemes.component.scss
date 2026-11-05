@@ -229,3 +229,35 @@
 // The export sits beside the close button because the body is a disabled fieldset while a
 // scheme is only being viewed, and nothing inside it can be pressed there.
 .modal-header-row .header-tools { display: flex; align-items: center; gap: 10px; }
+
+/* ---- Quantity Slab groups: each group is its own card (ladder + products) ---- */
+.qs-group {
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--primary-blue);
+  border-radius: 8px;
+  padding: 14px 14px 16px;
+  margin-top: 12px;
+  background: #fafbfc;
+}
+.qs-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.qs-group-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-blue);
+  letter-spacing: .02em;
+}
+.qs-group-head .btn-danger { padding: 4px; line-height: 0; }
+.qs-sub-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin: 12px 0 6px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.qs-add-group { margin-top: 14px; font-weight: 600; }

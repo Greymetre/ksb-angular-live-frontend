@@ -276,7 +276,7 @@
         </div>
       </div>
 
-      <div class="form-section" *ngIf="showSlabs">
+      <div class="form-section" *ngIf="showSlabs && !isQuantitySlab">
         <div class="section-title product-lines-title">
           <span>{{ isQuantitySlab ? 'Quantity Slabs' : 'Slab Configuration' }}</span>
           <span class="line-tools" *ngIf="isQuantitySlab && !viewOnly">
@@ -330,7 +330,7 @@
         <button type="button" class="mini-btn light add-slab-btn" (click)="addSlab()">Add Slab</button>
       </div>
 
-      <div class="form-section" *ngIf="showProducts">
+      <div class="form-section" *ngIf="showProducts && !isQuantitySlab">
         <div class="section-title product-lines-title">
           <span>{{ isQuantitySlab ? 'Products covered' : form.schemeType + ' Configuration' }}</span>
           <span class="line-tools" *ngIf="!viewOnly">
@@ -389,6 +389,108 @@
         </div>
 
         <button type="button" class="mini-btn light add-slab-btn" (click)="addProductLine()">Add Line</button>
+      </div>
+
+      <!-- Quantity Slab: several groups, each its own ladder + its own products -->
+      <div class="form-section" *ngIf="isQuantitySlab">
+        <div class="section-title product-lines-title">
+          <span>Quantity Slab Groups</span>
+          <span class="line-tools" *ngIf="!viewOnly">
+            <button type="button" class="mini-btn light" [disabled]="slabBusy === 'template'" (click)="downloadSlabTemplate()">
+              {{ slabBusy === 'template' ? 'Preparing...' : 'Slab Template' }}
+            </button>
+            <button type="button" class="mini-btn light" [disabled]="productLineBusy === 'template'" (click)="downloadProductTemplate()">
+              {{ productLineBusy === 'template' ? 'Preparing...' : 'Product Template' }}
+            </button>
+            <button type="button" class="mini-btn light" *ngIf="form.id" [disabled]="slabBusy === 'export'" (click)="exportSlabs()">
+              {{ slabBusy === 'export' ? 'Preparing...' : 'Export Slabs' }}
+            </button>
+            <button type="button" class="mini-btn light" *ngIf="form.id" [disabled]="productLineBusy === 'export'" (click)="exportProductLines()">
+              {{ productLineBusy === 'export' ? 'Preparing...' : 'Export Products' }}
+            </button>
+            <button type="button" class="mini-btn light" [disabled]="slabBusy === 'import'" (click)="chooseProductFile(grpSlabFile)">
+              {{ slabBusy === 'import' ? 'Reading...' : 'Import Slabs' }}
+            </button>
+            <input #grpSlabFile type="file" accept=".xlsx,.xls" hidden (change)="importGroupSlabs($event)"/>
+            <button type="button" class="mini-btn light" [disabled]="productLineBusy === 'import'" (click)="chooseProductFile(grpProdFile)">
+              {{ productLineBusy === 'import' ? 'Reading...' : 'Import Products' }}
+            </button>
+            <input #grpProdFile type="file" accept=".xlsx,.xls" hidden (change)="importGroupProducts($event)"/>
+          </span>
+        </div>
+        <ul class="import-problems" *ngIf="slabImportProblems.length || importProblems.length">
+          <li *ngFor="let problem of slabImportProblems">{{ problem }}</li>
+          <li *ngFor="let problem of importProblems">{{ problem }}</li>
+        </ul>
+        <small class="field-note">
+          Each group has its own quantity ladder and its own products, and a product belongs to only
+          one group. A group earns on its products' total quantity in the scheme period &rarr; the
+          matching band &rarr; Reward per Unit &times; quantity.
+        </small>
+
+        <div class="qs-group" *ngFor="let group of form.groups; let g = index">
+          <div class="qs-group-head">
+            <span class="qs-group-title">Group {{ g + 1 }}</span>
+            <button type="button" class="btn-danger" title="Remove group"
+              (click)="removeGroup(g)" [disabled]="form.groups.length === 1">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
+
+          <div class="qs-sub-title">Quantity Slabs</div>
+          <div class="slab-table">
+            <div class="slab-row slab-head">
+              <span>Slab Name</span>
+              <span>Qty From</span>
+              <span>Qty To</span>
+              <span>Reward per Unit</span>
+              <span></span>
+            </div>
+            <div class="slab-row" *ngFor="let slab of group.slabs; let s = index">
+              <input type="text" [(ngModel)]="slab.tierName" placeholder="Slab 1"/>
+              <input type="number" [(ngModel)]="slab.valueFrom" min="0"/>
+              <input type="number" [(ngModel)]="slab.valueTo" (ngModelChange)="onGroupValueToChange(g, s)" min="0" placeholder="No limit"/>
+              <input class="reward-input" type="number" inputmode="decimal" placeholder="140000"
+                [(ngModel)]="slab.rewardValue" min="0" max="10000000" step="0.01"/>
+              <button type="button" class="btn-danger" title="Remove" (click)="removeGroupSlab(g, s)" [disabled]="group.slabs.length === 1"><span class="material-icons">close</span></button>
+            </div>
+          </div>
+          <button type="button" class="mini-btn light add-slab-btn" (click)="addGroupSlab(g)">Add Slab</button>
+
+          <div class="qs-sub-title">Products covered</div>
+          <div class="product-line" *ngFor="let line of group.productLines; let index = index">
+            <div class="product-line-grid">
+              <label>Segment <span class="req">*</span>
+                <app-searchable-select [options]="segmentOptions" [selected]="line.segmentIds" [multiple]="true"
+                  placeholder="Select Segment" (selectedChange)="line.segmentIds = $event; onLineSegmentsChange(line)">
+                </app-searchable-select>
+              </label>
+              <label>Family
+                <app-searchable-select [options]="line.familyOptions" [selected]="line.familyIds" [multiple]="true"
+                  [loading]="line.loadingFamilies" loadingText="Loading families..."
+                  [disabled]="line.segmentIds.length === 0" placeholder="All families of the segment"
+                  (selectedChange)="line.familyIds = $event; onLineFamiliesChange(line)">
+                </app-searchable-select>
+              </label>
+              <label>Product
+                <app-searchable-select [options]="line.productOptions" [selected]="line.productIds" [multiple]="true"
+                  [loading]="line.loadingProducts" loadingText="Loading products..."
+                  [disabled]="line.familyIds.length === 0" placeholder="All products of the family"
+                  (selectedChange)="line.productIds = $event">
+                </app-searchable-select>
+              </label>
+              <button type="button" class="btn-danger line-remove" title="Remove" (click)="removeGroupProductLine(g, index)">
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+            <small class="field-hint">
+              Leave Product blank to cover every product of the chosen families, and Family blank to cover the whole segment.
+            </small>
+          </div>
+          <button type="button" class="mini-btn light add-slab-btn" (click)="addGroupProductLine(g)">Add Product Line</button>
+        </div>
+
+        <button type="button" class="mini-btn light add-slab-btn qs-add-group" (click)="addGroup()">+ Add Group</button>
       </div>
 
       <div class="modal-actions" *ngIf="!viewOnly">
