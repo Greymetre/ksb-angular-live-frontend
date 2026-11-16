@@ -53,6 +53,7 @@ import { CheckinReportsComponent } from './pages/checkin-reports/checkin-reports
 import { ReportManagementComponent } from './pages/report-management/report-management.component';
 import { LoyaltyPerformanceReportComponent } from './pages/loyalty-performance-report/loyalty-performance-report.component';
 import { WalletReportComponent } from './pages/wallet-report/wallet-report.component';
+import { PayoutReportComponent } from './pages/payout-report/payout-report.component';
 import { AssistantChatComponent } from './shared/components/assistant-chat/assistant-chat.component';
 import { RfmReportComponent } from './pages/rfm-report/rfm-report.component';
 import { BeatRouteOptimizerComponent } from './pages/beat-route-optimizer/beat-route-optimizer.component';
@@ -108,6 +109,7 @@ import { DealerFeedbackListComponent } from './pages/dealer-feedback-list/dealer
     ReportManagementComponent,
     LoyaltyPerformanceReportComponent,
     WalletReportComponent,
+    PayoutReportComponent,
     AssistantChatComponent,
     RfmReportComponent,
     BeatRouteOptimizerComponent,

@@ -194,7 +194,7 @@ export class ReportManagementService {
     return this.http.get(`${API_BASE_URL}/reports/loyalty-performance/wallet-export`, { headers: this.headers(), params, responseType: 'blob' });
   }
 
-  downloadLoyaltyPerformance(kind: 'asr' | 'dealer' | 'retailer', filters: LoyaltyPerformanceFilters): Observable<Blob> {
+  downloadLoyaltyPerformance(kind: 'asr' | 'dealer' | 'retailer' | 'payout', filters: LoyaltyPerformanceFilters): Observable<Blob> {
     let params = new HttpParams()
       .set('scheme_id', filters.schemeId)
       .set('start_date', filters.startDate)

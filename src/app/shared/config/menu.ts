@@ -325,6 +325,7 @@ export const MENU_ITEMS: MenuItem[] = [
           children: [
             { label: 'Performance Report', icon: 'insights', route: '/reports/loyalty-performance', permission: 'loyalty_performance_report.view' },
             { label: 'Wallet Report', icon: 'account_balance_wallet', route: '/reports/wallet-report', permission: 'loyalty_performance_report.export_wallet' },
+            { label: 'Payout Report', icon: 'payments', route: '/reports/payout-report', permission: 'loyalty_performance_report.export_payout' },
             // { label: 'Loyalty Summary Report', icon: 'card_membership', permission: 'loyalty_summary_report' },
             // { label: 'Loyalty Dealer Wise Summary Report', icon: 'sign_language', permission: 'loyalty_dealer_wise_summary_report' },
             // { label: 'Retailer Wise Loyalty Summary Report', icon: 'point_of_sale', permission: 'loyalty_retailer_wise_summary_report' }

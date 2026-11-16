@@ -735,13 +735,24 @@
             </div>
           </div>
           <button type="button" class="mini-btn light qty-add" (click)="addQuantityRow()">Add Product</button>
-          <div class="qty-row-hints" *ngIf="quantityPreview?.hint">
+          <div class="qty-row-hints" *ngIf="quantityPreview?.hint && !quantityPreview?.groups?.length">
             <small class="qty-hint show">{{ quantityPreview?.hint }}</small>
           </div>
           <div class="qty-total" *ngIf="quantityPreview">
-            Total quantity <strong>{{ quantityPreview.totalQuantity | number:'1.0-2' }}</strong>
-            <span *ngIf="quantityPreview.tierName"> — slab {{ quantityPreview.tierName }}</span>
-            → Expected reward: <strong>{{ quantityPreview.totalPoints | number:'1.0-2' }}</strong> points
+            <ng-container *ngIf="quantityPreview.groups?.length; else qtyTotalSingle">
+              <div class="qty-group-line" *ngFor="let group of quantityPreview.groups">
+                Group {{ group.groupNo }}: qty <strong>{{ group.quantity | number:'1.0-2' }}</strong>
+                <span *ngIf="group.tierName"> — slab {{ group.tierName }}</span>
+                → <strong>{{ group.points | number:'1.0-2' }}</strong> points
+                <small *ngIf="group.hint" class="qty-hint show"> · {{ group.hint }}</small>
+              </div>
+              <div class="qty-group-total">Total expected reward: <strong>{{ quantityPreview.totalPoints | number:'1.0-2' }}</strong> points</div>
+            </ng-container>
+            <ng-template #qtyTotalSingle>
+              Total quantity <strong>{{ quantityPreview.totalQuantity | number:'1.0-2' }}</strong>
+              <span *ngIf="quantityPreview.tierName"> — slab {{ quantityPreview.tierName }}</span>
+              → Expected reward: <strong>{{ quantityPreview.totalPoints | number:'1.0-2' }}</strong> points
+            </ng-template>
           </div>
         </div>
         <div class="modal-field">
