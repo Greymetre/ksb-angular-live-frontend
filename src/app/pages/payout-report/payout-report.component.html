@@ -11,7 +11,7 @@
       <app-searchable-select [options]="options.zones" labelKey="name" [selected]="zoneIds" [multiple]="true" placeholder="Select Zones" [loading]="optionsLoading" loadingText="Loading zones..." (selectedChange)="zoneIds=$event"></app-searchable-select>
     </label>
     <label><span class="field-label">Scheme Name <span class="required">*</span></span>
-      <app-searchable-select [options]="schemeOptions" labelKey="name" [selected]="schemeId" placeholder="Select Scheme" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading schemes..." (selectedChange)="schemeId=$event"></app-searchable-select>
+      <app-searchable-select [options]="schemeOptions" labelKey="name" [selected]="schemeId" placeholder="Select Scheme" [pageSize]="25" [loading]="optionsLoading" loadingText="Loading schemes..." (selectedChange)="onSchemeChange($event)"></app-searchable-select>
     </label>
     <label><span class="field-label">Employee Status</span>
       <select [(ngModel)]="employeeStatus" name="employeeStatus">

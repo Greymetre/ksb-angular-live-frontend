@@ -54,6 +54,20 @@ export class PayoutReportComponent implements OnInit {
     });
   }
 
+  /**
+   * Picking a scheme auto-fills the date range with that scheme's own start and end
+   * dates (the report period defaults to the scheme period). Both dates stay editable.
+   */
+  onSchemeChange(id: number | null): void {
+    this.schemeId = id;
+    const scheme = this.options.schemes.find(s => s.id === id);
+    if (scheme) {
+      if (scheme.start_date) this.startDate = (scheme.start_date + '').slice(0, 10);
+      if (scheme.end_date) this.endDate = (scheme.end_date + '').slice(0, 10);
+    }
+    this.cdr.detectChanges();
+  }
+
   download(): void {
     this.error = '';
     const invalid = this.validate();
