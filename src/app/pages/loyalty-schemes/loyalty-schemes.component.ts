@@ -51,6 +51,7 @@ interface SchemeFormModel {
   basedOn: string;
   redemptionEnabled: boolean;
   redemptionCrmEnabled: boolean;
+  invoiceEnabled: boolean;
   brochure: File | null;
   brochurePath: string;
   productLines: SchemeProductLine[];
@@ -356,6 +357,7 @@ export class LoyaltySchemesComponent implements OnInit {
       basedOn: scheme.basedOn || 'Value',
       redemptionEnabled: scheme.redemptionEnabled,
       redemptionCrmEnabled: scheme.redemptionCrmEnabled,
+      invoiceEnabled: scheme.invoiceEnabled,
       brochure: null,
       brochurePath: scheme.brochurePath || '',
       productLines: scheme.products.length
@@ -815,6 +817,7 @@ export class LoyaltySchemesComponent implements OnInit {
       based_on: this.form.basedOn,
       redemption_enabled: this.form.redemptionEnabled,
       redemption_crm_enabled: this.form.redemptionCrmEnabled,
+      invoice_enabled: this.form.invoiceEnabled,
       products,
       slabs
     };
@@ -949,6 +952,7 @@ export class LoyaltySchemesComponent implements OnInit {
       basedOn: 'Value',
       redemptionEnabled: false,
       redemptionCrmEnabled: false,
+      invoiceEnabled: true,
       brochure: null,
       brochurePath: '',
       productLines: [this.emptyProductLine()],

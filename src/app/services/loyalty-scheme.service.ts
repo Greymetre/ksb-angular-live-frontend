@@ -65,6 +65,7 @@ export interface LoyaltyScheme {
   basedOn: string;
   redemptionEnabled: boolean;
   redemptionCrmEnabled: boolean;
+  invoiceEnabled: boolean;
   status: string;
   workflowStatus: string;
   brochurePath?: string | null;
@@ -102,6 +103,7 @@ export interface LoyaltySchemePayload {
   based_on: string;
   redemption_enabled: boolean;
   redemption_crm_enabled: boolean;
+  invoice_enabled: boolean;
   slabs: Array<{
     /** Quantity Slab: the group this band's ladder belongs to. Omitted/1 elsewhere. */
     group_no?: number;
@@ -396,6 +398,7 @@ export class LoyaltySchemeService {
       basedOn: this.readString(row['based_on'] ?? row['basedOn']) || 'Value',
       redemptionEnabled: this.readBoolean(row['redemption_enabled'] ?? row['redemptionEnabled'], false),
       redemptionCrmEnabled: this.readBoolean(row['redemption_crm_enabled'] ?? row['redemptionCrmEnabled'], false),
+      invoiceEnabled: this.readBoolean(row['invoice_enabled'] ?? row['invoiceEnabled'], true),
       status: this.readString(row['status']) || 'Draft',
       workflowStatus: this.readString(row['workflow_status'] ?? row['workflowStatus'] ?? row['status']) || 'Draft',
       brochurePath: this.readNullableString(row['brochure_path'] ?? row['brochurePath']),
