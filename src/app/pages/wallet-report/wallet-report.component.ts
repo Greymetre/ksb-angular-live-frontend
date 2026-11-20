@@ -45,19 +45,31 @@ export class WalletReportComponent implements OnInit {
     })).subscribe({
       next: options => {
         this.options = options;
-        this.schemeOptions = options.schemes.map(scheme => ({
-          id: scheme.id,
-          name: scheme.code ? `${scheme.name} (${scheme.code})` : scheme.name
-        }));
+        this.rebuildSchemeOptions();
       },
       error: () => this.error = 'Could not load the filters. Please refresh the page.'
     });
+  }
+
+  /**
+   * The scheme list is filtered by the selected zone(s): a scheme shows only when one of the
+   * zones chosen here is among its "Report Zones". No zone selected shows every scheme; a scheme
+   * tagged to no zones is hidden once any zone is selected (strict).
+   */
+  private rebuildSchemeOptions(): void {
+    const zones = this.zoneIds || [];
+    this.schemeOptions = this.options.schemes
+      .filter(scheme => zones.length === 0 || (scheme.zone_ids || []).some(z => zones.includes(z)))
+      .map(scheme => ({ id: scheme.id, name: scheme.code ? `${scheme.name} (${scheme.code})` : scheme.name }));
+    if (this.schemeId && !this.schemeOptions.some(o => o.id === this.schemeId)) this.schemeId = null;
+    this.cdr.detectChanges();
   }
 
   onZoneChange(value: number[]): void {
     this.zoneIds = value;
     // A branch of another zone would contradict the zone just picked.
     if (this.branchId && !this.zoneBranches.some(b => Number(b.id) === Number(this.branchId))) this.branchId = null;
+    this.rebuildSchemeOptions();
   }
 
   download(): void {

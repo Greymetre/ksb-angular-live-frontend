@@ -282,6 +282,21 @@
               {{ form.excludedDealerIds.length }} selected · searching reads name, dealer code, mobile and email
             </small>
           </div>
+          <div class="modal-field full-field">
+            <label>Report Zones</label>
+            <app-searchable-select
+              [options]="options.zones"
+              labelKey="name"
+              [selected]="form.reportZoneIds"
+              [multiple]="true"
+              [disabled]="viewOnly"
+              placeholder="Select zones for report filtering"
+              (selectedChange)="form.reportZoneIds=$event">
+            </app-searchable-select>
+            <small class="field-hint">
+              Loyalty report export filters show this scheme only for the zone(s) selected here.
+            </small>
+          </div>
         </div>
       </div>
 

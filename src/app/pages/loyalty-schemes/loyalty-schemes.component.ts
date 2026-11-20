@@ -44,6 +44,7 @@ interface SchemeFormModel {
   customerType: string;
   areaScope: string;
   areaValues: string[];
+  reportZoneIds: number[];
   excludedDealerIds: number[];
   startDate: string;
   endDate: string;
@@ -350,6 +351,7 @@ export class LoyaltySchemesComponent implements OnInit {
       customerType: scheme.customerType,
       areaScope: scheme.areaScope || 'All',
       areaValues: [...(scheme.areaValues || [])],
+      reportZoneIds: [...(scheme.reportZoneIds || [])],
       excludedDealerIds: [...(scheme.excludedDealerIds || [])],
       startDate: this.toDateInput(scheme.startDate),
       endDate: this.toDateInput(scheme.endDate),
@@ -810,6 +812,7 @@ export class LoyaltySchemesComponent implements OnInit {
       customer_type: this.form.customerType,
       area_scope: this.form.areaScope,
       area_values: this.form.areaScope === 'All' ? [] : this.form.areaValues,
+      report_zone_ids: this.form.reportZoneIds,
       excluded_dealer_ids: this.form.excludedDealerIds,
       start_date: this.form.startDate,
       end_date: this.form.endDate,
@@ -945,6 +948,7 @@ export class LoyaltySchemesComponent implements OnInit {
       customerType: 'Retailer',
       areaScope: 'All',
       areaValues: [],
+      reportZoneIds: [],
       excludedDealerIds: [],
       startDate: '',
       endDate: '',

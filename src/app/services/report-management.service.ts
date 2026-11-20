@@ -14,7 +14,7 @@ export interface DistrictOption extends ReportOption { state_id?: number | null;
 /** The sheets the RFM screens can download; each maps to reports/rfm/{kind}-export. */
 export type RfmDownloadKind = 'retailer' | 'dealer' | 'movement' | 'activation-asr' | 'activation-dealer';
 export interface RfmReportOptions { zones: ReportOption[]; branches: BranchOption[]; states: ReportOption[]; districts: DistrictOption[]; }
-export interface LoyaltyPerformanceScheme extends ReportOption { code: string; start_date: string; end_date: string; }
+export interface LoyaltyPerformanceScheme extends ReportOption { code: string; start_date: string; end_date: string; zone_ids: number[]; }
 export interface LoyaltyPerformanceOptions { segments: ReportOption[]; zones: ReportOption[]; schemes: LoyaltyPerformanceScheme[]; branches: BranchOption[]; }
 export interface WalletReportFilters { zoneIds: number[]; branchId: number | null; schemeId: number; employeeStatus?: string | null; }
 export interface LoyaltyPerformanceFilters { segmentId: number | null; zoneIds: number[]; schemeId: number; startDate: string; endDate: string; employeeStatus?: string | null; }
@@ -194,7 +194,7 @@ export class ReportManagementService {
     return this.http.get(`${API_BASE_URL}/reports/loyalty-performance/wallet-export`, { headers: this.headers(), params, responseType: 'blob' });
   }
 
-  downloadLoyaltyPerformance(kind: 'asr' | 'dealer' | 'retailer' | 'payout', filters: LoyaltyPerformanceFilters): Observable<Blob> {
+  downloadLoyaltyPerformance(kind: 'asr' | 'dealer' | 'retailer' | 'payout' | 'invoiced-retailer', filters: LoyaltyPerformanceFilters): Observable<Blob> {
     let params = new HttpParams()
       .set('scheme_id', filters.schemeId)
       .set('start_date', filters.startDate)

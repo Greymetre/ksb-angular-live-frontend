@@ -56,6 +56,7 @@ export interface LoyaltyScheme {
   customerType: string;
   areaScope: string;
   areaValues: string[];
+  reportZoneIds: number[];
   areaDisplay: string;
   /** Dealers this scheme leaves out. */
   excludedDealerIds: number[];
@@ -96,6 +97,7 @@ export interface LoyaltySchemePayload {
   customer_type: string;
   area_scope: string;
   area_values: string[];
+  report_zone_ids?: number[];
   excluded_dealer_ids?: number[];
   start_date: string;
   end_date: string;
@@ -390,6 +392,7 @@ export class LoyaltySchemeService {
       customerType: this.readString(row['customer_type'] ?? row['customerType']),
       areaScope: this.readString(row['area_scope'] ?? row['areaScope']) || 'All',
       areaValues: this.asArray(row['area_values'] ?? row['areaValues']).map(item => this.readString(item)).filter(Boolean),
+      reportZoneIds: this.asArray(row['report_zone_ids'] ?? row['reportZoneIds']).map(item => Number(item)).filter(id => Number.isFinite(id) && id > 0),
       excludedDealerIds: this.asArray(row['excluded_dealer_ids'] ?? row['excludedDealerIds']).map(item => Number(item)).filter(id => Number.isFinite(id) && id > 0),
       areaDisplay: this.readString(row['area_display'] ?? row['areaDisplay']) || 'All India',
       startDate: this.readString(row['start_date'] ?? row['startDate']),

@@ -3,7 +3,7 @@ import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { LoyaltyPerformanceOptions, ReportManagementService, ReportOption } from '../../services/report-management.service';
 
-type LoyaltyDownload = 'asr' | 'dealer' | 'retailer';
+type LoyaltyDownload = 'asr' | 'dealer' | 'retailer' | 'invoiced-retailer';
 
 /**
  * Reports > Loyalty > Performance Report.
@@ -38,7 +38,8 @@ export class LoyaltyPerformanceReportComponent implements OnInit {
   get canDownloadAny(): boolean {
     return this.auth.hasPermission('loyalty_performance_report.export_asr')
       || this.auth.hasPermission('loyalty_performance_report.export_dealer')
-      || this.auth.hasPermission('loyalty_performance_report.export_retailer');
+      || this.auth.hasPermission('loyalty_performance_report.export_retailer')
+      || this.auth.hasPermission('loyalty_performance_report.export_invoiced_retailer');
   }
 
   ngOnInit(): void {
@@ -49,13 +50,29 @@ export class LoyaltyPerformanceReportComponent implements OnInit {
     })).subscribe({
       next: options => {
         this.options = options;
-        this.schemeOptions = options.schemes.map(scheme => ({
-          id: scheme.id,
-          name: scheme.code ? `${scheme.name} (${scheme.code})` : scheme.name
-        }));
+        this.rebuildSchemeOptions();
       },
       error: () => this.error = 'Could not load the filters. Please refresh the page.'
     });
+  }
+
+  /**
+   * The scheme list is filtered by the selected zone(s): a scheme shows only when one of the
+   * zones chosen here is among its "Report Zones". With no zone selected every scheme shows.
+   * A scheme tagged to no zones is hidden once any zone is selected (strict).
+   */
+  private rebuildSchemeOptions(): void {
+    const zones = this.zoneIds || [];
+    this.schemeOptions = this.options.schemes
+      .filter(scheme => zones.length === 0 || (scheme.zone_ids || []).some(z => zones.includes(z)))
+      .map(scheme => ({ id: scheme.id, name: scheme.code ? `${scheme.name} (${scheme.code})` : scheme.name }));
+    if (this.schemeId && !this.schemeOptions.some(o => o.id === this.schemeId)) this.schemeId = null;
+    this.cdr.detectChanges();
+  }
+
+  onZoneChange(ids: number[]): void {
+    this.zoneIds = ids;
+    this.rebuildSchemeOptions();
   }
 
   /**
@@ -94,7 +111,7 @@ export class LoyaltyPerformanceReportComponent implements OnInit {
       this.downloading = null;
       this.cdr.detectChanges();
     })).subscribe({
-      next: blob => this.saveBlob(blob, kind === 'asr' ? 'Loyalty_Performance_ASR_Wise.xlsx' : kind === 'dealer' ? 'Loyalty_Performance_Dealer_Wise.xlsx' : 'Loyalty_Performance_Retailer_Wise.xlsx'),
+      next: blob => this.saveBlob(blob, kind === 'asr' ? 'Loyalty_Performance_ASR_Wise.xlsx' : kind === 'dealer' ? 'Loyalty_Performance_Dealer_Wise.xlsx' : kind === 'invoiced-retailer' ? 'Loyalty_Performance_Invoiced_Retailers.xlsx' : 'Loyalty_Performance_Retailer_Wise.xlsx'),
       error: error => this.handleBlobError(error)
     });
   }
