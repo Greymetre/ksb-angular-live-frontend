@@ -82,6 +82,23 @@ export class UsersComponent implements OnInit {
   showFilters = false;
   importResult: UserImportResult | null = null;
   showImportResult = false;
+
+  // Calling popup state.
+  showCalling = false;
+  callingUser: User | null = null;
+  callingDate = '';
+  callingData: any = null;
+  callingLoading = false;
+  callingRemark = '';
+  callingIssue = '';
+  callingSubmitting = false;
+
+  // Calling / Issue report export modal.
+  showCallingExport = false;
+  callingExportType: 'calling' | 'issue' = 'calling';
+  callingExportStart = '';
+  callingExportEnd = '';
+  callingExporting = false;
   showUserModal = false;
   errorMessage = '';
   toast: ToastModel = { visible: false, message: '', type: 'success' };
@@ -163,6 +180,14 @@ export class UsersComponent implements OnInit {
 
   get canUpload(): boolean {
     return this.authService.hasPermission('user.import');
+  }
+
+  get canCallingDetails(): boolean {
+    return this.authService.hasPermission('user.calling_details');
+  }
+
+  get canCallingSubmit(): boolean {
+    return this.authService.hasPermission('user.calling_submit');
   }
 
   get citySelectOptions(): SearchableSelectOption[] {
@@ -436,6 +461,124 @@ export class UsersComponent implements OnInit {
         this.showToast(error.message, 'error');
         this.refreshView();
       }
+    });
+  }
+
+  // --- Calling popup ---------------------------------------------------------
+  openCalling(user: User): void {
+    this.callingUser = user;
+    this.callingDate = this.yesterdayInput();
+    this.callingRemark = '';
+    this.callingIssue = '';
+    this.callingData = null;
+    this.showCalling = true;
+    this.loadCallingDetails();
+  }
+
+  private yesterdayInput(): string {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  loadCallingDetails(): void {
+    if (!this.callingUser || !this.callingDate) return;
+    this.callingLoading = true;
+    this.callingData = null;
+    this.userService.getCallingDetails(this.callingUser.id, this.callingDate)
+      .pipe(finalize(() => { this.callingLoading = false; this.cdr.detectChanges(); }))
+      .subscribe({
+        next: (res: any) => { this.callingData = res?.data || null; },
+        error: () => { this.callingData = null; }
+      });
+  }
+
+  onCallingDateChange(): void {
+    this.loadCallingDetails();
+  }
+
+  closeCalling(): void {
+    this.showCalling = false;
+    this.callingUser = null;
+    this.callingData = null;
+  }
+
+  submitCalling(): void {
+    if (!this.callingUser) return;
+    if (!this.callingRemark || !this.callingRemark.trim()) {
+      this.showToast('Calling remark is required.', 'error');
+      return;
+    }
+    this.callingSubmitting = true;
+    this.userService.submitCallingReport(this.callingUser.id, {
+      date: this.callingDate,
+      calling_remark: this.callingRemark.trim(),
+      issue: (this.callingIssue || '').trim()
+    }).pipe(finalize(() => { this.callingSubmitting = false; this.cdr.detectChanges(); }))
+      .subscribe({
+        next: () => {
+          this.showToast('Calling report submitted successfully.', 'success');
+          this.closeCalling();
+        },
+        error: (error: any) => {
+          const msg = error?.error?.message?.calling_remark?.[0] || error?.error?.message || 'Submit failed.';
+          this.showToast(typeof msg === 'string' ? msg : 'Submit failed.', 'error');
+        }
+      });
+  }
+
+  // --- Calling / Issue report exports ---------------------------------------
+  get canCallingReportExport(): boolean {
+    return this.authService.hasPermission('user.calling_report_export');
+  }
+  get canIssueReportExport(): boolean {
+    return this.authService.hasPermission('user.issue_report_export');
+  }
+
+  openCallingExport(type: 'calling' | 'issue'): void {
+    this.callingExportType = type;
+    const end = new Date();
+    const start = new Date();
+    start.setMonth(start.getMonth() - 1);
+    this.callingExportEnd = this.dateToInput(end);
+    this.callingExportStart = this.dateToInput(start);
+    this.showCallingExport = true;
+  }
+
+  private dateToInput(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  closeCallingExport(): void {
+    this.showCallingExport = false;
+  }
+
+  runCallingExport(): void {
+    if (!this.callingExportStart || !this.callingExportEnd) {
+      this.showToast('Please select a date range.', 'error');
+      return;
+    }
+    if (this.callingExportEnd < this.callingExportStart) {
+      this.showToast('End date cannot be before start date.', 'error');
+      return;
+    }
+    this.callingExporting = true;
+    const isIssue = this.callingExportType === 'issue';
+    const req = isIssue
+      ? this.userService.downloadIssueReport(this.callingExportStart, this.callingExportEnd)
+      : this.userService.downloadCallingReport(this.callingExportStart, this.callingExportEnd);
+    req.pipe(finalize(() => { this.callingExporting = false; this.cdr.detectChanges(); })).subscribe({
+      next: blob => {
+        this.downloadBlob(blob, `${isIssue ? 'Issue' : 'Calling'}_Report_${this.callingExportStart}_${this.callingExportEnd}.xlsx`);
+        this.showCallingExport = false;
+      },
+      error: (error: any) => this.showToast(error?.message || 'Export failed.', 'error')
     });
   }
 

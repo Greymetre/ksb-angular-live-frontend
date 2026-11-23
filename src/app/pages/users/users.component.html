@@ -74,6 +74,12 @@
         <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Export Users'" (click)="exportUsers()" [disabled]="exporting || !canExport" *ngIf="canExport">
           <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
         </button>
+        <button class="btn-icon-round" title="Calling Report" (click)="openCallingExport('calling')" *ngIf="canCallingReportExport">
+          <span class="material-icons">support_agent</span>
+        </button>
+        <button class="btn-icon-round" title="Issue Report" (click)="openCallingExport('issue')" *ngIf="canIssueReportExport">
+          <span class="material-icons">report_problem</span>
+        </button>
         <button class="btn-icon-round add-btn" title="Add User" (click)="openCreateModal()" *ngIf="canCreate">
           <span class="material-icons">add</span>
         </button>
@@ -115,6 +121,9 @@
               <div class="action-btns">
                 <button class="btn-edit" title="Edit User" (click)="openEditModal(user)" *ngIf="canEdit">
                   <span class="material-icons">edit</span>
+                </button>
+                <button class="btn-call" title="Calling Details" (click)="openCalling(user)" *ngIf="canCallingDetails">
+                  <span class="material-icons">call</span>
                 </button>
                 <button class="btn-danger" title="Delete User" (click)="deleteUser(user)" *ngIf="canDelete">
                   <span class="material-icons">close</span>
@@ -408,6 +417,95 @@
           {{ saving ? 'Saving...' : 'SUBMIT' }}
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Calling Details popup -->
+<div class="modal-overlay" *ngIf="showCalling" (click)="closeCalling()">
+  <div class="modal-box calling-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon calling-icon"><span class="material-icons">call</span></div>
+    <div class="modal-header-row">
+      <h3>Calling Details<span class="calling-sub" *ngIf="callingUser"> — {{ callingUser.name }}</span></h3>
+      <button class="modal-close-btn" (click)="closeCalling()"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="calling-body">
+      <div class="calling-date-row">
+        <label>Date</label>
+        <input type="date" [(ngModel)]="callingDate" (change)="onCallingDateChange()" name="callingDate"/>
+      </div>
+
+      <div class="calling-loading" *ngIf="callingLoading"><span class="material-icons spin">autorenew</span> Loading...</div>
+
+      <ng-container *ngIf="!callingLoading && callingData as d">
+        <div class="calling-grid">
+          <div class="cg-item"><span class="cg-label">Zone</span><span class="cg-value">{{ d.zone || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Branch</span><span class="cg-value">{{ d.branch || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Employee Code</span><span class="cg-value">{{ d.employee_code || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Employee Name</span><span class="cg-value">{{ d.employee_name || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Designation</span><span class="cg-value">{{ d.designation || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Head Quarters</span><span class="cg-value">{{ d.head_quarters || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Date of Joining</span><span class="cg-value">{{ d.date_of_joining || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Date</span><span class="cg-value">{{ d.date || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Punchin Time</span><span class="cg-value">{{ d.punchin_time || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Punchout Time</span><span class="cg-value">{{ d.punchout_time || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Total Working Time</span><span class="cg-value">{{ d.total_working_time || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Working Type</span><span class="cg-value">{{ d.working_type || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">First Customer Checkin Time</span><span class="cg-value">{{ d.first_customer_checkin_time || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Last Customer Checkout Time</span><span class="cg-value">{{ d.last_customer_checkout_time || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Total Visit</span><span class="cg-value">{{ d.total_visit }}</span></div>
+          <div class="cg-item"><span class="cg-label">Total Order</span><span class="cg-value">{{ d.total_order }}</span></div>
+          <div class="cg-item"><span class="cg-label">R-30 Count</span><span class="cg-value">{{ d.r30_count }}</span></div>
+          <div class="cg-item"><span class="cg-label">R-60 Count</span><span class="cg-value">{{ d.r60_count }}</span></div>
+          <div class="cg-item"><span class="cg-label">R-90+ Count</span><span class="cg-value">{{ d.r90_count }}</span></div>
+          <div class="cg-item"><span class="cg-label">Total Retailer Registered</span><span class="cg-value">{{ d.total_retailer_registered }}</span></div>
+          <div class="cg-item"><span class="cg-label">Total Retailer Order In Active</span><span class="cg-value">{{ d.total_retailer_order_active }}</span></div>
+          <div class="cg-item"><span class="cg-label">Total Retailer Order In Inactive</span><span class="cg-value">{{ d.total_retailer_order_inactive }}</span></div>
+          <div class="cg-item"><span class="cg-label">Total Influencer Registered</span><span class="cg-value">{{ d.total_influencer_registered }}</span></div>
+        </div>
+
+        <div class="calling-inputs">
+          <label>Calling Remark</label>
+          <textarea rows="3" [(ngModel)]="callingRemark" name="callingRemark" placeholder="Enter calling remark..."></textarea>
+          <label>Issue</label>
+          <textarea rows="3" [(ngModel)]="callingIssue" name="callingIssue" placeholder="Enter issue..."></textarea>
+        </div>
+      </ng-container>
+
+      <div class="calling-empty" *ngIf="!callingLoading && !callingData">No data found for this user.</div>
+    </div>
+
+    <div class="modal-actions" *ngIf="canCallingSubmit && callingData && !callingLoading">
+      <button class="btn-submit-modal" (click)="submitCalling()" [disabled]="callingSubmitting">
+        {{ callingSubmitting ? 'Submitting...' : 'SUBMIT' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Calling / Issue report export popup -->
+<div class="modal-overlay" *ngIf="showCallingExport" (click)="closeCallingExport()">
+  <div class="modal-box calling-export-modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon calling-icon"><span class="material-icons">{{ callingExportType === 'issue' ? 'report_problem' : 'support_agent' }}</span></div>
+    <div class="modal-header-row">
+      <h3>{{ callingExportType === 'issue' ? 'Issue Report' : 'Calling Report' }} Export</h3>
+      <button class="modal-close-btn" (click)="closeCallingExport()"><span class="material-icons">close</span></button>
+    </div>
+    <div class="calling-body">
+      <div class="calling-export-row">
+        <label>Start Date</label>
+        <input type="date" [(ngModel)]="callingExportStart" name="callingExportStart" [max]="callingExportEnd"/>
+      </div>
+      <div class="calling-export-row">
+        <label>End Date</label>
+        <input type="date" [(ngModel)]="callingExportEnd" name="callingExportEnd" [min]="callingExportStart"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-submit-modal" (click)="runCallingExport()" [disabled]="callingExporting">
+        {{ callingExporting ? 'Exporting...' : 'Download' }}
+      </button>
     </div>
   </div>
 </div>

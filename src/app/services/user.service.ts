@@ -153,6 +153,13 @@ export class UserService {
     );
   }
 
+  /** Daily activity snapshot for the User listing "calling" popup, for a chosen date. */
+  getCallingDetails(userId: number, date: string): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/users/${userId}/calling-details?date=${date}`, {
+      headers: this.authHeaders()
+    });
+  }
+
   /** Signed-in user's own record. Unlike getUser() this needs no user_access. */
   getMyProfile(): Observable<User> {
     return this.http.get<UserApiResponse>(`${this.baseUrl}/profile/details`, {
@@ -225,6 +232,27 @@ export class UserService {
       headers: this.authHeaders(),
       params: this.filterParams(filters),
       responseType: 'blob'
+    }).pipe(catchError(error => this.handleError(error)));
+  }
+
+  /** Save a calling report (daily snapshot + remark/issue) for a user and date. */
+  submitCallingReport(userId: number, body: { date: string; calling_remark: string; issue: string }): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/users/${userId}/calling-report`, body, {
+      headers: this.authHeaders()
+    });
+  }
+
+  downloadCallingReport(startDate: string, endDate: string): Observable<Blob> {
+    const params = new HttpParams().set('start_date', startDate).set('end_date', endDate);
+    return this.http.get(`${this.baseUrl}/users/calling-report/export`, {
+      headers: this.authHeaders(), params, responseType: 'blob'
+    }).pipe(catchError(error => this.handleError(error)));
+  }
+
+  downloadIssueReport(startDate: string, endDate: string): Observable<Blob> {
+    const params = new HttpParams().set('start_date', startDate).set('end_date', endDate);
+    return this.http.get(`${this.baseUrl}/users/issue-report/export`, {
+      headers: this.authHeaders(), params, responseType: 'blob'
     }).pipe(catchError(error => this.handleError(error)));
   }
 
