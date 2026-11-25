@@ -1,0 +1,199 @@
+<div class="user-issues-page">
+  <div class="toast-message" [class.show]="!!success">{{ success }}</div>
+
+  <div class="page-heading">
+    <div class="page-icon"><span class="material-icons">report_problem</span></div>
+    <h2 class="page-title">User Issues</h2>
+    <button type="button" class="filter-toggle-btn" [class.active]="showFilters" title="Filters" (click)="showFilters = !showFilters">
+      <span class="material-icons">filter_alt</span>
+    </button>
+  </div>
+
+  <div class="filter-panel" *ngIf="showFilters">
+    <div class="filter-field">
+      <label>From Date</label>
+      <input type="date" [(ngModel)]="startDate" [max]="endDate" (change)="applyFilters()">
+    </div>
+    <div class="filter-field">
+      <label>To Date</label>
+      <input type="date" [(ngModel)]="endDate" [min]="startDate" (change)="applyFilters()">
+    </div>
+    <div class="filter-field">
+      <label>Status</label>
+      <select [(ngModel)]="statusFilter" (ngModelChange)="applyFilters()">
+        <option value="">All</option>
+        <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
+      </select>
+    </div>
+    <div class="filter-actions">
+      <button type="button" class="mini-btn light" (click)="statusFilter=''; applyFilters()">Clear</button>
+    </div>
+  </div>
+
+  <div class="alert error-alert" *ngIf="error">{{ error }}</div>
+
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <label>Show
+        <select [(ngModel)]="pageSize" (ngModelChange)="changePageSize()" class="entries-input">
+          <option [ngValue]="10">10</option><option [ngValue]="25">25</option>
+          <option [ngValue]="50">50</option><option [ngValue]="100">100</option>
+        </select> entries
+      </label>
+    </div>
+    <div class="toolbar-right">
+      <div class="icon-action-group">
+        <button class="btn-icon-round" [title]="exporting ? 'Exporting...' : 'Export'" (click)="export()" [disabled]="exporting" *ngIf="canExport">
+          <span class="material-icons">{{ exporting ? 'hourglass_top' : 'cloud_download' }}</span>
+        </button>
+        <button class="btn-icon-round add-btn" title="Create Issue" (click)="openCreate()" *ngIf="canCreate">
+          <span class="material-icons">add</span>
+        </button>
+      </div>
+      <div class="search-group">
+        <label>Search:</label>
+        <input type="text" [(ngModel)]="search" (ngModelChange)="scheduleSearch()" class="table-search" placeholder="Name, code, zone, issue..."/>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="loading-bar" *ngIf="loading">Loading issues...</div>
+    <div class="table-scroll">
+      <table class="data-table issues-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Zone</th>
+            <th>Branch</th>
+            <th>E Code</th>
+            <th>Name</th>
+            <th>Designation</th>
+            <th>Issue Date</th>
+            <th>Issue Description</th>
+            <th>Status</th>
+            <th>Issue Create By</th>
+            <th>Solve By</th>
+            <th>Solve Remark</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of rows; let i = index">
+            <td>{{ (page - 1) * pageSize + i + 1 }}</td>
+            <td>{{ r.zone || '-' }}</td>
+            <td>{{ r.branch || '-' }}</td>
+            <td>{{ r.employee_code || '-' }}</td>
+            <td>{{ r.employee_name || '-' }}</td>
+            <td>{{ r.designation || '-' }}</td>
+            <td>{{ r.issue_date || '-' }}</td>
+            <td class="wrap">{{ r.issue_description || '-' }}</td>
+            <td><span class="status-badge" [ngClass]="statusClass(r.status)">{{ r.status || 'Pending' }}</span></td>
+            <td>{{ r.issue_created_by || '-' }}</td>
+            <td>{{ r.solved_by_name || '-' }}</td>
+            <td class="wrap">{{ r.solve_remark || '-' }}</td>
+            <td>
+              <button *ngIf="canResolveRow(r)" class="resolve-btn" (click)="openResolve(r)" title="Resolve">
+                <span class="material-icons">task_alt</span>Resolve
+              </button>
+              <span *ngIf="!canResolveRow(r) && (r.status || '').toLowerCase() === 'resolved'" class="locked-label" title="Resolved">
+                <span class="material-icons">lock</span>
+              </span>
+              <span *ngIf="!canResolveRow(r) && (r.status || '').toLowerCase() !== 'resolved'">-</span>
+            </td>
+          </tr>
+          <tr *ngIf="!rows.length && !loading"><td colspan="13" class="empty-row">No issues found.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <span>Showing {{ total ? ((page - 1) * pageSize + 1) : 0 }} to {{ page * pageSize > total ? total : page * pageSize }} of {{ total }} entries</span>
+      <div class="page-buttons">
+        <button class="arrow" [disabled]="page <= 1" (click)="changePage(page - 1)">‹</button>
+        <button *ngFor="let p of visiblePages" [class.active]="p === page" (click)="changePage(p)">{{ p }}</button>
+        <button class="arrow" [disabled]="page >= lastPage" (click)="changePage(page + 1)">›</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create issue popup -->
+  <div class="modal-overlay" *ngIf="showCreate" (click)="closeCreate()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-icon"><span class="material-icons">add_alert</span></div>
+      <div class="modal-header-row">
+        <h3>Create Issue</h3>
+        <button class="modal-close-btn" (click)="closeCreate()"><span class="material-icons">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>User <span class="req">*</span></label>
+          <app-searchable-select
+            [options]="solverSelectOptions"
+            labelKey="name"
+            [selected]="createUserId"
+            placeholder="Select user"
+            [pageSize]="25"
+            (selectedChange)="createUserId = $event || ''">
+          </app-searchable-select>
+        </div>
+        <div class="field">
+          <label>Issue <span class="req">*</span></label>
+          <textarea rows="3" [(ngModel)]="createIssue" name="createIssue" placeholder="Describe the issue..."></textarea>
+        </div>
+        <div class="modal-error" *ngIf="createError">{{ createError }}</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="closeCreate()" [disabled]="createSaving">Cancel</button>
+        <button class="btn-submit" (click)="submitCreate()" [disabled]="createSaving">{{ createSaving ? 'Saving...' : 'Create' }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resolve popup -->
+  <div class="modal-overlay" *ngIf="showResolve" (click)="closeResolve()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-icon"><span class="material-icons">task_alt</span></div>
+      <div class="modal-header-row">
+        <h3>Resolve Issue</h3>
+        <button class="modal-close-btn" (click)="closeResolve()"><span class="material-icons">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="issue-preview" *ngIf="resolveRow">
+          <strong>{{ resolveRow.employee_name }}</strong>
+          <small>{{ resolveRow.issue_date }} · {{ resolveRow.zone }}</small>
+          <p>{{ resolveRow.issue_description }}</p>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select [(ngModel)]="resolveStatus" name="resolveStatus">
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+        <ng-container *ngIf="resolveStatus === 'Resolved'">
+          <div class="field">
+            <label>Solve By <span class="req">*</span></label>
+            <app-searchable-select
+              [options]="solverSelectOptions"
+              labelKey="name"
+              [selected]="resolveSolvedBy"
+              placeholder="Select user"
+              [pageSize]="25"
+              (selectedChange)="resolveSolvedBy = $event || ''">
+            </app-searchable-select>
+          </div>
+          <div class="field">
+            <label>Solve Remark <span class="req">*</span></label>
+            <textarea rows="3" [(ngModel)]="resolveRemark" name="resolveRemark" placeholder="Enter resolution remark..."></textarea>
+          </div>
+        </ng-container>
+        <p class="hint" *ngIf="resolveStatus !== 'Resolved'">Solve By and Solve Remark are captured only when the issue is Resolved.</p>
+        <div class="modal-error" *ngIf="resolveError">{{ resolveError }}</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="closeResolve()" [disabled]="resolveSaving">Cancel</button>
+        <button class="btn-submit" (click)="submitResolve()" [disabled]="resolveSaving">{{ resolveSaving ? 'Saving...' : 'Submit' }}</button>
+      </div>
+    </div>
+  </div>
+</div>

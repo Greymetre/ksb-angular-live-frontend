@@ -123,6 +123,7 @@ export const MENU_ITEMS: MenuItem[] = [
         { label: 'User App details', icon: 'details', route: '/user-app-details', permission: 'user_app.view' },
         { label: 'User Target', icon: 'loupe', route: '/user-targets', permission: 'user_target.view' },
         { label: 'User Live Activity', icon: 'share_location', route: '/user-live-activity', permission: 'user_activity.view' },
+        { label: 'User Issues', icon: 'report_problem', route: '/user-issues', permission: 'user_issue.view' },
         { label: 'Tours', icon: 'tour', route: '/tours', permission: 'tour.view' },
         { label: 'Promotional Activities', icon: 'campaign', route: '/promotional-activities', permission: 'promotional_activity.view' },
       ]

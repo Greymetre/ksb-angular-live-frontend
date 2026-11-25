@@ -42,6 +42,7 @@ import { FieldKonnectAppSettingComponent } from './pages/field-konnect-app-setti
 import { LoyaltyAppSettingComponent } from './pages/loyalty-app-setting/loyalty-app-setting.component';
 import { OrderDispatchComponent } from './pages/order-dispatch/order-dispatch.component';
 import { UserMonitoringComponent } from './pages/user-monitoring/user-monitoring.component';
+import { UserIssuesComponent } from './pages/user-issues/user-issues.component';
 import { DealerSchemeComponent } from './pages/dealer-scheme/dealer-scheme.component';
 
 const routes: Routes = [
@@ -116,6 +117,7 @@ const routes: Routes = [
       { path: 'user-app-details', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'user_app.view', mode: 'apps' } },
       { path: 'customer-app-details', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'customer_app.view', mode: 'customers' } },
       { path: 'user-live-activity', component: UserMonitoringComponent, canActivate: [authGuard], data: { permission: 'user_activity.view', mode: 'live' } },
+      { path: 'user-issues', component: UserIssuesComponent, canActivate: [authGuard], data: { permission: 'user_issue.view' } },
       {
         path: 'holidays',
         component: HrComponent,
