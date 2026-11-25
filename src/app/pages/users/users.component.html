@@ -437,6 +437,7 @@
 
       <ng-container *ngIf="!callingLoading && callingData as d">
         <div class="calling-grid">
+          <!-- Fills column-major (grid-auto-flow: column, 12 rows): left column then right column. -->
           <div class="cg-item"><span class="cg-label">Zone</span><span class="cg-value">{{ d.zone || '-' }}</span></div>
           <div class="cg-item"><span class="cg-label">Branch</span><span class="cg-value">{{ d.branch || '-' }}</span></div>
           <div class="cg-item"><span class="cg-label">Employee Code</span><span class="cg-value">{{ d.employee_code || '-' }}</span></div>
@@ -445,21 +446,21 @@
           <div class="cg-item"><span class="cg-label">Head Quarters</span><span class="cg-value">{{ d.head_quarters || '-' }}</span></div>
           <div class="cg-item"><span class="cg-label">Date of Joining</span><span class="cg-value">{{ d.date_of_joining || '-' }}</span></div>
           <div class="cg-item"><span class="cg-label">Date</span><span class="cg-value">{{ d.date || '-' }}</span></div>
-          <div class="cg-item"><span class="cg-label">Punchin Time</span><span class="cg-value">{{ d.punchin_time || '-' }}</span></div>
-          <div class="cg-item"><span class="cg-label">Punchout Time</span><span class="cg-value">{{ d.punchout_time || '-' }}</span></div>
-          <div class="cg-item"><span class="cg-label">Total Working Time</span><span class="cg-value">{{ d.total_working_time || '-' }}</span></div>
-          <div class="cg-item"><span class="cg-label">Working Type</span><span class="cg-value">{{ d.working_type || '-' }}</span></div>
-          <div class="cg-item"><span class="cg-label">First Customer Checkin Time</span><span class="cg-value">{{ d.first_customer_checkin_time || '-' }}</span></div>
-          <div class="cg-item"><span class="cg-label">Last Customer Checkout Time</span><span class="cg-value">{{ d.last_customer_checkout_time || '-' }}</span></div>
-          <div class="cg-item"><span class="cg-label">Total Visit</span><span class="cg-value">{{ d.total_visit }}</span></div>
-          <div class="cg-item"><span class="cg-label">Total Order</span><span class="cg-value">{{ d.total_order }}</span></div>
-          <div class="cg-item"><span class="cg-label">R-30 Count</span><span class="cg-value">{{ d.r30_count }}</span></div>
-          <div class="cg-item"><span class="cg-label">R-60 Count</span><span class="cg-value">{{ d.r60_count }}</span></div>
-          <div class="cg-item"><span class="cg-label">R-90+ Count</span><span class="cg-value">{{ d.r90_count }}</span></div>
           <div class="cg-item"><span class="cg-label">Total Retailer Registered</span><span class="cg-value">{{ d.total_retailer_registered }}</span></div>
           <div class="cg-item"><span class="cg-label">Total Retailer Order In Active</span><span class="cg-value">{{ d.total_retailer_order_active }}</span></div>
           <div class="cg-item"><span class="cg-label">Total Retailer Order In Inactive</span><span class="cg-value">{{ d.total_retailer_order_inactive }}</span></div>
           <div class="cg-item"><span class="cg-label">Total Influencer Registered</span><span class="cg-value">{{ d.total_influencer_registered }}</span></div>
+          <div class="cg-item"><span class="cg-label">Punchin Time</span><span class="cg-value" [class.late-blink]="isTimeAfter(d.punchin_time, 10)">{{ toAmPm(d.punchin_time) }}</span></div>
+          <div class="cg-item"><span class="cg-label">Punchout Time</span><span class="cg-value">{{ toAmPm(d.punchout_time) }}</span></div>
+          <div class="cg-item"><span class="cg-label">Total Working Time</span><span class="cg-value">{{ d.total_working_time || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">Working Type</span><span class="cg-value">{{ d.working_type || '-' }}</span></div>
+          <div class="cg-item"><span class="cg-label">First Customer Checkin Time</span><span class="cg-value" [class.late-blink]="isTimeAfter(d.first_customer_checkin_time, 12)">{{ toAmPm(d.first_customer_checkin_time) }}</span></div>
+          <div class="cg-item"><span class="cg-label">Last Customer Checkout Time</span><span class="cg-value">{{ toAmPm(d.last_customer_checkout_time) }}</span></div>
+          <div class="cg-item"><span class="cg-label">Total Visit</span><span class="cg-value">{{ d.total_visit }}</span></div>
+          <div class="cg-item"><span class="cg-label">Total Order Value</span><span class="cg-value" [class.late-blink]="!(+d.total_order_value)">{{ (d.total_order_value || 0) | number:'1.0-2' }}</span></div>
+          <div class="cg-item"><span class="cg-label">R-30 Count</span><span class="cg-value">{{ d.r30_count }}</span></div>
+          <div class="cg-item"><span class="cg-label">R-60 Count</span><span class="cg-value">{{ d.r60_count }}</span></div>
+          <div class="cg-item"><span class="cg-label">R-90+ Count</span><span class="cg-value">{{ d.r90_count }}</span></div>
         </div>
 
         <div class="calling-inputs">

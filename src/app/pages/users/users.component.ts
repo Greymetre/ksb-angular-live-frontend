@@ -500,6 +500,33 @@ export class UsersComponent implements OnInit {
     this.loadCallingDetails();
   }
 
+  /** "HH:mm[:ss]" -> "h:mm AM/PM". Blank/invalid -> "-". */
+  toAmPm(time: string | null | undefined): string {
+    const m = this.timeMinutes(time);
+    if (m === null) return '-';
+    let h = Math.floor(m / 60);
+    const min = m % 60;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if (h === 0) h = 12;
+    return `${h}:${String(min).padStart(2, '0')} ${ampm}`;
+  }
+
+  /** True when a punch/check time is strictly after the given hour (24h). Blank -> false. */
+  isTimeAfter(time: string | null | undefined, hour: number): boolean {
+    const m = this.timeMinutes(time);
+    return m !== null && m > hour * 60;
+  }
+
+  private timeMinutes(time: string | null | undefined): number | null {
+    if (!time) return null;
+    const parts = String(time).trim().split(':');
+    if (parts.length < 2) return null;
+    const h = Number(parts[0]);
+    const min = Number(parts[1]);
+    if (!Number.isFinite(h) || !Number.isFinite(min)) return null;
+    return h * 60 + min;
+  }
+
   closeCalling(): void {
     this.showCalling = false;
     this.callingUser = null;
