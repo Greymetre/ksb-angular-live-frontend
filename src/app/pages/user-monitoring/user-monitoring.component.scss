@@ -254,3 +254,14 @@ td {
     flex-wrap: wrap;
   }
 }
+
+.table-tools { display: flex; align-items: center; gap: 12px; }
+.table-tools .export-btn {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border: none; border-radius: 6px; cursor: pointer;
+  background: var(--primary-blue, #1a6fd4); color: #fff; font-weight: 600; font-size: 13px;
+  .material-icons { font-size: 17px; }
+  &:hover { background: var(--primary-blue-dark, #1559b0); }
+  &:disabled { opacity: .6; cursor: default; }
+}

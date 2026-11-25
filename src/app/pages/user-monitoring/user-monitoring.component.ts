@@ -29,6 +29,13 @@ export class UserMonitoringComponent implements OnInit {
   get canResetUuid(){return this.auth.hasPermission(this.mode==='customers'?'customer_app.reset_device':'user_app.reset_device');}
   canLogoutRow(row:any){return row?.login_status==='1'&&this.canForceLogout;}
   canResetUuidRow(row:any){return !!row?.unique_id&&this.canResetUuid;}
+  get canCustomerAppExport(){return this.auth.hasPermission('customer_app.export');}
+  exporting=false;
+  exportCustomerApp(){
+    if(this.exporting)return;
+    this.exporting=true;
+    this.http.get(`${API_BASE_URL}/customer-app-details/export`,{headers:this.headers(),responseType:'blob'}).pipe(finalize(()=>{this.exporting=false;this.cdr.detectChanges();})).subscribe({next:(blob:any)=>{const url=window.URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Customer_App_Details.xlsx';a.click();window.URL.revokeObjectURL(url);},error:(e:any)=>this.fail(e,false)});
+  }
   options(){
     this.optionsLoading=true;
     if(this.mode==='customers'){
