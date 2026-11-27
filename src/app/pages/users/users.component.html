@@ -463,11 +463,51 @@
           <div class="cg-item"><span class="cg-label">R-90+ Count</span><span class="cg-value">{{ d.r90_count }}</span></div>
         </div>
 
+        <!-- Target & Achievement (Lac) - month = selected date's month (MTD), YTD = Jan..selected date -->
+        <div class="calling-section-title">Target &amp; Achievement <small>(in Lac)</small></div>
+        <div class="ta-grid">
+          <div class="ta-item"><span class="ta-label">Month Target</span><span class="ta-value">{{ (d.month_target || 0) | number:'1.0-2' }}</span></div>
+          <div class="ta-item"><span class="ta-label">Month Achievement</span><span class="ta-value">{{ (d.month_achievement || 0) | number:'1.0-2' }}</span></div>
+          <div class="ta-item"><span class="ta-label">YTD Target</span><span class="ta-value">{{ (d.ytd_target || 0) | number:'1.0-2' }}</span></div>
+          <div class="ta-item"><span class="ta-label">YTD Achievement</span><span class="ta-value">{{ (d.ytd_achievement || 0) | number:'1.0-2' }}</span></div>
+        </div>
+
         <div class="calling-inputs">
           <label>Calling Remark</label>
           <textarea rows="3" [(ngModel)]="callingRemark" name="callingRemark" placeholder="Enter calling remark..."></textarea>
           <label>Issue</label>
           <textarea rows="3" [(ngModel)]="callingIssue" name="callingIssue" placeholder="Enter issue..."></textarea>
+        </div>
+
+        <!-- Previous remarks of this user -->
+        <div class="calling-history" *ngIf="previousRemarks.length">
+          <button type="button" class="history-toggle" (click)="showPrevRemarks = !showPrevRemarks">
+            <span class="material-icons">{{ showPrevRemarks ? 'expand_less' : 'expand_more' }}</span>
+            Previous Remarks ({{ previousRemarks.length }})
+          </button>
+          <div class="history-list" *ngIf="showPrevRemarks">
+            <div class="history-item" *ngFor="let h of previousRemarks">
+              <div class="history-head"><span class="history-date">{{ h.submitted_on }}</span></div>
+              <div class="history-line">{{ h.calling_remark }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Previous issues of this user -->
+        <div class="calling-history" *ngIf="previousIssues.length">
+          <button type="button" class="history-toggle" (click)="showPrevIssues = !showPrevIssues">
+            <span class="material-icons">{{ showPrevIssues ? 'expand_less' : 'expand_more' }}</span>
+            Previous Issues ({{ previousIssues.length }})
+          </button>
+          <div class="history-list" *ngIf="showPrevIssues">
+            <div class="history-item" *ngFor="let h of previousIssues">
+              <div class="history-head">
+                <span class="history-date">{{ h.submitted_on }}</span>
+                <span class="history-status" [ngClass]="'hs-' + (h.status || 'Pending').toLowerCase().replace(' ','-')">{{ h.status }}</span>
+              </div>
+              <div class="history-line issue">{{ h.issue }}</div>
+            </div>
+          </div>
         </div>
       </ng-container>
 

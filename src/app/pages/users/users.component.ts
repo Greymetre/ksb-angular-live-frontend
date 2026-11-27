@@ -88,7 +88,17 @@ export class UsersComponent implements OnInit {
   callingUser: User | null = null;
   callingDate = '';
   callingData: any = null;
+  callingHistory: any[] = [];
+  showPrevRemarks = false;
+  showPrevIssues = false;
   callingLoading = false;
+
+  get previousRemarks(): any[] {
+    return (this.callingHistory || []).filter(h => (h.calling_remark || '').trim());
+  }
+  get previousIssues(): any[] {
+    return (this.callingHistory || []).filter(h => (h.issue || '').trim());
+  }
   callingRemark = '';
   callingIssue = '';
   callingSubmitting = false;
@@ -491,8 +501,8 @@ export class UsersComponent implements OnInit {
     this.userService.getCallingDetails(this.callingUser.id, this.callingDate)
       .pipe(finalize(() => { this.callingLoading = false; this.cdr.detectChanges(); }))
       .subscribe({
-        next: (res: any) => { this.callingData = res?.data || null; },
-        error: () => { this.callingData = null; }
+        next: (res: any) => { this.callingData = res?.data || null; this.callingHistory = res?.history || []; },
+        error: () => { this.callingData = null; this.callingHistory = []; }
       });
   }
 
@@ -531,6 +541,9 @@ export class UsersComponent implements OnInit {
     this.showCalling = false;
     this.callingUser = null;
     this.callingData = null;
+    this.callingHistory = [];
+    this.showPrevRemarks = false;
+    this.showPrevIssues = false;
   }
 
   submitCalling(): void {
